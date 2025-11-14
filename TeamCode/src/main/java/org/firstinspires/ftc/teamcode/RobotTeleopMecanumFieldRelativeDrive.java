@@ -77,6 +77,10 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         feedingRotation = hardwareMap.get(DcMotor.class, "feedingRotation");
 
+        kicker = hardwareMap.get(Servo.class, "kicker");
+
+        turretspinner = hardwareMap.get(CRServo.class, "turretspinner");
+
         // We set the left motors in reverse which is needed for drive trains where the
         // left
         // motors are opposite to the right ones.
@@ -212,21 +216,21 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     public void feeding() {
         if (gamepad2.dpad_up) {
-            FeedingRotation.setPower(1);
+            feedingRotation.setPower(1);
         } else if (gamepad2.dpad_down) {
-            FeedingRotation.setPower(-1);
+            feedingRotation.setPower(-1);
         } else {
-            FeedingRotation.setPower(0);
+            feedingRotation.setPower(0);
         }
     }
 
     public void turret() {
         if (gamepad2.left_bumper) {
-            Turretspinner.setPower(1);
+            turretSpinner.setPower(1);
         } else if (gamepad2.right_bumper) {
-            Turretspinner.setPower(-1);
+            turretSpinner.setPower(-1);
         } else {
-            Turretspinner.setPower(0);
+            turretSpinner.setPower(0);
         }
     }
 }

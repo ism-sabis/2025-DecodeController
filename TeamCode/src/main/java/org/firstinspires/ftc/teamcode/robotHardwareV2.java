@@ -71,7 +71,7 @@ public class RobotHardware {
 
     private Servo kicker = null;
 
-    private CRServo turretspinner = null;
+    private CRServo turretSpinner = null;
     // Define Drive constants. Make them public so they CAN be used by the calling
     // OpMode
     public static final double frontLeftPower = 0.5;
@@ -156,7 +156,7 @@ public class RobotHardware {
         // Define and initialize ALL installed servos.
         kicker = hardwareMap.get(Servo.class, "Kicker");
 
-        turretspinner = hardwareMap.get(CRServo.class, "Turretspinner");
+        turretSpinner = hardwareMap.get(CRServo.class, "Turretspinner");
 
         /*
          * leftHand.setPosition(MID_SERVO);
@@ -209,9 +209,11 @@ public class RobotHardware {
      *
      * @param power driving power (-1.0 to 1.0)
      */
-    public void setArmPower(double power) {
-        armMotor.setPower(power);
-    }
+    /*
+     * public void setArmPower(double power) {
+     * armMotor.setPower(power);
+     * }
+     */
 
     /**
      * Send the two hand-servos to opposing (mirrored) positions, based on the
@@ -219,9 +221,11 @@ public class RobotHardware {
      *
      * @param offset
      */
-    public void setHandPositions(double offset) {
-        offset = Range.clip(offset, -0.5, 0.5);
-        leftHand.setPosition(MID_SERVO + offset);
-        rightHand.setPosition(MID_SERVO - offset);
-    }
+    /*
+     * public void setHandPositions(double offset) {
+     * offset = Range.clip(offset, -0.5, 0.5);
+     * leftHand.setPosition(MID_SERVO + offset);
+     * rightHand.setPosition(MID_SERVO - offset);
+     * }
+     */
 }
