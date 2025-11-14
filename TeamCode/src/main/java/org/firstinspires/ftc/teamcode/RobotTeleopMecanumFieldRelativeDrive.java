@@ -100,6 +100,17 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         feedingRotation.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
+        // Reset Encoder Values
+        leftLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        feedingRotation.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rearLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rearRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
         // Set Motor Power
         launcher.setPower(0);
 
@@ -143,7 +154,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
 
         launcher.setPower(gamepad2.right_trigger);
-        
+
         Kicker.setPosition(0.8 - gamepad2.left_trigger * 0.3);
 
         lift();
@@ -233,4 +244,42 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
             turretSpinner.setPower(0);
         }
     }
+
+    /**
+     * Returns the Geneva wheel position (0–5) and whether it is in a gap (true) or
+     * on a fin (false).
+     */
+    public class GenevaStatus {
+        public int position; // 0 to 5
+        public boolean inGap; // true = in slot, false = on fin
+
+        public GenevaStatus(int position, boolean inGap) {
+            this.position = position;
+            this.inGap = inGap;
+        }
+    }
+
+    public GenevaStatus getGenevaStatus(DcMotor feedingRotation) {
+        final double TICKS_PER_REV = 5377.0; // motor + 10:1 reduction
+        final int ZONES = 6;
+        final int FIN_TICKS = 116; // fin width in encoder ticks
+
+        double ticksPerZone = TICKS_PER_REV / ZONES;
+
+        // Read encoder and normalize to 0 → TICKS_PER_REV
+        int ticks = feedingRotation.getCurrentPosition();
+        ticks = ((ticks % (int) TICKS_PER_REV) + (int) TICKS_PER_REV) % (int) TICKS_PER_REV;
+
+        // Compute which zone (0–5)
+        int zone = (int) (ticks / ticksPerZone);
+
+        // Compute position inside current zone
+        double posInZone = ticks % ticksPerZone;
+
+        // true = in gap, false = on fin
+        boolean inGap = posInZone >= FIN_TICKS;
+
+        return new GenevaStatus(zone, inGap);
+    }
+
 }
