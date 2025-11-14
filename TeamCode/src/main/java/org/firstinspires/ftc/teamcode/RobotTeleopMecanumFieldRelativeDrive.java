@@ -224,7 +224,14 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         launcher.setPower(gamepad2.right_trigger);
 
-        kicker.setPosition(0.8 - gamepad2.left_trigger * 0.3);
+        GenevaStatus status = getGenevaStatus(feedingRotation);
+
+        // Kicker
+        if (status.inGap) {
+            kicker.setPosition(0.8 - gamepad2.left_trigger * 0.3);
+        } else {
+            kicker.setPosition(0.8);
+        }
 
         lift();
 
