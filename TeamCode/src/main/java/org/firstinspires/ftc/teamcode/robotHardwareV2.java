@@ -125,6 +125,9 @@ public class RobotHardware {
         rearLeft = hardwareMap.get(DcMotor.class, "rearLeft");
         rearRight = hardwareMap.get(DcMotor.class, "rearRight");
 
+        EthernetDevice = hardwareMap.get(Limelight3A.class, "Ethernet Device");
+        limelight = hardwareMap.get(Limelight3A.class, "limelightAsLimelight3A");
+
         // To drive forward, most robots need the motor on one side to be reversed,
         // because the axles point in opposite directions.
         // Pushing the left stick forward MUST make robot go forward. So adjust these

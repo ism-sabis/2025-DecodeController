@@ -81,6 +81,9 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         turretspinner = hardwareMap.get(CRServo.class, "turretspinner");
 
+        EthernetDevice = hardwareMap.get(Limelight3A.class, "Ethernet Device");
+        limelight = hardwareMap.get(Limelight3A.class, "limelightAsLimelight3A");
+
         // We set the left motors in reverse which is needed for drive trains where the
         // left
         // motors are opposite to the right ones.
@@ -121,6 +124,25 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         launcherSpeed = launcher.getPower();
         kickerPosition = kicker.getPosition();
 
+        // Limelight3A
+        LLStatus status;
+        LLResult result;
+        Pose3D botpose;
+        double captureLatency;
+        double targetingLatency;
+        List<LLResultTypes.FiducialResult> fiducialResults;
+        LLResultTypes.FiducialResult fiducialResult;
+        List<LLResultTypes.ColorResult> colorResults;
+        LLResultTypes.ColorResult colorResult;
+
+        telemetry.setMsTransmissionInterval(11);
+        EthernetDevice.pipelineSwitch(0);
+        // Starts polling for data. If you neglect to call start(), getLatestResult()
+        // will return null.
+        EthernetDevice.start();
+        telemetry.addData(">", "Robot Ready.  Press Play.");
+        telemetry.update();
+
         imu = hardwareMap.get(IMU.class, "imu");
         // This needs to be changed to match the orientation on your robot
         RevHubOrientationOnRobot.LogoFacingDirection logoDirection = RevHubOrientationOnRobot.LogoFacingDirection.UP;
@@ -131,9 +153,51 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     }
 
     // Call functions here
-    // Place acutal instructions here
+    // Place actual instructions here
     @Override
     public void loop() {
+
+        // Limelight3A
+        status = EthernetDevice.getStatus();
+        telemetry.addData("Name", status.getName());
+        telemetry.addData("LL", "Temp: " + JavaUtil.formatNumber(status.getTemp(), 1) + "C, CPU: "
+                + JavaUtil.formatNumber(status.getCpu(), 1) + "%, FPS: " + Math.round(status.getFps()));
+        telemetry.addData("Pipeline",
+                "Index: " + status.getPipelineIndex() + ", Type: " + status.getPipelineType());
+        result = limelight.getLatestResult();
+        if (result != null) {
+            // Access general information.
+            botpose = result.getBotpose();
+            captureLatency = result.getCaptureLatency();
+            targetingLatency = result.getTargetingLatency();
+            telemetry.addData("PythonOutput", JavaUtil.makeTextFromList(result.getPythonOutput(), ","));
+            telemetry.addData("tx", result.getTx());
+            telemetry.addData("txnc", result.getTxNC());
+            telemetry.addData("ty", result.getTy());
+            telemetry.addData("tync", result.getTyNC());
+            telemetry.addData("Botpose", botpose.toString());
+            telemetry.addData("LL Latency", captureLatency + targetingLatency);
+            // Access fiducial results.
+            fiducialResults = result.getFiducialResults();
+            for (LLResultTypes.FiducialResult fiducialResult_item : fiducialResults) {
+                fiducialResult = fiducialResult_item;
+                telemetry.addData("Fiducial",
+                        "ID: " + fiducialResult.getFiducialId() + ", Family: " + fiducialResult.getFamily()
+                                + ", X: " + JavaUtil.formatNumber(fiducialResult.getTargetXDegrees(), 2) + ", Y: "
+                                + JavaUtil.formatNumber(fiducialResult.getTargetYDegrees(), 2));
+                // Access color results.
+                colorResults = result.getColorResults();
+                for (LLResultTypes.ColorResult colorResult_item : colorResults) {
+                    colorResult = colorResult_item;
+                    telemetry.addData("Color", "X: " + JavaUtil.formatNumber(colorResult.getTargetXDegrees(), 2)
+                            + ", Y: " + JavaUtil.formatNumber(colorResult.getTargetYDegrees(), 2));
+                }
+            }
+        } else {
+            telemetry.addData("Limelight", "No data available");
+        }
+        telemetry.update();
+
         telemetry.addLine("Press A to reset Yaw");
         telemetry.addLine("Hold left bumper to drive in robot relative");
         telemetry.addLine("The left joystick sets the robot direction");
@@ -155,7 +219,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         launcher.setPower(gamepad2.right_trigger);
 
-        Kicker.setPosition(0.8 - gamepad2.left_trigger * 0.3);
+        kicker.setPosition(0.8 - gamepad2.left_trigger * 0.3);
 
         lift();
 
@@ -280,6 +344,11 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         boolean inGap = posInZone >= FIN_TICKS;
 
         return new GenevaStatus(zone, inGap);
+    }
+
+    @Override
+    public void stop() {
+        limelight.stop();
     }
 
 }
