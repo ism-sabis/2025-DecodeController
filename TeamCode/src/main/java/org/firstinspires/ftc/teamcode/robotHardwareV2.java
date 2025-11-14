@@ -34,6 +34,11 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.hardware.limelightvision.LLStatus;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
+
 /*
  * This file works in conjunction with the External Hardware Class sample called: ConceptExternalHardwareClass.java
  * Please read the explanations in that Sample about how to use this class definition.
@@ -72,6 +77,9 @@ public class RobotHardware {
     private Servo kicker = null;
 
     private CRServo turretSpinner = null;
+
+    private Limelight3A EthernetDevice;
+    private Limelight3A limelight;
     // Define Drive constants. Make them public so they CAN be used by the calling
     // OpMode
     public static final double frontLeftPower = 0.5;
