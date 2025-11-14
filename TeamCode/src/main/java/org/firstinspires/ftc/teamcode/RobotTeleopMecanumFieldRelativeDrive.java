@@ -129,6 +129,20 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         launcherSpeed = launcher.getPower();
         kickerPosition = kicker.getPosition();
 
+        // Kicker auto-cycle state
+        boolean kickerCycling = false;
+        long kickerTimer = 0;
+
+        // Kicker positions
+        final double KICKER_DOWN = 0.8;
+        final double KICKER_UP = 0.5; // adjust if needed
+
+        // Timing
+        final long KICK_TIME = 200; // milliseconds for kick
+
+        // Launcher speed threshold (adjust)
+        final double LAUNCHER_MIN_SPEED = 1800; // ticks/second, example
+
         // Limelight3A
         LLStatus status;
         LLResult result;
@@ -227,11 +241,23 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         GenevaStatus status = getGenevaStatus(feedingRotation);
 
         // Kicker
-        if (status.inGap) {
-            kicker.setPosition(0.8 - gamepad2.left_trigger * 0.3);
-        } else {
-            kicker.setPosition(0.8);
+        // Kicker auto-cycle logic (tap to fire)
+        if (!kickerCycling && gamepad2.x) {
+            // Start the cycle
+            kickerCycling = true;
+            kicker.setPosition(KICKER_UP);
+            kickerTimer = System.currentTimeMillis();
         }
+
+        updateKicker();
+
+        /*
+         * if (status.inGap) {
+         * kicker.setPosition(0.8 - gamepad2.left_trigger * 0.3);
+         * } else {
+         * kicker.setPosition(0.8);
+         * }
+         */
 
         lift();
 
@@ -375,6 +401,31 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     @Override
     public void stop() {
         limelight.stop();
+    }
+
+    public void updateKicker() {
+
+        // Check launcher speed
+        double launcherSpeed = launcher.getVelocity();
+        boolean launcherAtSpeed = launcherSpeed >= LAUNCHER_MIN_SPEED;
+
+        // Start cycle only if:
+        // - Button pressed (tap)
+        // - Not already cycling
+        // - Launcher is up to speed
+        if (!kickerCycling && gamepad2.x && launcherAtSpeed) {
+            kickerCycling = true;
+            kicker.setPosition(KICKER_UP);
+            kickerTimer = System.currentTimeMillis();
+        }
+
+        // Cycle already started
+        if (kickerCycling) {
+            if (System.currentTimeMillis() - kickerTimer >= KICK_TIME) {
+                kicker.setPosition(KICKER_DOWN);
+                kickerCycling = false;
+            }
+        }
     }
 
 }
