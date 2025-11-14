@@ -36,6 +36,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.IMU;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+
 /*
  * This OpMode illustrates how to program your robot to drive field relative.  This means
  * that the robot drives the direction you push the joystick regardless of the current orientation
@@ -51,7 +52,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
  *
  */
 @TeleOp(name = "Robot: Field Relative Mecanum Drive", group = "Robot")
-@Disabled
+// @Disabled
 public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     // This declares the four motors needed
     DcMotor frontLeft;
@@ -69,30 +70,53 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         rearLeft = hardwareMap.get(DcMotor.class, "rearLeft");
         rearRight = hardwareMap.get(DcMotor.class, "rearRight");
 
-        // We set the left motors in reverse which is needed for drive trains where the left
+        launcher = hardwareMap.get(DcMotor.class, "launcher");
+
+        leftLift = hardwareMap.get(DcMotor.class, "leftLift");
+        rightLift = hardwareMap.get(DcMotor.class, "rightLift");
+
+        feedingRotation = hardwareMap.get(DcMotor.class, "feedingRotation");
+
+        // We set the left motors in reverse which is needed for drive trains where the
+        // left
         // motors are opposite to the right ones.
         rearLeft.setDirection(DcMotor.Direction.REVERSE);
         rearLeft.setDirection(DcMotor.Direction.REVERSE);
 
-        // This uses RUN_USING_ENCODER to be more accurate.   If you don't have the encoder
+        // This uses RUN_USING_ENCODER to be more accurate. If you don't have the
+        // encoder
         // wires, you should remove these
         frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rearLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rearRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
+        leftLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        feedingRotation.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        // Set Motor Power
+        launcher.setPower(0);
+
+        // Declare varibles
+        Intake_Runtime = 0;
+        liftSpeed = 1;
+        Feeding_Rotation = 0;
+        launcherSpeed = launcher.getPower();
+        kickerPosition = kicker.getPosition();
+
         imu = hardwareMap.get(IMU.class, "imu");
         // This needs to be changed to match the orientation on your robot
-        RevHubOrientationOnRobot.LogoFacingDirection logoDirection =
-                RevHubOrientationOnRobot.LogoFacingDirection.UP;
-        RevHubOrientationOnRobot.UsbFacingDirection usbDirection =
-                RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
+        RevHubOrientationOnRobot.LogoFacingDirection logoDirection = RevHubOrientationOnRobot.LogoFacingDirection.UP;
+        RevHubOrientationOnRobot.UsbFacingDirection usbDirection = RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
 
-        RevHubOrientationOnRobot orientationOnRobot = new
-                RevHubOrientationOnRobot(logoDirection, usbDirection);
+        RevHubOrientationOnRobot orientationOnRobot = new RevHubOrientationOnRobot(logoDirection, usbDirection);
         imu.initialize(new IMU.Parameters(orientationOnRobot));
     }
 
+    // Call functions here
+    // Place acutal instructions here
     @Override
     public void loop() {
         telemetry.addLine("Press A to reset Yaw");
@@ -105,13 +129,24 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         if (gamepad1.a) {
             imu.resetYaw();
         }
-        // If you press the left bumper, you get a drive from the point of view of the robot
+        // If you press the left bumper, you get a drive from the point of view of the
+        // robot
         // (much like driving an RC vehicle)
         if (gamepad1.left_bumper) {
             drive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
         } else {
             driveFieldRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
         }
+
+        launcher.setPower(gamepad2.right_trigger);
+        
+        Kicker.setPosition(0.8 - gamepad2.left_trigger * 0.3);
+
+        lift();
+
+        feeding();
+
+        turret();
     }
 
     // This routine drives the robot field relative
@@ -134,7 +169,8 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     // Thanks to FTC16072 for sharing this code!!
     public void drive(double forward, double right, double rotate) {
-        // This calculates the power needed for each wheel based on the amount of forward,
+        // This calculates the power needed for each wheel based on the amount of
+        // forward,
         // strafe right, and rotate
         double frontLeftPower = forward + right + rotate;
         double frontRightPower = forward - right - rotate;
@@ -142,7 +178,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         double backLeftPower = forward - right + rotate;
 
         double maxPower = 1.0;
-        double maxSpeed = 1.0;  // make this slower for outreaches
+        double maxSpeed = 1.0; // make this slower for outreaches
 
         // This is needed to make sure we don't pass > 1.0 to any wheel
         // It allows us to keep all of the motors in proportion to what they should
@@ -159,5 +195,38 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         frontRight.setPower(maxSpeed * (frontRightPower / maxPower));
         rearLeft.setPower(maxSpeed * (backLeftPower / maxPower));
         rearRight.setPower(maxSpeed * (backRightPower / maxPower));
+    }
+
+    public void lift() {
+        if (gamepad1.dpad_up) {
+            leftLift.setPower(liftSpeed);
+            rightLift.setPower(liftSpeed);
+        } else if (gamepad1.dpad_down) {
+            leftLift.setPower(-liftSpeed);
+            rightLift.setPower(-liftSpeed);
+        } else {
+            rightLift.setPower(0);
+            leftLift.setPower(0);
+        }
+    }
+
+    public void feeding() {
+        if (gamepad2.dpad_up) {
+            FeedingRotation.setPower(1);
+        } else if (gamepad2.dpad_down) {
+            FeedingRotation.setPower(-1);
+        } else {
+            FeedingRotation.setPower(0);
+        }
+    }
+
+    public void turret() {
+        if (gamepad2.left_bumper) {
+            Turretspinner.setPower(1);
+        } else if (gamepad2.right_bumper) {
+            Turretspinner.setPower(-1);
+        } else {
+            Turretspinner.setPower(0);
+        }
     }
 }

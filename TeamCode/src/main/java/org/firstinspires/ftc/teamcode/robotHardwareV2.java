@@ -79,25 +79,28 @@ public class RobotHardware {
     public static final double frontRightPower = 0.45;
     public static final double backRightPower = -0.45;
 
-    // Constants
-    public static final double SPEED_LIMIT = 0.5;
-    public static final double LAUNCHER_SPEED_DEFAULT = 0.8;
-    public static final double KICKER_POSITION_START = 0.0;
-    public static final double FEEDER_ROTATION_SPEED = 0.6;
-    public static final double LIFT_SPEED_DEFAULT = 0.7;
-
-    // Variables
-    double maxSpeed;
-    int intakeRuntime;
-    boolean kickerTf;
-    float yaw;
-    ElapsedTime runtime;
-    int liftSpeed;
-    DcMotor feederRotation; // replace with correct type if not a motor
-    double launcherSpeed;
-    double kickerPosition;
-    float axial;
-    float lateral;
+    /*
+     * // Constants
+     * // public static final double SPEED_LIMIT = 0.5;
+     * public static final double LAUNCHER_SPEED_DEFAULT = 0.8;
+     * public static final double KICKER_POSITION_START = 0.0;
+     * // public static final double FEEDER_ROTATION_SPEED = 1;
+     * public static final double LIFT_SPEED_DEFAULT = 1;
+     * 
+     * 
+     * // Variables
+     * //double maxSpeed;
+     * int intakeRuntime;
+     * boolean kickerTf;
+     * float yaw;
+     * ElapsedTime runtime;
+     * int liftSpeed;
+     * DcMotor feederRotation; // replace with correct type if not a motor
+     * double launcherSpeed;
+     * double kickerPosition;
+     * float axial;
+     * float lateral;
+     */
 
     // Define a constructor that allows the OpMode to pass a reference to itself.
     public RobotHardware(LinearOpMode opmode) {
@@ -155,11 +158,13 @@ public class RobotHardware {
 
         turretspinner = hardwareMap.get(CRServo.class, "Turretspinner");
 
-       /*  leftHand.setPosition(MID_SERVO);
-        rightHand.setPosition(MID_SERVO); */
+        /*
+         * leftHand.setPosition(MID_SERVO);
+         * rightHand.setPosition(MID_SERVO);
+         */
 
         myOpMode.telemetry.addData(">", "Hardware Initialized");
-        myOpMode.telemetry.update(); 
+        myOpMode.telemetry.update();
     }
 
     /**
