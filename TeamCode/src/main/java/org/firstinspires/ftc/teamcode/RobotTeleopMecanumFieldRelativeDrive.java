@@ -264,6 +264,29 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         feeding();
 
         turret();
+
+        LLResult result = limelight.getLatestResult();
+        if (result != null && result.hasTarget()) {
+            double tx = result.getTx();
+            double ty = result.getTy();
+
+            // 1. Rotate turret
+            double turretPower = 0.01 * tx;
+            if (Math.abs(tx) < 1.0)
+                turretPower = 0;
+            turretSpinner.setPower(turretPower);
+
+            // 2. Calculate distance & launcher speed
+            double distance = (targetHeight - limelightHeight) / Math.tan(Math.toRadians(ty + mountAngle));
+            double launchAngle = Math.toRadians(45); // or your tuned angle
+            double velocity = Math.sqrt(9.81 * distance * distance /
+                    (2 * (targetHeight - limelightHeight - distance * Math.tan(launchAngle))
+                            * Math.pow(Math.cos(launchAngle), 2)));
+
+            double launcherTicksPerSec = velocity / (2 * Math.PI * launcherWheelRadius) * motorTicksPerRev * gearRatio;
+            launcher.setVelocity(launcherTicksPerSec);
+        }
+
     }
 
     // This routine drives the robot field relative
