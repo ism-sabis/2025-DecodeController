@@ -302,10 +302,24 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     }
 
     public void feeding() {
-        if (gamepad2.dpad_up) {
-            feedingRotation.setPower(1);
-        } else if (gamepad2.dpad_down) {
-            feedingRotation.setPower(-1);
+
+        // Kicker must be down/safe
+        boolean kickerDown = kicker.getPosition() >= 0.79;
+
+        boolean feederUp = gamepad2.dpad_up;
+        boolean feederDown = gamepad2.dpad_down;
+
+        if (feederUp || feederDown) {
+            if (kickerDown) {
+                // SAFE → allow rotation
+                feedingRotation.setPower(feederUp ? 1 : -1);
+            } else {
+                // NOT safe → block movement + rumble
+                feedingRotation.setPower(0);
+
+                // One short rumble on both sides
+                gamepad1.rumble(1, 1, 300);
+            }
         } else {
             feedingRotation.setPower(0);
         }
