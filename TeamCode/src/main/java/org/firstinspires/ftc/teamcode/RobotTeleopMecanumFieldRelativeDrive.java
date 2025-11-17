@@ -1,32 +1,4 @@
-/* Copyright (c) 2025 FIRST. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted (subject to the limitations in the disclaimer below) provided that
- * the following conditions are met:
- *
- * Redistributions of source code must retain the above copyright notice, this list
- * of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright notice, this
- * list of conditions and the following disclaimer in the documentation and/or
- * other materials provided with the distribution.
- *
- * Neither the name of FIRST nor the names of its contributors may be used to endorse or
- * promote products derived from this software without specific prior written permission.
- *
- * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS
- * LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-package org.firstinspires.ftc.robotcontroller.external.samples;
+package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
@@ -39,6 +11,7 @@ import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.LLStatus;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
+import java.util.List;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
@@ -59,89 +32,26 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 @TeleOp(name = "Robot: Field Relative Mecanum Drive", group = "Robot")
 // @Disabled
 public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
-    // This declares the four motors needed
-    DcMotor frontLeft;
-    DcMotor frontRight;
-    DcMotor rearLeft;
-    DcMotor rearRight;
+    private RobotHardware robot = new RobotHardware();
+    // Kicker auto-cycle state
+    boolean kickerCycling = false;
+    long kickerTimer = 0;
 
-    // This declares the IMU needed to get the current direction the robot is facing
-    IMU imu;
+    // Kicker positions
+    final double KICKER_DOWN = 0.8;
+    final double KICKER_UP = 0.5; // adjust if needed
+
+    // Timing
+    final long KICK_TIME = 200; // milliseconds for kick
+
+    // Launcher speed threshold (adjust)
+    final double LAUNCHER_MIN_SPEED = 1800; // ticks/second, example
+
+        final double LIFT_SPEED = 1;
 
     @Override
     public void init() {
-        frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
-        frontRight = hardwareMap.get(DcMotor.class, "frontRight");
-        rearLeft = hardwareMap.get(DcMotor.class, "rearLeft");
-        rearRight = hardwareMap.get(DcMotor.class, "rearRight");
-
-        launcher = hardwareMap.get(DcMotor.class, "launcher");
-
-        leftLift = hardwareMap.get(DcMotor.class, "leftLift");
-        rightLift = hardwareMap.get(DcMotor.class, "rightLift");
-
-        feedingRotation = hardwareMap.get(DcMotor.class, "feedingRotation");
-
-        kicker = hardwareMap.get(Servo.class, "kicker");
-
-        turretspinner = hardwareMap.get(CRServo.class, "turretspinner");
-
-        EthernetDevice = hardwareMap.get(Limelight3A.class, "Ethernet Device");
-        limelight = hardwareMap.get(Limelight3A.class, "limelightAsLimelight3A");
-
-        // We set the left motors in reverse which is needed for drive trains where the
-        // left
-        // motors are opposite to the right ones.
-        rearLeft.setDirection(DcMotor.Direction.REVERSE);
-        rearLeft.setDirection(DcMotor.Direction.REVERSE);
-
-        // This uses RUN_USING_ENCODER to be more accurate. If you don't have the
-        // encoder
-        // wires, you should remove these
-        frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rearLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rearRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-        leftLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-        feedingRotation.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-        // Reset Encoder Values
-        leftLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rightLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
-        feedingRotation.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
-        frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rearLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rearRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
-        // Set Motor Power
-        launcher.setPower(0);
-
-        // Declare varibles
-        Intake_Runtime = 0;
-        liftSpeed = 1;
-        Feeding_Rotation = 0;
-        launcherSpeed = launcher.getPower();
-        kickerPosition = kicker.getPosition();
-
-        // Kicker auto-cycle state
-        boolean kickerCycling = false;
-        long kickerTimer = 0;
-
-        // Kicker positions
-        final double KICKER_DOWN = 0.8;
-        final double KICKER_UP = 0.5; // adjust if needed
-
-        // Timing
-        final long KICK_TIME = 200; // milliseconds for kick
-
-        // Launcher speed threshold (adjust)
-        final double LAUNCHER_MIN_SPEED = 1800; // ticks/second, example
+        robot.init(hardwareMap);
 
         // Limelight3A
         LLStatus status;
@@ -155,20 +65,8 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         LLResultTypes.ColorResult colorResult;
 
         telemetry.setMsTransmissionInterval(11);
-        EthernetDevice.pipelineSwitch(0);
-        // Starts polling for data. If you neglect to call start(), getLatestResult()
-        // will return null.
-        EthernetDevice.start();
         telemetry.addData(">", "Robot Ready.  Press Play.");
         telemetry.update();
-
-        imu = hardwareMap.get(IMU.class, "imu");
-        // This needs to be changed to match the orientation on your robot
-        RevHubOrientationOnRobot.LogoFacingDirection logoDirection = RevHubOrientationOnRobot.LogoFacingDirection.UP;
-        RevHubOrientationOnRobot.UsbFacingDirection usbDirection = RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
-
-        RevHubOrientationOnRobot orientationOnRobot = new RevHubOrientationOnRobot(logoDirection, usbDirection);
-        imu.initialize(new IMU.Parameters(orientationOnRobot));
     }
 
     // Call functions here
@@ -177,13 +75,13 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     public void loop() {
 
         // Limelight3A
-        status = EthernetDevice.getStatus();
+        LLStatus status = robot.limelight.getStatus();
         telemetry.addData("Name", status.getName());
         telemetry.addData("LL", "Temp: " + JavaUtil.formatNumber(status.getTemp(), 1) + "C, CPU: "
                 + JavaUtil.formatNumber(status.getCpu(), 1) + "%, FPS: " + Math.round(status.getFps()));
         telemetry.addData("Pipeline",
                 "Index: " + status.getPipelineIndex() + ", Type: " + status.getPipelineType());
-        result = limelight.getLatestResult();
+        LLResult result = robot.limelight.getLatestResult();
         if (result != null) {
             // Access general information.
             botpose = result.getBotpose();
@@ -225,7 +123,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // If you press the A button, then you reset the Yaw to be zero from the way
         // the robot is currently pointing
         if (gamepad1.a) {
-            imu.resetYaw();
+            robot.imu.resetYaw();
         }
         // If you press the left bumper, you get a drive from the point of view of the
         // robot
@@ -236,7 +134,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
             driveFieldRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
         }
 
-        launcher.setPower(gamepad2.right_trigger);
+        robot.launcher.setPower(gamepad2.right_trigger);
 
         GenevaStatus status = getGenevaStatus(feedingRotation);
 
@@ -245,7 +143,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         if (!kickerCycling && gamepad2.x) {
             // Start the cycle
             kickerCycling = true;
-            kicker.setPosition(KICKER_UP);
+            robot.kicker.setPosition(KICKER_UP);
             kickerTimer = System.currentTimeMillis();
         }
 
@@ -253,9 +151,9 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         /*
          * if (status.inGap) {
-         * kicker.setPosition(0.8 - gamepad2.left_trigger * 0.3);
+         * robot.kicker.setPosition(0.8 - gamepad2.left_trigger * 0.3);
          * } else {
-         * kicker.setPosition(0.8);
+         * robot.kicker.setPosition(0.8);
          * }
          */
 
@@ -271,10 +169,8 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
             double ty = result.getTy();
 
             // 1. Rotate turret
-            double turretPower = 0.01 * tx;
-            if (Math.abs(tx) < 1.0)
-                turretPower = 0;
-            turretSpinner.setPower(turretPower);
+            double turretPower = (Math.abs(tx) < 1.0) ? 0 : (0.01 * tx);
+            robot.turretSpinner.setPower(turretPower);
 
             // 2. Calculate distance & launcher speed
             double distance = (targetHeight - limelightHeight) / Math.tan(Math.toRadians(ty + mountAngle));
@@ -284,7 +180,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
                             * Math.pow(Math.cos(launchAngle), 2)));
 
             double launcherTicksPerSec = velocity / (2 * Math.PI * launcherWheelRadius) * motorTicksPerRev * gearRatio;
-            launcher.setVelocity(launcherTicksPerSec);
+            robot.launcher.setVelocity(launcherTicksPerSec);
         }
 
     }
@@ -297,7 +193,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         // Second, rotate angle by the angle the robot is pointing
         theta = AngleUnit.normalizeRadians(theta -
-                imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS));
+                robot.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS));
 
         // Third, convert back to cartesian
         double newForward = r * Math.sin(theta);
@@ -331,29 +227,29 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // We multiply by maxSpeed so that it can be set lower for outreaches
         // When a young child is driving the robot, we may not want to allow full
         // speed.
-        frontLeft.setPower(maxSpeed * (frontLeftPower / maxPower));
-        frontRight.setPower(maxSpeed * (frontRightPower / maxPower));
-        rearLeft.setPower(maxSpeed * (backLeftPower / maxPower));
-        rearRight.setPower(maxSpeed * (backRightPower / maxPower));
+        robot.frontLeft.setPower(maxSpeed * (frontLeftPower / maxPower));
+        robot.frontRight.setPower(maxSpeed * (frontRightPower / maxPower));
+        robot.rearLeft.setPower(maxSpeed * (backLeftPower / maxPower));
+        robot.rearRight.setPower(maxSpeed * (backRightPower / maxPower));
     }
 
     public void lift() {
         if (gamepad1.dpad_up) {
-            leftLift.setPower(liftSpeed);
-            rightLift.setPower(liftSpeed);
+            robot.leftLift.setPower(LIFT_SPEED);
+            robot.rightLift.setPower(LIFT_SPEED);
         } else if (gamepad1.dpad_down) {
-            leftLift.setPower(-liftSpeed);
-            rightLift.setPower(-liftSpeed);
+            robot.leftLift.setPower(-LIFT_SPEED);
+            robot.rightLift.setPower(-LIFT_SPEED);
         } else {
-            rightLift.setPower(0);
-            leftLift.setPower(0);
+            robot.rightLift.setPower(0);
+            robot.leftLift.setPower(0);
         }
     }
 
     public void feeding() {
 
         // Kicker must be down/safe
-        boolean kickerDown = kicker.getPosition() >= 0.79;
+        boolean kickerDown = robot.kicker.getPosition() >= 0.79;
 
         boolean feederUp = gamepad2.dpad_up;
         boolean feederDown = gamepad2.dpad_down;
@@ -361,26 +257,26 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         if (feederUp || feederDown) {
             if (kickerDown) {
                 // SAFE → allow rotation
-                feedingRotation.setPower(feederUp ? 1 : -1);
+                robot.feedingRotation.setPower(feederUp ? 1 : -1);
             } else {
                 // NOT safe → block movement + rumble
-                feedingRotation.setPower(0);
+                robot.feedingRotation.setPower(0);
 
                 // One short rumble on both sides
                 gamepad1.rumble(1, 1, 300);
             }
         } else {
-            feedingRotation.setPower(0);
+            robot.feedingRotation.setPower(0);
         }
     }
 
     public void turret() {
         if (gamepad2.left_bumper) {
-            turretSpinner.setPower(1);
+            robot.turretSpinner.setPower(1);
         } else if (gamepad2.right_bumper) {
-            turretSpinner.setPower(-1);
+            robot.turretSpinner.setPower(-1);
         } else {
-            turretSpinner.setPower(0);
+            robot.turretSpinner.setPower(0);
         }
     }
 
@@ -388,7 +284,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
      * Returns the Geneva wheel position (0–5) and whether it is in a gap (true) or
      * on a fin (false).
      */
-    public class GenevaStatus {
+    public static class GenevaStatus {
         public int position; // 0 to 5
         public boolean inGap; // true = in slot, false = on fin
 
@@ -406,7 +302,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         double ticksPerZone = TICKS_PER_REV / ZONES;
 
         // Read encoder and normalize to 0 → TICKS_PER_REV
-        int ticks = feedingRotation.getCurrentPosition();
+        int ticks = robot.feedingRotation.getCurrentPosition();
         ticks = ((ticks % (int) TICKS_PER_REV) + (int) TICKS_PER_REV) % (int) TICKS_PER_REV;
 
         // Compute which zone (0–5)
@@ -429,7 +325,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     public void updateKicker() {
 
         // Check launcher speed
-        double launcherSpeed = launcher.getVelocity();
+        double launcherSpeed = robot.launcher.getVelocity();
         boolean launcherAtSpeed = launcherSpeed >= LAUNCHER_MIN_SPEED;
 
         // Start cycle only if:
@@ -438,14 +334,14 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // - Launcher is up to speed
         if (!kickerCycling && gamepad2.x && launcherAtSpeed) {
             kickerCycling = true;
-            kicker.setPosition(KICKER_UP);
+            robot.kicker.setPosition(KICKER_UP);
             kickerTimer = System.currentTimeMillis();
         }
 
         // Cycle already started
         if (kickerCycling) {
             if (System.currentTimeMillis() - kickerTimer >= KICK_TIME) {
-                kicker.setPosition(KICKER_DOWN);
+                robot.kicker.setPosition(KICKER_DOWN);
                 kickerCycling = false;
             }
         }

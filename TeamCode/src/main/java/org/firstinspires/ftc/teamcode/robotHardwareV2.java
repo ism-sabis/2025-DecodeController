@@ -1,35 +1,10 @@
-/* Copyright (c) 2022 FIRST. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted (subject to the limitations in the disclaimer below) provided that
- * the following conditions are met:
- *
- * Redistributions of source code must retain the above copyright notice, this list
- * of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright notice, this
- * list of conditions and the following disclaimer in the documentation and/or
- * other materials provided with the distribution.
- *
- * Neither the name of FIRST nor the names of its contributors may be used to endorse or
- * promote products derived from this software without specific prior written permission.
- *
- * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS
- * LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+package org.firstinspires.ftc.teamcode;
 
-package org.firstinspires.ftc.robotcontroller.external.samples;
-
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
@@ -60,26 +35,23 @@ import com.qualcomm.hardware.limelightvision.Limelight3A;
 
 public class RobotHardware {
 
-    /* Declare OpMode members. */
-    private LinearOpMode myOpMode = null; // gain access to methods in the calling OpMode.
-
     // Define Motor and Servo objects (Make them private so they can't be accessed
     // externally)
-    private DcMotor leftLift = null;
-    private DcMotor rightLift = null;
-    private DcMotor launcher = null;
-    private DcMotor frontLeft = null;
-    private DcMotor frontRight = null;
-    private DcMotor rearLeft = null;
-    private DcMotor rearRight = null;
-    private DcMotor feedingRotation = null;
+    public DcMotor leftLift = null;
+    public DcMotor rightLift = null;
+    public DcMotor launcher = null;
+    public DcMotor frontLeft = null;
+    public DcMotor frontRight = null;
+    public DcMotor rearLeft = null;
+    public DcMotor rearRight = null;
+    public DcMotor feedingRotation = null;
+    public Servo kicker = null;
+    public CRServo turretSpinner = null;
+    public Limelight3A limelight = null;
 
-    private Servo kicker = null;
+    // This declares the IMU needed to get the current direction the robot is facing
+    public IMU imu;
 
-    private CRServo turretSpinner = null;
-
-    private Limelight3A EthernetDevice;
-    private Limelight3A limelight;
     // Define Drive constants. Make them public so they CAN be used by the calling
     // OpMode
     public static final double frontLeftPower = 0.5;
@@ -111,8 +83,8 @@ public class RobotHardware {
      */
 
     // Define a constructor that allows the OpMode to pass a reference to itself.
-    public RobotHardware(LinearOpMode opmode) {
-        myOpMode = opmode;
+    public RobotHardware() {
+        // myOpMode = opmode;
     }
 
     /**
@@ -122,7 +94,7 @@ public class RobotHardware {
      * All of the hardware devices are accessed via the hardware map, and
      * initialized.
      */
-    public void init() {
+    public void init(HardwareMap hardwareMap) {
         // Define and Initialize Motors (note: need to use reference to actual OpMode).
         leftLift = hardwareMap.get(DcMotor.class, "leftLift");
         rightLift = hardwareMap.get(DcMotor.class, "rightLift");
@@ -132,9 +104,9 @@ public class RobotHardware {
         frontRight = hardwareMap.get(DcMotor.class, "frontRight");
         rearLeft = hardwareMap.get(DcMotor.class, "rearLeft");
         rearRight = hardwareMap.get(DcMotor.class, "rearRight");
+        imu = hardwareMap.get(IMU.class, "imu");
 
-        EthernetDevice = hardwareMap.get(Limelight3A.class, "Ethernet Device");
-        limelight = hardwareMap.get(Limelight3A.class, "limelightAsLimelight3A");
+        limelight = hardwareMap.get(Limelight3A.class, "Ethernet Device");
 
         // To drive forward, most robots need the motor on one side to be reversed,
         // because the axles point in opposite directions.
@@ -146,7 +118,7 @@ public class RobotHardware {
         frontLeft.setDirection(DcMotor.Direction.REVERSE);
         rearRight.setDirection(DcMotor.Direction.FORWARD);
         frontRight.setDirection(DcMotor.Direction.FORWARD);
-        Turretspinner.setDirection(CRServo.Direction.REVERSE);
+        turretSpinner.setDirection(CRServo.Direction.REVERSE);
 
         // If there are encoders connected, switch to RUN_USING_ENCODER mode for greater
         // accuracy
@@ -169,13 +141,26 @@ public class RobotHardware {
 
         turretSpinner = hardwareMap.get(CRServo.class, "Turretspinner");
 
+        // Starts polling for data. If you neglect to call start(), getLatestResult()
+        // will return null.
+        limelight.pipelineSwitch(0);
+        limelight.start();
+
         /*
          * leftHand.setPosition(MID_SERVO);
          * rightHand.setPosition(MID_SERVO);
          */
 
-        myOpMode.telemetry.addData(">", "Hardware Initialized");
-        myOpMode.telemetry.update();
+        // myOpMode.telemetry.addData(">", "Hardware Initialized");
+        // myOpMode.telemetry.update();
+
+                // This needs to be changed to match the orientation on your robot
+        RevHubOrientationOnRobot.LogoFacingDirection logoDirection = RevHubOrientationOnRobot.LogoFacingDirection.UP;
+        RevHubOrientationOnRobot.UsbFacingDirection usbDirection = RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
+
+        RevHubOrientationOnRobot orientationOnRobot = new RevHubOrientationOnRobot(logoDirection, usbDirection);
+        imu.initialize(new IMU.Parameters(orientationOnRobot));
+
     }
 
     /**
@@ -211,8 +196,10 @@ public class RobotHardware {
      */
     public void setDrivePower(double leftWheel, double rightWheel) {
         // Output the values to the motor drives.
-        leftDrive.setPower(leftWheel);
-        rightDrive.setPower(rightWheel);
+        rearLeft.setPower(leftWheel);
+        frontLeft.setPower(leftWheel);
+        rearRight.setPower(rightWheel);
+        frontRight.setPower(rightWheel);
     }
 
     /**
