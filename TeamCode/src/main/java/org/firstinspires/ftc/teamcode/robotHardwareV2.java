@@ -52,6 +52,8 @@ public class RobotHardware {
     // This declares the IMU needed to get the current direction the robot is facing
     public IMU imu;
 
+    public static final double limelightHeight = 20;
+
     // Define Drive constants. Make them public so they CAN be used by the calling
     // OpMode
     public static final double frontLeftPower = 0.5;

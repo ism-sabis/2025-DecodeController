@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
+import org.firstinspires.ftc.robotcore.external.JavaUtil;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -32,37 +34,37 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 @TeleOp(name = "Robot: Field Relative Mecanum Drive", group = "Robot")
 // @Disabled
 public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
-    private RobotHardware robot = new RobotHardware();
+    final private RobotHardware robot = new RobotHardware();
     // Kicker auto-cycle state
     boolean kickerCycling = false;
     long kickerTimer = 0;
 
     // Kicker positions
-    final double KICKER_DOWN = 0.8;
-    final double KICKER_UP = 0.5; // adjust if needed
+    static final double KICKER_DOWN = 0.8;
+    static final double KICKER_UP = 0.5; // adjust if needed
 
     // Timing
-    final long KICK_TIME = 200; // milliseconds for kick
+    static final long KICK_TIME = 200; // milliseconds for kick
 
     // Launcher speed threshold (adjust)
-    final double LAUNCHER_MIN_SPEED = 1800; // ticks/second, example
+    static final double LAUNCHER_MIN_POWER = 0.1; // normalized 0 to 1.0
 
-        final double LIFT_SPEED = 1;
+    static final double LIFT_SPEED = 1;
 
     @Override
     public void init() {
         robot.init(hardwareMap);
 
         // Limelight3A
-        LLStatus status;
-        LLResult result;
-        Pose3D botpose;
-        double captureLatency;
-        double targetingLatency;
-        List<LLResultTypes.FiducialResult> fiducialResults;
-        LLResultTypes.FiducialResult fiducialResult;
-        List<LLResultTypes.ColorResult> colorResults;
-        LLResultTypes.ColorResult colorResult;
+        // LLStatus status;
+        // LLResult result;
+        // Pose3D botpose;
+        // double captureLatency;
+        // double targetingLatency;
+        // List<LLResultTypes.FiducialResult> fiducialResults;
+        // LLResultTypes.FiducialResult fiducialResult;
+        // List<LLResultTypes.ColorResult> colorResults;
+        // LLResultTypes.ColorResult colorResult;
 
         telemetry.setMsTransmissionInterval(11);
         telemetry.addData(">", "Robot Ready.  Press Play.");
@@ -84,9 +86,9 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         LLResult result = robot.limelight.getLatestResult();
         if (result != null) {
             // Access general information.
-            botpose = result.getBotpose();
-            captureLatency = result.getCaptureLatency();
-            targetingLatency = result.getTargetingLatency();
+            Pose3D botpose = result.getBotpose();
+            double captureLatency = result.getCaptureLatency();
+            double targetingLatency = result.getTargetingLatency();
             telemetry.addData("PythonOutput", JavaUtil.makeTextFromList(result.getPythonOutput(), ","));
             telemetry.addData("tx", result.getTx());
             telemetry.addData("txnc", result.getTxNC());
@@ -95,17 +97,13 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
             telemetry.addData("Botpose", botpose.toString());
             telemetry.addData("LL Latency", captureLatency + targetingLatency);
             // Access fiducial results.
-            fiducialResults = result.getFiducialResults();
-            for (LLResultTypes.FiducialResult fiducialResult_item : fiducialResults) {
-                fiducialResult = fiducialResult_item;
+            for (LLResultTypes.FiducialResult fiducialResult : result.getFiducialResults()) {
                 telemetry.addData("Fiducial",
                         "ID: " + fiducialResult.getFiducialId() + ", Family: " + fiducialResult.getFamily()
                                 + ", X: " + JavaUtil.formatNumber(fiducialResult.getTargetXDegrees(), 2) + ", Y: "
                                 + JavaUtil.formatNumber(fiducialResult.getTargetYDegrees(), 2));
                 // Access color results.
-                colorResults = result.getColorResults();
-                for (LLResultTypes.ColorResult colorResult_item : colorResults) {
-                    colorResult = colorResult_item;
+                for (LLResultTypes.ColorResult colorResult : result.getColorResults()) {
                     telemetry.addData("Color", "X: " + JavaUtil.formatNumber(colorResult.getTargetXDegrees(), 2)
                             + ", Y: " + JavaUtil.formatNumber(colorResult.getTargetYDegrees(), 2));
                 }
@@ -136,7 +134,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         robot.launcher.setPower(gamepad2.right_trigger);
 
-        GenevaStatus status = getGenevaStatus(feedingRotation);
+        GenevaStatus genevaStatus = getGenevaStatus(robot.feedingRotation);
 
         // Kicker
         // Kicker auto-cycle logic (tap to fire)
@@ -163,25 +161,29 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         turret();
 
-        LLResult result = limelight.getLatestResult();
-        if (result != null && result.hasTarget()) {
-            double tx = result.getTx();
-            double ty = result.getTy();
+        LLResult limelightResult = robot.limelight.getLatestResult();
+        // TODO: Fix Limelight code
+        // if (limelightResult != null) {
+        //     double tx = limelightResult.getTx();
+        //     double ty = limelightResult.getTy();
 
-            // 1. Rotate turret
-            double turretPower = (Math.abs(tx) < 1.0) ? 0 : (0.01 * tx);
-            robot.turretSpinner.setPower(turretPower);
+        //     final double targetHeight = 65;
+        //     final double mountAngle = 90;
 
-            // 2. Calculate distance & launcher speed
-            double distance = (targetHeight - limelightHeight) / Math.tan(Math.toRadians(ty + mountAngle));
-            double launchAngle = Math.toRadians(45); // or your tuned angle
-            double velocity = Math.sqrt(9.81 * distance * distance /
-                    (2 * (targetHeight - limelightHeight - distance * Math.tan(launchAngle))
-                            * Math.pow(Math.cos(launchAngle), 2)));
+        //     // 1. Rotate turret
+        //     double turretPower = (Math.abs(tx) < 1.0) ? 0 : (0.01 * tx);
+        //     robot.turretSpinner.setPower(turretPower);
 
-            double launcherTicksPerSec = velocity / (2 * Math.PI * launcherWheelRadius) * motorTicksPerRev * gearRatio;
-            robot.launcher.setVelocity(launcherTicksPerSec);
-        }
+        //     // 2. Calculate distance & launcher speed
+        //     double distance = (targetHeight - robot.limelightHeight) / Math.tan(Math.toRadians(ty + mountAngle));
+        //     double launchAngle = Math.toRadians(45); // or your tuned angle
+        //     double velocity = Math.sqrt(9.81 * distance * distance /
+        //             (2 * (targetHeight - robot.limelightHeight - distance * Math.tan(launchAngle))
+        //                     * Math.pow(Math.cos(launchAngle), 2)));
+
+        //     double launcherTicksPerSec = velocity / (2 * Math.PI * robot.launcherWheelRadius) * robot.motorTicksPerRev * robot.gearRatio;
+        //     robot.launcher.setVelocity(launcherTicksPerSec);
+        // }
 
     }
 
@@ -319,14 +321,13 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     @Override
     public void stop() {
-        limelight.stop();
+        robot.limelight.stop();
     }
 
     public void updateKicker() {
 
         // Check launcher speed
-        double launcherSpeed = robot.launcher.getVelocity();
-        boolean launcherAtSpeed = launcherSpeed >= LAUNCHER_MIN_SPEED;
+        boolean launcherAtSpeed = robot.launcher.getPower() >= LAUNCHER_MIN_POWER;
 
         // Start cycle only if:
         // - Button pressed (tap)
