@@ -121,8 +121,12 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         telemetry.addLine("Moving the right joystick left and right turns the robot");
 
         public enum BallColor {
-            NONE, RED, BLUE
+            RED,
+            BLUE,
+            UNKNOWN
         }
+
+        BallColor[] aprilOrder = new BallColor[3];
 
         BallColor[] finColors = {
                 BallColor.NONE, BallColor.NONE, BallColor.NONE
@@ -220,6 +224,63 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         drive(newForward, newRight, rotate);
     }
 
+    public void rotateToColor(BallColor desired) {
+
+        // 1. Find which fin has the desired color
+        int targetFin = -1;
+        for (int i = 0; i < 3; i++) {
+            if (finColors[i] == desired) {
+                targetFin = i;
+                break;
+            }
+        }
+
+        if (targetFin == -1) {
+            telemetry.addLine("ERROR: Desired color not found in any fin!");
+            telemetry.update();
+            return;
+        }
+
+        // 2. Read current Geneva position
+        GenevaStatus status = getGenevaStatus(robot.feedingRotation);
+        int currentFin = status.fin; // 0–2
+
+        // 3. Compute shortest direction (CW / CCW)
+        int diff = targetFin - currentFin;
+
+        // Normalize difference to −1, 0, +1 (wraparound over 3 fins)
+        if (diff == 2)
+            diff = -1;
+        if (diff == -2)
+            diff = 1;
+
+        double direction = Math.signum(diff); // -1 → rotate backwards, +1 → forwards
+
+        if (direction == 0) {
+            // Already at correct fin
+            return;
+        }
+
+        // 4. Convert fin distance to ticks
+        final double TICKS_PER_REV = 5377.0;
+        final double TICKS_PER_FIN = TICKS_PER_REV / 3.0;
+
+        double targetTicks = robot.feedingRotation.getCurrentPosition() + direction * TICKS_PER_FIN;
+
+        // 5. Rotate until you reach the target
+        robot.feedingRotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        robot.feedingRotation.setTargetPosition((int) targetTicks);
+        robot.feedingRotation.setPower(1.0);
+
+        // Wait until done (non-blocking alternative inside loop if you prefer)
+        while (opModeIsActive() && robot.feedingRotation.isBusy()) {
+            // optional safety timeout
+        }
+
+        robot.feedingRotation.setPower(0);
+        robot.feedingRotation.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
+
     public BallColor detectColor() {
         int r = robot.colorSensor.red();
         int b = robot.colorSensor.blue();
@@ -229,6 +290,57 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         if (b > r + 40)
             return BallColor.BLUE;
         return BallColor.NONE;
+    }
+
+    public void shootOneBall() {
+        // Spin flywheel up
+        flywheel.setPower(1.0);
+        sleep(300); // change to your real spin-up time
+
+        // Fire
+        kicker.setPosition(KICK_UP);
+        sleep(130);
+        kicker.setPosition(KICK_DOWN);
+
+        // ===============================
+        // TUNEABLE PAUSE BETWEEN SHOTS
+        // ===============================
+        sleep(200); // <---- adjust this value
+    }
+
+    public void macroRandomizedShoot() {
+        for (int i = 0; i < 3; i++) {
+            rotateToColor(aprilOrder[i]);
+            shootOneBall();
+        }
+    }
+
+    public void macroSimpleShoot() {
+        for (int i = 0; i < 3; i++) {
+            shootOneBall();
+        }
+    }
+
+    public void readAprilTagAndStoreOrder(int tagId) {
+        switch (tagId) {
+            case 3:
+                aprilOrder[0] = BallColor.BLUE;
+                aprilOrder[1] = BallColor.RED;
+                aprilOrder[2] = BallColor.BLUE;
+                break;
+
+            case 7:
+                aprilOrder[0] = BallColor.RED;
+                aprilOrder[1] = BallColor.BLUE;
+                aprilOrder[2] = BallColor.RED;
+                break;
+
+            default:
+                aprilOrder[0] = BallColor.UNKNOWN;
+                aprilOrder[1] = BallColor.UNKNOWN;
+                aprilOrder[2] = BallColor.UNKNOWN;
+                break;
+        }
     }
 
     public void updateFinColors(GenevaStatus status) {
