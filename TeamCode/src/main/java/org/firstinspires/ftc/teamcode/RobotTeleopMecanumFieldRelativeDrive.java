@@ -51,6 +51,8 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     static final double LIFT_SPEED = 1;
 
+    BallColor lastDetected = BallColor.NONE;
+
     @Override
     public void init() {
         robot.init(hardwareMap);
@@ -118,6 +120,14 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         telemetry.addLine("The left joystick sets the robot direction");
         telemetry.addLine("Moving the right joystick left and right turns the robot");
 
+        public enum BallColor {
+            NONE, RED, BLUE
+        }
+
+        BallColor[] finColors = {
+                BallColor.NONE, BallColor.NONE, BallColor.NONE
+        };
+
         // If you press the A button, then you reset the Yaw to be zero from the way
         // the robot is currently pointing
         if (gamepad1.a) {
@@ -135,6 +145,8 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         robot.launcher.setPower(gamepad2.right_trigger);
 
         GenevaStatus genevaStatus = getGenevaStatus(robot.feedingRotation);
+
+        updateFinColors(genevaStatus);
 
         // Kicker
         // Kicker auto-cycle logic (tap to fire)
@@ -164,25 +176,28 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         LLResult limelightResult = robot.limelight.getLatestResult();
         // TODO: Fix Limelight code
         // if (limelightResult != null) {
-        //     double tx = limelightResult.getTx();
-        //     double ty = limelightResult.getTy();
+        // double tx = limelightResult.getTx();
+        // double ty = limelightResult.getTy();
 
-        //     final double targetHeight = 65;
-        //     final double mountAngle = 90;
+        // final double targetHeight = 65;
+        // final double mountAngle = 90;
 
-        //     // 1. Rotate turret
-        //     double turretPower = (Math.abs(tx) < 1.0) ? 0 : (0.01 * tx);
-        //     robot.turretSpinner.setPower(turretPower);
+        // // 1. Rotate turret
+        // double turretPower = (Math.abs(tx) < 1.0) ? 0 : (0.01 * tx);
+        // robot.turretSpinner.setPower(turretPower);
 
-        //     // 2. Calculate distance & launcher speed
-        //     double distance = (targetHeight - robot.limelightHeight) / Math.tan(Math.toRadians(ty + mountAngle));
-        //     double launchAngle = Math.toRadians(45); // or your tuned angle
-        //     double velocity = Math.sqrt(9.81 * distance * distance /
-        //             (2 * (targetHeight - robot.limelightHeight - distance * Math.tan(launchAngle))
-        //                     * Math.pow(Math.cos(launchAngle), 2)));
+        // // 2. Calculate distance & launcher speed
+        // double distance = (targetHeight - robot.limelightHeight) /
+        // Math.tan(Math.toRadians(ty + mountAngle));
+        // double launchAngle = Math.toRadians(45); // or your tuned angle
+        // double velocity = Math.sqrt(9.81 * distance * distance /
+        // (2 * (targetHeight - robot.limelightHeight - distance *
+        // Math.tan(launchAngle))
+        // * Math.pow(Math.cos(launchAngle), 2)));
 
-        //     double launcherTicksPerSec = velocity / (2 * Math.PI * robot.launcherWheelRadius) * robot.motorTicksPerRev * robot.gearRatio;
-        //     robot.launcher.setVelocity(launcherTicksPerSec);
+        // double launcherTicksPerSec = velocity / (2 * Math.PI *
+        // robot.launcherWheelRadius) * robot.motorTicksPerRev * robot.gearRatio;
+        // robot.launcher.setVelocity(launcherTicksPerSec);
         // }
 
     }
@@ -203,6 +218,35 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         // Finally, call the drive method with robot relative forward and right amounts
         drive(newForward, newRight, rotate);
+    }
+
+    public BallColor detectColor() {
+        int r = robot.colorSensor.red();
+        int b = robot.colorSensor.blue();
+
+        if (r > b + 40)
+            return BallColor.RED;
+        if (b > r + 40)
+            return BallColor.BLUE;
+        return BallColor.NONE;
+    }
+
+    public void updateFinColors(GenevaStatus status) {
+
+        BallColor current = detectColor();
+
+        // Detect rising edge (a new ball just appeared at the sensor)
+        if (current != BallColor.NONE && lastDetected == BallColor.NONE) {
+
+            // Assign this new ball to the fin currently at the intake
+            finColors[status.fin] = current;
+        }
+
+        lastDetected = current;
+
+        // Telemetry
+        telemetry.addData("Fin Colors",
+                "0:" + finColors[0] + "  1:" + finColors[1] + "  2:" + finColors[2]);
     }
 
     // Thanks to FTC16072 for sharing this code!!
@@ -287,11 +331,13 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
      * on a fin (false).
      */
     public static class GenevaStatus {
-        public int position; // 0 to 5
-        public boolean inGap; // true = in slot, false = on fin
+        public int zone; // 0–5
+        public int fin; // 0–2 (true fin index)
+        public boolean inGap;
 
-        public GenevaStatus(int position, boolean inGap) {
-            this.position = position;
+        public GenevaStatus(int zone, boolean inGap) {
+            this.zone = zone;
+            this.fin = zone / 2; // 0–2
             this.inGap = inGap;
         }
     }
