@@ -53,6 +53,13 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     BallColor lastDetected = BallColor.NONE;
 
+    // Heading lock
+    private double lockedHeading = 0.0;
+    private boolean headingLocked = false;
+
+    // Slow mode
+    private double maxSpeed = 1.0; // default full speed
+
     @Override
     public void init() {
         robot.init(hardwareMap);
@@ -146,6 +153,17 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
             driveFieldRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
         }
 
+        // Heading lock logic
+        if (gamepad1.left_bumper) {
+            if (!headingLocked) {
+                // Store the current IMU yaw once
+                lockedHeading = robot.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+                headingLocked = true;
+            }
+        } else {
+            headingLocked = false; // release heading lock
+        }
+
         robot.launcher.setPower(gamepad2.right_trigger);
 
         GenevaStatus genevaStatus = getGenevaStatus(robot.feedingRotation);
@@ -213,8 +231,10 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         double r = Math.hypot(right, forward);
 
         // Second, rotate angle by the angle the robot is pointing
-        theta = AngleUnit.normalizeRadians(theta -
-                robot.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS));
+        // theta = AngleUnit.normalizeRadians(theta -
+        // robot.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS));
+        double yaw = headingLocked ? lockedHeading : robot.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+        theta = AngleUnit.normalizeRadians(theta - yaw);
 
         // Third, convert back to cartesian
         double newForward = r * Math.sin(theta);
@@ -372,7 +392,11 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         double backLeftPower = forward - right + rotate;
 
         double maxPower = 1.0;
-        double maxSpeed = 1.0; // make this slower for outreaches
+        if (gamepad1.right_bumper) {
+            maxSpeed = 0.5; // slow mode
+        } else {
+            maxSpeed = 1.0; // default full speed, make this slower for outreaches
+        }
 
         // This is needed to make sure we don't pass > 1.0 to any wheel
         // It allows us to keep all of the motors in proportion to what they should
