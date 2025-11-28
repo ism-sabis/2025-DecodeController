@@ -68,6 +68,8 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
     /* Declare OpMode members. */
     private DcMotor         frontLeft   = null;
     private DcMotor         frontRight  = null;
+    private DcMotor         rearLeft   = null;
+    private DcMotor         rearRight  = null;
 
     private ElapsedTime     runtime = new ElapsedTime();
 
