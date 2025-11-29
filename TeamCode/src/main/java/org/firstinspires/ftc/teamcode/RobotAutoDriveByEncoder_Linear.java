@@ -209,4 +209,234 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
             sleep(250);   // optional pause after each move.
         }
     }
+
+    public void rotateToColor(BallColor desired) {
+
+        // 1. Find which fin has the desired color
+        int targetFin = -1;
+        for (int i = 0; i < 3; i++) {
+            if (finColors[i] == desired) {
+                targetFin = i;
+                break;
+            }
+        }
+
+        if (targetFin == -1) {
+            telemetry.addLine("ERROR: Desired color not found in any fin!");
+            telemetry.update();
+            return;
+        }
+
+        // 2. Read current Geneva position
+        GenevaStatus status = getGenevaStatus(robot.feedingRotation);
+        int currentFin = status.fin; // 0–2
+
+        // 3. Compute shortest direction (CW / CCW)
+        int diff = targetFin - currentFin;
+
+        // Normalize difference to −1, 0, +1 (wraparound over 3 fins)
+        if (diff == 2)
+            diff = -1;
+        if (diff == -2)
+            diff = 1;
+
+        double direction = Math.signum(diff); // -1 → rotate backwards, +1 → forwards
+
+        if (direction == 0) {
+            // Already at correct fin
+            return;
+        }
+
+        // 4. Convert fin distance to ticks
+        final double TICKS_PER_REV = 5377.0;
+        final double TICKS_PER_FIN = TICKS_PER_REV / 3.0;
+
+        double targetTicks = robot.feedingRotation.getCurrentPosition() + direction * TICKS_PER_FIN;
+
+        // 5. Rotate until you reach the target
+        robot.feedingRotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        robot.feedingRotation.setTargetPosition((int) targetTicks);
+        robot.feedingRotation.setPower(1.0);
+
+        // Wait until done (non-blocking alternative inside loop if you prefer)
+        while (opModeIsActive() && robot.feedingRotation.isBusy()) {
+            // optional safety timeout
+        }
+
+        robot.feedingRotation.setPower(0);
+        robot.feedingRotation.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
+
+    public BallColor detectColor() {
+        NormalizedRGBA colors = colorSensor.getNormalizedColors();
+        int r = (int) (colors.red * 255);
+        int b = (int) (colors.blue * 255);
+
+        if (r > b + 40)
+            return BallColor.RED;
+        if (b > r + 40)
+            return BallColor.BLUE;
+        return BallColor.NONE;
+    }
+
+    public void shootOneBall() {
+        // Spin flywheel up
+        robot.launcher.setPower(1.0);
+        sleep(300); // change to your real spin-up time
+
+        // Fire
+        robot.kicker.setPosition(KICKER_UP);
+        sleep(130);
+        robot.kicker.setPosition(KICKER_DOWN);
+
+        // ===============================
+        // TUNEABLE PAUSE BETWEEN SHOTS
+        // ===============================
+        sleep(200); // <---- adjust this value
+    }
+
+    public void macroRandomizedShoot() {
+        for (int i = 0; i < 3; i++) {
+            rotateToColor(aprilOrder[i]);
+            shootOneBall();
+        }
+    }
+
+    public void macroSimpleShoot() {
+        for (int i = 0; i < 3; i++) {
+            shootOneBall();
+        }
+    }
+
+    public void readAprilTagAndStoreOrder(int tagId) {
+        switch (tagId) {
+            case 3:
+                aprilOrder[0] = BallColor.BLUE;
+                aprilOrder[1] = BallColor.RED;
+                aprilOrder[2] = BallColor.BLUE;
+                break;
+
+            case 7:
+                aprilOrder[0] = BallColor.RED;
+                aprilOrder[1] = BallColor.BLUE;
+                aprilOrder[2] = BallColor.RED;
+                break;
+
+            default:
+                aprilOrder[0] = BallColor.UNKNOWN;
+                aprilOrder[1] = BallColor.UNKNOWN;
+                aprilOrder[2] = BallColor.UNKNOWN;
+                break;
+        }
+    }
+
+    public void updateFinColors(GenevaStatus status) {
+
+        BallColor current = detectColor();
+
+        // Detect rising edge (a new ball just appeared at the sensor)
+        if (current != BallColor.NONE && lastDetected == BallColor.NONE) {
+
+            // Assign this new ball to the fin currently at the intake
+            finColors[status.fin] = current;
+        }
+
+        lastDetected = current;
+
+        // Telemetry
+        telemetry.addData("Fin Colors",
+                "0:" + finColors[0] + "  1:" + finColors[1] + "  2:" + finColors[2]);
+    }
+
+    public void feeding() {
+
+        // Kicker must be down/safe
+        boolean kickerDown = robot.kicker.getPosition() >= 0.79;
+
+        boolean feederUp = gamepad2.dpad_up;
+        boolean feederDown = gamepad2.dpad_down;
+
+        if (feederUp || feederDown) {
+            if (kickerDown) {
+                // SAFE → allow rotation
+                robot.feedingRotation.setPower(feederUp ? 1 : -1);
+            } else {
+                // NOT safe → block movement + rumble
+                robot.feedingRotation.setPower(0);
+
+                // One short rumble on both sides
+                gamepad1.rumble(1, 1, 300);
+            }
+        } else {
+            robot.feedingRotation.setPower(0);
+        }
+    }
+
+    /**
+     * Returns the Geneva wheel position (0–5) and whether it is in a gap (true) or
+     * on a fin (false).
+     */
+    public static class GenevaStatus {
+        public int zone; // 0–5
+        public int fin; // 0–2 (true fin index)
+        public boolean inGap;
+
+        public GenevaStatus(int zone, boolean inGap) {
+            this.zone = zone;
+            this.fin = zone / 2; // 0–2
+            this.inGap = inGap;
+        }
+    }
+
+    public GenevaStatus getGenevaStatus(DcMotor feedingRotation) {
+        final double TICKS_PER_REV = 5377.0; // motor + 10:1 reduction
+        final int ZONES = 6;
+        final int FIN_TICKS = 116; // fin width in encoder ticks
+
+        double ticksPerZone = TICKS_PER_REV / ZONES;
+
+        // Read encoder and normalize to 0 → TICKS_PER_REV
+        int ticks = robot.feedingRotation.getCurrentPosition();
+        ticks = ((ticks % (int) TICKS_PER_REV) + (int) TICKS_PER_REV) % (int) TICKS_PER_REV;
+
+        // Compute which zone (0–5)
+        int zone = (int) (ticks / ticksPerZone);
+
+        // Compute position inside current zone
+        double posInZone = ticks % ticksPerZone;
+
+        // true = in gap, false = on fin
+        boolean inGap = posInZone >= FIN_TICKS;
+
+        return new GenevaStatus(zone, inGap);
+    }
+
+    public void updateKicker() {
+
+        // Check launcher speed
+        boolean launcherAtSpeed = robot.launcher.getPower() >= LAUNCHER_MIN_POWER;
+
+        // Start cycle only if:
+        // - Button pressed (tap)
+        // - Not already cycling
+        // - Launcher is up to speed
+        if (!kickerCycling && launcherAtSpeed) {
+            kickerCycling = true;
+            robot.kicker.setPosition(KICKER_UP);
+            kickerTimer = System.currentTimeMillis();
+        }
+
+        // Cycle already started
+        if (kickerCycling) {
+            if (System.currentTimeMillis() - kickerTimer >= KICK_TIME) {
+                robot.kicker.setPosition(KICKER_DOWN);
+                kickerCycling = false;
+            }
+        }
+    }
+
+    @Override
+    public void stop() {
+        robot.limelight.stop();
+    }
 }
