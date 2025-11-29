@@ -15,6 +15,8 @@ import com.qualcomm.robotcore.hardware.SwitchableLight;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import android.graphics.Color;
 
+import org.firstinspires.ftc.robotcore.external.navigation.NormalizedRGBA;
+
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.LLStatus;
@@ -105,6 +107,12 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         telemetry.update();
     }
 
+    public enum BallColor {
+            RED,
+            BLUE,
+            UNKNOWN
+        }
+
     // Call functions here
     // Place actual instructions here
     @Override
@@ -169,8 +177,19 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
         xPrev = xNow;
 
-        // Read normalized colors
         NormalizedRGBA colors = colorSensor.getNormalizedColors();
+
+        int red = (int) (colors.red * 255);
+        int green = (int) (colors.green * 255);
+        int blue = (int) (colors.blue * 255);
+        int alpha = (int) (colors.alpha * 255);
+
+        telemetry.addData("Red", red);
+        telemetry.addData("Green", green);
+        telemetry.addData("Blue", blue);
+        telemetry.addData("Alpha", alpha);
+        telemetry.update();
+        ;
 
         // Convert to HSV
         Color.colorToHSV(colors.toColor(), hsvValues);
@@ -197,11 +216,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         telemetry.addLine("The left joystick sets the robot direction");
         telemetry.addLine("Moving the right joystick left and right turns the robot");
 
-        public enum BallColor {
-            RED,
-            BLUE,
-            UNKNOWN
-        }
+        
 
         BallColor[] aprilOrder = new BallColor[3];
 
@@ -372,8 +387,9 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     }
 
     public BallColor detectColor() {
-        int r = robot.colorSensor.red();
-        int b = robot.colorSensor.blue();
+        NormalizedRGBA colors = colorSensor.getNormalizedColors();
+        int r = (int) (colors.red * 255);
+        int b = (int) (colors.blue * 255);
 
         if (r > b + 40)
             return BallColor.RED;
