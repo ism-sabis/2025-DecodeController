@@ -9,6 +9,12 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.IMU;
 
+import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
+import com.qualcomm.robotcore.hardware.NormalizedRGBA;
+import com.qualcomm.robotcore.hardware.SwitchableLight;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
+import android.graphics.Color;
+
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.LLStatus;
@@ -60,9 +66,28 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     // Slow mode
     private double maxSpeed = 1.0; // default full speed
 
+    // Color Sensor
+    NormalizedColorSensor colorSensor;
+    float colorGain = 2f;
+    final float[] hsvValues = new float[3];
+    boolean xPrev = false;
+
     @Override
     public void init() {
         robot.init(hardwareMap);
+
+        // Initialize color sensor
+        colorSensor = hardwareMap.get(NormalizedColorSensor.class, "sensor_color");
+
+        // Set initial gain
+        colorSensor.setGain(colorGain);
+
+        // Turn on light if supported
+        if (colorSensor instanceof SwitchableLight) {
+            ((SwitchableLight) colorSensor).enableLight(true);
+        }
+
+        telemetry.addData("ColorSensor", "Initialized");
 
         // Limelight3A
         // LLStatus status;
@@ -121,6 +146,51 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
             telemetry.addData("Limelight", "No data available");
         }
         telemetry.update();
+
+        // ===================== COLOR SENSOR LOGIC =====================
+
+        // Gain increase (A) / decrease (B)
+        if (gamepad1.a) {
+            colorGain += 0.005;
+        } else if (gamepad1.b && colorGain > 1) {
+            colorGain -= 0.005;
+        }
+
+        // Apply gain
+        colorSensor.setGain(colorGain);
+
+        // Toggle light on X press
+        boolean xNow = gamepad1.x;
+        if (xNow && !xPrev) {
+            if (colorSensor instanceof SwitchableLight) {
+                SwitchableLight light = (SwitchableLight) colorSensor;
+                light.enableLight(!light.isLightOn());
+            }
+        }
+        xPrev = xNow;
+
+        // Read normalized colors
+        NormalizedRGBA colors = colorSensor.getNormalizedColors();
+
+        // Convert to HSV
+        Color.colorToHSV(colors.toColor(), hsvValues);
+
+        // Telemetry
+        telemetry.addLine("===== COLOR SENSOR =====");
+        telemetry.addData("Gain", colorGain);
+        telemetry.addData("Red", "%.3f", colors.red);
+        telemetry.addData("Green", "%.3f", colors.green);
+        telemetry.addData("Blue", "%.3f", colors.blue);
+        telemetry.addData("Alpha", "%.3f", colors.alpha);
+        telemetry.addData("Hue", "%.1f", hsvValues[0]);
+        telemetry.addData("Saturation", "%.3f", hsvValues[1]);
+        telemetry.addData("Value", "%.3f", hsvValues[2]);
+
+        // Show distance if supported
+        if (colorSensor instanceof DistanceSensor) {
+            double dist = ((DistanceSensor) colorSensor).getDistance(DistanceUnit.CM);
+            telemetry.addData("Distance (cm)", "%.2f", dist);
+        }
 
         telemetry.addLine("Press A to reset Yaw");
         telemetry.addLine("Hold left bumper to drive in robot relative");

@@ -49,6 +49,9 @@ public class RobotHardware {
     public CRServo turretSpinner = null;
     public Limelight3A limelight = null;
 
+    public ColorSensorV3 colorSensor;
+
+
     // This declares the IMU needed to get the current direction the robot is facing
     public IMU imu;
 
@@ -109,6 +112,9 @@ public class RobotHardware {
         imu = hardwareMap.get(IMU.class, "imu");
 
         limelight = hardwareMap.get(Limelight3A.class, "Ethernet Device");
+
+        colorSensor = hwMap.get(ColorSensorV3.class, "colorSensor");
+
 
         // To drive forward, most robots need the motor on one side to be reversed,
         // because the axles point in opposite directions.
