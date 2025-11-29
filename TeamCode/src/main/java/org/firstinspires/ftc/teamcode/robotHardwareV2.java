@@ -103,7 +103,7 @@ public class RobotHardware {
         leftLift = hardwareMap.get(DcMotor.class, "leftLift");
         rightLift = hardwareMap.get(DcMotor.class, "rightLift");
         launcher = hardwareMap.get(DcMotor.class, "launcher");
-        feedingRotation = hardwareMap.get(DcMotor.class, "Feeding Rotation");
+        feedingRotation = hardwareMap.get(DcMotor.class, "feedingRotation");
         frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
         frontRight = hardwareMap.get(DcMotor.class, "frontRight");
         rearLeft = hardwareMap.get(DcMotor.class, "rearLeft");
@@ -112,9 +112,12 @@ public class RobotHardware {
 
         limelight = hardwareMap.get(Limelight3A.class, "Ethernet Device");
 
-        colorSensor = hwMap.get(NormalizedColorSensor.class, "colorSensor");
+        colorSensor = hardwareMap.get(NormalizedColorSensor.class, "colorSensor");
 
+        // Define and initialize ALL installed servos.
+        kicker = hardwareMap.get(Servo.class, "Kicker");
 
+        turretSpinner = hardwareMap.get(CRServo.class, "Turretspinner");
 
         // To drive forward, most robots need the motor on one side to be reversed,
         // because the axles point in opposite directions.
@@ -144,11 +147,6 @@ public class RobotHardware {
         rearLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rearRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        // Define and initialize ALL installed servos.
-        kicker = hardwareMap.get(Servo.class, "Kicker");
-
-        turretSpinner = hardwareMap.get(CRServo.class, "Turretspinner");
-
         // Starts polling for data. If you neglect to call start(), getLatestResult()
         // will return null.
         limelight.pipelineSwitch(0);
@@ -162,9 +160,9 @@ public class RobotHardware {
         // myOpMode.telemetry.addData(">", "Hardware Initialized");
         // myOpMode.telemetry.update();
 
-                // This needs to be changed to match the orientation on your robot
-        RevHubOrientationOnRobot.LogoFacingDirection logoDirection = RevHubOrientationOnRobot.LogoFacingDirection.UP;
-        RevHubOrientationOnRobot.UsbFacingDirection usbDirection = RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
+        // This needs to be changed to match the orientation on your robot
+        RevHubOrientationOnRobot.LogoFacingDirection logoDirection = RevHubOrientationOnRobot.LogoFacingDirection.RIGHT;
+        RevHubOrientationOnRobot.UsbFacingDirection usbDirection = RevHubOrientationOnRobot.UsbFacingDirection.UP;
 
         RevHubOrientationOnRobot orientationOnRobot = new RevHubOrientationOnRobot(logoDirection, usbDirection);
         imu.initialize(new IMU.Parameters(orientationOnRobot));

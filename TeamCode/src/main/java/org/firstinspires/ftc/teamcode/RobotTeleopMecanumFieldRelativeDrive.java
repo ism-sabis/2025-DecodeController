@@ -74,6 +74,14 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     final float[] hsvValues = new float[3];
     boolean xPrev = false;
 
+    BallColor[] aprilOrder = new BallColor[3];
+
+    BallColor[] finColors = {
+            BallColor.NONE, BallColor.NONE, BallColor.NONE
+    };
+
+    
+
     @Override
     public void init() {
         robot.init(hardwareMap);
@@ -108,10 +116,10 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     }
 
     public enum BallColor {
-            RED,
-            BLUE,
-            UNKNOWN
-        }
+        RED,
+        BLUE,
+        UNKNOWN
+    }
 
     // Call functions here
     // Place actual instructions here
@@ -215,14 +223,6 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         telemetry.addLine("Hold left bumper to drive in robot relative");
         telemetry.addLine("The left joystick sets the robot direction");
         telemetry.addLine("Moving the right joystick left and right turns the robot");
-
-        
-
-        BallColor[] aprilOrder = new BallColor[3];
-
-        BallColor[] finColors = {
-                BallColor.NONE, BallColor.NONE, BallColor.NONE
-        };
 
         // If you press the A button, then you reset the Yaw to be zero from the way
         // the robot is currently pointing
@@ -400,13 +400,13 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     public void shootOneBall() {
         // Spin flywheel up
-        flywheel.setPower(1.0);
+        robot.launcher.setPower(1.0);
         sleep(300); // change to your real spin-up time
 
         // Fire
-        kicker.setPosition(KICK_UP);
+        robot.kicker.setPosition(KICKER_UP);
         sleep(130);
-        kicker.setPosition(KICK_DOWN);
+        robot.kicker.setPosition(KICKER_DOWN);
 
         // ===============================
         // TUNEABLE PAUSE BETWEEN SHOTS
