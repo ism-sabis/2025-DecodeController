@@ -1,38 +1,19 @@
-/* Copyright (c) 2022 FIRST. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted (subject to the limitations in the disclaimer below) provided that
- * the following conditions are met:
- *
- * Redistributions of source code must retain the above copyright notice, this list
- * of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright notice, this
- * list of conditions and the following disclaimer in the documentation and/or
- * other materials provided with the distribution.
- *
- * Neither the name of FIRST nor the names of its contributors may be used to endorse or
- * promote products derived from this software without specific prior written permission.
- *
- * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS
- * LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
+
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.hardware.limelightvision.LLStatus;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
 
 /*
  * This file works in conjunction with the External Hardware Class sample called: ConceptExternalHardwareClass.java
@@ -53,59 +34,140 @@ import com.qualcomm.robotcore.util.Range;
  *
  */
 
-public class RobotHardware {
+public class robotHardwareV2 {
 
-    /* Declare OpMode members. */
-    private LinearOpMode myOpMode = null;   // gain access to methods in the calling OpMode.
+    // Define Motor and Servo objects (Make them private so they can't be accessed
+    // externally)
+    public DcMotor leftLift = null;
+    public DcMotor rightLift = null;
+    public DcMotor launcher = null;
+    public DcMotor frontLeft = null;
+    public DcMotor frontRight = null;
+    public DcMotor rearLeft = null;
+    public DcMotor rearRight = null;
+    public DcMotor feedingRotation = null;
+    public Servo kicker = null;
+    public CRServo turretSpinner = null;
+    public Limelight3A limelight = null;
 
-    // Define Motor and Servo objects  (Make them private so they can't be accessed externally)
-    private DcMotor leftDrive   = null;
-    private DcMotor rightDrive  = null;
-    private DcMotor armMotor = null;
-    private Servo   leftHand = null;
-    private Servo   rightHand = null;
+    public NormalizedColorSensor colorSensor = null;
 
-    // Define Drive constants.  Make them public so they CAN be used by the calling OpMode
-    public static final double MID_SERVO       =  0.5 ;
-    public static final double HAND_SPEED      =  0.02 ;  // sets rate to move servo
-    public static final double ARM_UP_POWER    =  0.45 ;
-    public static final double ARM_DOWN_POWER  = -0.45 ;
+    // This declares the IMU needed to get the current direction the robot is facing
+    public IMU imu;
+
+    public static final double limelightHeight = 20;
+
+    // Define Drive constants. Make them public so they CAN be used by the calling
+    // OpMode
+    public static final double frontLeftPower = 0.5;
+    public static final double backLeftPower = 0.02;
+    public static final double frontRightPower = 0.45;
+    public static final double backRightPower = -0.45;
+
+    /*
+     * // Constants
+     * // public static final double SPEED_LIMIT = 0.5;
+     * public static final double LAUNCHER_SPEED_DEFAULT = 0.8;
+     * public static final double KICKER_POSITION_START = 0.0;
+     * // public static final double FEEDER_ROTATION_SPEED = 1;
+     * public static final double LIFT_SPEED_DEFAULT = 1;
+     *
+     *
+     * // Variables
+     * //double maxSpeed;
+     * int intakeRuntime;
+     * boolean kickerTf;
+     * float yaw;
+     * ElapsedTime runtime;
+     * int liftSpeed;
+     * DcMotor feederRotation; // replace with correct type if not a motor
+     * double launcherSpeed;
+     * double kickerPosition;
+     * float axial;
+     * float lateral;
+     */
 
     // Define a constructor that allows the OpMode to pass a reference to itself.
-    public RobotHardware(LinearOpMode opmode) {
-        myOpMode = opmode;
+    public robotHardwareV2() {
+        // myOpMode = opmode;
     }
 
     /**
      * Initialize all the robot's hardware.
      * This method must be called ONCE when the OpMode is initialized.
      * <p>
-     * All of the hardware devices are accessed via the hardware map, and initialized.
+     * All of the hardware devices are accessed via the hardware map, and
+     * initialized.
      */
-    public void init()    {
+    public void init(HardwareMap hardwareMap) {
         // Define and Initialize Motors (note: need to use reference to actual OpMode).
-        leftDrive  = myOpMode.hardwareMap.get(DcMotor.class, "left_drive");
-        rightDrive = myOpMode.hardwareMap.get(DcMotor.class, "right_drive");
-        armMotor   = myOpMode.hardwareMap.get(DcMotor.class, "arm");
+        leftLift = hardwareMap.get(DcMotor.class, "leftLift");
+        rightLift = hardwareMap.get(DcMotor.class, "rightLift");
+        launcher = hardwareMap.get(DcMotor.class, "launcher");
+        feedingRotation = hardwareMap.get(DcMotor.class, "feedingRotation");
+        frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
+        frontRight = hardwareMap.get(DcMotor.class, "frontRight");
+        rearLeft = hardwareMap.get(DcMotor.class, "rearLeft");
+        rearRight = hardwareMap.get(DcMotor.class, "rearRight");
+        imu = hardwareMap.get(IMU.class, "imu");
 
-        // To drive forward, most robots need the motor on one side to be reversed, because the axles point in opposite directions.
-        // Pushing the left stick forward MUST make robot go forward. So adjust these two lines based on your first test drive.
-        // Note: The settings here assume direct drive on left and right wheels.  Gear Reduction or 90 Deg drives may require direction flips
-        leftDrive.setDirection(DcMotor.Direction.REVERSE);
-        rightDrive.setDirection(DcMotor.Direction.FORWARD);
+        limelight = hardwareMap.get(Limelight3A.class, "Ethernet Device");
 
-        // If there are encoders connected, switch to RUN_USING_ENCODER mode for greater accuracy
-        // leftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        // rightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        colorSensor = hardwareMap.get(NormalizedColorSensor.class, "colorSensor");
 
         // Define and initialize ALL installed servos.
-        leftHand = myOpMode.hardwareMap.get(Servo.class, "left_hand");
-        rightHand = myOpMode.hardwareMap.get(Servo.class, "right_hand");
-        leftHand.setPosition(MID_SERVO);
-        rightHand.setPosition(MID_SERVO);
+        kicker = hardwareMap.get(Servo.class, "Kicker");
 
-        myOpMode.telemetry.addData(">", "Hardware Initialized");
-        myOpMode.telemetry.update();
+        turretSpinner = hardwareMap.get(CRServo.class, "turretSpinner");
+
+        // To drive forward, most robots need the motor on one side to be reversed,
+        // because the axles point in opposite directions.
+        // Pushing the left stick forward MUST make robot go forward. So adjust these
+        // two lines based on your first test drive.
+        // Note: The settings here assume direct drive on left and right wheels. Gear
+        // Reduction or 90 Deg drives may require direction flips
+        rearLeft.setDirection(DcMotor.Direction.REVERSE);
+        frontLeft.setDirection(DcMotor.Direction.REVERSE);
+        rearRight.setDirection(DcMotor.Direction.FORWARD);
+        frontRight.setDirection(DcMotor.Direction.FORWARD);
+        turretSpinner.setDirection(CRServo.Direction.REVERSE);
+
+        // If there are encoders connected, switch to RUN_USING_ENCODER mode for greater
+        // accuracy
+        leftLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightLift.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rearLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rearRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        // ZeroPowerBehavior
+        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rearLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rearRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        // Starts polling for data. If you neglect to call start(), getLatestResult()
+        // will return null.
+        limelight.pipelineSwitch(0);
+        limelight.start();
+
+        /*
+         * leftHand.setPosition(MID_SERVO);
+         * rightHand.setPosition(MID_SERVO);
+         */
+
+        // myOpMode.telemetry.addData(">", "Hardware Initialized");
+        // myOpMode.telemetry.update();
+
+        // This needs to be changed to match the orientation on your robot
+        RevHubOrientationOnRobot.LogoFacingDirection logoDirection = RevHubOrientationOnRobot.LogoFacingDirection.RIGHT;
+        RevHubOrientationOnRobot.UsbFacingDirection usbDirection = RevHubOrientationOnRobot.UsbFacingDirection.UP;
+
+        RevHubOrientationOnRobot orientationOnRobot = new RevHubOrientationOnRobot(logoDirection, usbDirection);
+        imu.initialize(new IMU.Parameters(orientationOnRobot));
+
     }
 
     /**
@@ -113,18 +175,17 @@ public class RobotHardware {
      * robot motions: Drive (Axial motion) and Turn (Yaw motion).
      * Then sends these power levels to the motors.
      *
-     * @param Drive     Fwd/Rev driving power (-1.0 to 1.0) +ve is forward
-     * @param Turn      Right/Left turning power (-1.0 to 1.0) +ve is CW
+     * @param Drive Fwd/Rev driving power (-1.0 to 1.0) +ve is forward
+     * @param Turn  Right/Left turning power (-1.0 to 1.0) +ve is CW
      */
     public void driveRobot(double Drive, double Turn) {
         // Combine drive and turn for blended motion.
-        double left  = Drive + Turn;
+        double left = Drive + Turn;
         double right = Drive - Turn;
 
         // Scale the values so neither exceed +/- 1.0
         double max = Math.max(Math.abs(left), Math.abs(right));
-        if (max > 1.0)
-        {
+        if (max > 1.0) {
             left /= max;
             right /= max;
         }
@@ -134,15 +195,18 @@ public class RobotHardware {
     }
 
     /**
-     * Pass the requested wheel motor powers to the appropriate hardware drive motors.
+     * Pass the requested wheel motor powers to the appropriate hardware drive
+     * motors.
      *
-     * @param leftWheel     Fwd/Rev driving power (-1.0 to 1.0) +ve is forward
-     * @param rightWheel    Fwd/Rev driving power (-1.0 to 1.0) +ve is forward
+     * @param leftWheel  Fwd/Rev driving power (-1.0 to 1.0) +ve is forward
+     * @param rightWheel Fwd/Rev driving power (-1.0 to 1.0) +ve is forward
      */
     public void setDrivePower(double leftWheel, double rightWheel) {
         // Output the values to the motor drives.
-        leftDrive.setPower(leftWheel);
-        rightDrive.setPower(rightWheel);
+        rearLeft.setPower(leftWheel);
+        frontLeft.setPower(leftWheel);
+        rearRight.setPower(rightWheel);
+        frontRight.setPower(rightWheel);
     }
 
     /**
@@ -150,18 +214,23 @@ public class RobotHardware {
      *
      * @param power driving power (-1.0 to 1.0)
      */
-    public void setArmPower(double power) {
-        armMotor.setPower(power);
-    }
+    /*
+     * public void setArmPower(double power) {
+     * armMotor.setPower(power);
+     * }
+     */
 
     /**
-     * Send the two hand-servos to opposing (mirrored) positions, based on the passed offset.
+     * Send the two hand-servos to opposing (mirrored) positions, based on the
+     * passed offset.
      *
      * @param offset
      */
-    public void setHandPositions(double offset) {
-        offset = Range.clip(offset, -0.5, 0.5);
-        leftHand.setPosition(MID_SERVO + offset);
-        rightHand.setPosition(MID_SERVO - offset);
-    }
+    /*
+     * public void setHandPositions(double offset) {
+     * offset = Range.clip(offset, -0.5, 0.5);
+     * leftHand.setPosition(MID_SERVO + offset);
+     * rightHand.setPosition(MID_SERVO - offset);
+     * }
+     */
 }

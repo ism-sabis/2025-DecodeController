@@ -27,7 +27,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.robotcontroller.external.samples;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
@@ -61,53 +61,71 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  */
 
-@Autonomous(name="Robot: Auto Drive By Encoder", group="Robot")
+@Autonomous(name = "Robot: Auto Drive By Encoder", group = "Robot")
 @Disabled
 public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
 
     /* Declare OpMode members. */
-    private DcMotor         leftDrive   = null;
-    private DcMotor         rightDrive  = null;
+    private DcMotor frontLeft = null;
+    private DcMotor frontRight = null;
+    private DcMotor rearLeft = null;
+    private DcMotor rearRight = null;
 
-    private ElapsedTime     runtime = new ElapsedTime();
+    private ElapsedTime runtime = new ElapsedTime();
 
     // Calculate the COUNTS_PER_INCH for your specific drive train.
-    // Go to your motor vendor website to determine your motor's COUNTS_PER_MOTOR_REV
+    // Go to your motor vendor website to determine your motor's
+    // COUNTS_PER_MOTOR_REV
     // For external drive gearing, set DRIVE_GEAR_REDUCTION as needed.
-    // For example, use a value of 2.0 for a 12-tooth spur gear driving a 24-tooth spur gear.
+    // For example, use a value of 2.0 for a 12-tooth spur gear driving a 24-tooth
+    // spur gear.
     // This is gearing DOWN for less speed and more torque.
-    // For gearing UP, use a gear ratio less than 1.0. Note this will affect the direction of wheel rotation.
-    static final double     COUNTS_PER_MOTOR_REV    = 1440 ;    // eg: TETRIX Motor Encoder
-    static final double     DRIVE_GEAR_REDUCTION    = 1.0 ;     // No External Gearing.
-    static final double     WHEEL_DIAMETER_INCHES   = 4.0 ;     // For figuring circumference
-    static final double     COUNTS_PER_INCH         = (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
-                                                      (WHEEL_DIAMETER_INCHES * 3.1415);
-    static final double     DRIVE_SPEED             = 0.6;
-    static final double     TURN_SPEED              = 0.5;
+    // For gearing UP, use a gear ratio less than 1.0. Note this will affect the
+    // direction of wheel rotation.
+    static final double COUNTS_PER_MOTOR_REV = 537.7; // eg: TETRIX Motor Encoder
+    static final double DRIVE_GEAR_REDUCTION = 2.0; // No External Gearing.
+    static final double WHEEL_DIAMETER_INCHES = 3.78; // For figuring circumference
+    static final double COUNTS_PER_INCH = (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
+            (WHEEL_DIAMETER_INCHES * 3.1415);
+    static final double DRIVE_SPEED = 0.6;
+    static final double TURN_SPEED = 0.5;
 
     @Override
     public void runOpMode() {
 
         // Initialize the drive system variables.
-        leftDrive  = hardwareMap.get(DcMotor.class, "left_drive");
-        rightDrive = hardwareMap.get(DcMotor.class, "right_drive");
+        frontLeft = hardwareMap.get(DcMotor.class, "front_left");
+        frontRight = hardwareMap.get(DcMotor.class, "front_right");
+        rearLeft = hardwareMap.get(DcMotor.class, "rear_left");
+        rearRight = hardwareMap.get(DcMotor.class, "rear_right");
 
-        // To drive forward, most robots need the motor on one side to be reversed, because the axles point in opposite directions.
-        // When run, this OpMode should start both motors driving forward. So adjust these two lines based on your first test drive.
-        // Note: The settings here assume direct drive on left and right wheels.  Gear Reduction or 90 Deg drives may require direction flips
-        leftDrive.setDirection(DcMotor.Direction.REVERSE);
-        rightDrive.setDirection(DcMotor.Direction.FORWARD);
+        // To drive forward, most robots need the motor on one side to be reversed,
+        // because the axles point in opposite directions.
+        // When run, this OpMode should start both motors driving forward. So adjust
+        // these two lines based on your first test drive.
+        // Note: The settings here assume direct drive on left and right wheels. Gear
+        // Reduction or 90 Deg drives may require direction flips
+        frontLeft.setDirection(DcMotor.Direction.REVERSE);
+        frontRight.setDirection(DcMotor.Direction.FORWARD);
+        rearLeft.setDirection(DcMotor.Direction.REVERSE);
+        rearRight.setDirection(DcMotor.Direction.FORWARD);
 
-        leftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rearLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rearRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-        leftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rearLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rearRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         // Send telemetry message to indicate successful Encoder reset
-        telemetry.addData("Starting at",  "%7d :%7d",
-                          leftDrive.getCurrentPosition(),
-                          rightDrive.getCurrentPosition());
+        telemetry.addData("Starting at", "%7d :%7d",
+                frontLeft.getCurrentPosition(),
+                frontRight.getCurrentPosition(),
+                rearLeft.getCurrentPosition(),
+                rearRight.getCurrentPosition());
         telemetry.update();
 
         // Wait for the game to start (driver presses START)
@@ -115,22 +133,39 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
 
         // Step through each leg of the path,
         // Note: Reverse movement is obtained by setting a negative distance (not speed)
-        encoderDrive(DRIVE_SPEED,  48,  48, 5.0);  // S1: Forward 47 Inches with 5 Sec timeout
-        encoderDrive(TURN_SPEED,   12, -12, 4.0);  // S2: Turn Right 12 Inches with 4 Sec timeout
-        encoderDrive(DRIVE_SPEED, -24, -24, 4.0);  // S3: Reverse 24 Inches with 4 Sec timeout
+        encoderDrive(DRIVE_SPEED, 48, 48, 5.0); // S1: Forward 47 Inches with 5 Sec timeout
+        encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn Left 12 Inches with 4 Sec timeout
+        shootOneBall();
+        encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn Right 12 Inches with 4 Sec timeout
+        encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Forward 24 Inches with 4 Sec timeout
+        encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Reverse 24 Inches with 4 Sec timeout
+        encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn Left 12 Inches with 4 Sec timeout
+        macroRandomizedShoot();
+        encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn Right 12 Inches with 4 Sec timeout
+        encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Forward 24 Inches with 4 Sec timeout
+        encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Reverse 24 Inches with 4 Sec timeout
+        encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn Left 12 Inches with 4 Sec timeout
+        macroRandomizedShoot();
+        encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn Right 12 Inches with 4 Sec timeout
+        encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Forward 24 Inches with 4 Sec timeout
+        encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Reverse 24 Inches with 4 Sec timeout
+        encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn Left 12 Inches with 4 Sec timeout
+        macroRandomizedShoot();
+        encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn Right 12 Inches with 4 Sec timeout
+        encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Forward 24 Inches with 4 Sec timeout
 
         telemetry.addData("Path", "Complete");
         telemetry.update();
-        sleep(1000);  // pause to display final telemetry message.
+        sleep(1000); // pause to display final telemetry message.
     }
 
     /*
-     *  Method to perform a relative move, based on encoder counts.
-     *  Encoders are not reset as the move is based on the current position.
-     *  Move will stop if any of three conditions occur:
-     *  1) Move gets to the desired position
-     *  2) Move runs out of time
-     *  3) Driver stops the OpMode running.
+     * Method to perform a relative move, based on encoder counts.
+     * Encoders are not reset as the move is based on the current position.
+     * Move will stop if any of three conditions occur:
+     * 1) Move gets to the desired position
+     * 2) Move runs out of time
+     * 3) Driver stops the OpMode running.
      */
     public void encoderDrive(double speed,
                              double leftInches, double rightInches,
@@ -142,46 +177,293 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
         if (opModeIsActive()) {
 
             // Determine new target position, and pass to motor controller
-            newLeftTarget = leftDrive.getCurrentPosition() + (int)(leftInches * COUNTS_PER_INCH);
-            newRightTarget = rightDrive.getCurrentPosition() + (int)(rightInches * COUNTS_PER_INCH);
-            leftDrive.setTargetPosition(newLeftTarget);
-            rightDrive.setTargetPosition(newRightTarget);
+            newLeftTarget = frontLeft.getCurrentPosition() + (int) (leftInches * COUNTS_PER_INCH);
+            newRightTarget = frontRight.getCurrentPosition() + (int) (rightInches * COUNTS_PER_INCH);
+
+            // debug
+            frontLeft.setTargetPosition(newLeftTarget);
+            frontRight.setTargetPosition(newRightTarget);
+            rearLeft.setTargetPosition(newLeftTarget);
+            rearRight.setTargetPosition(newRightTarget);
 
             // Turn On RUN_TO_POSITION
-            leftDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            rightDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            rearLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            rearRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
             // reset the timeout time and start motion.
             runtime.reset();
-            leftDrive.setPower(Math.abs(speed));
-            rightDrive.setPower(Math.abs(speed));
+            frontLeft.setPower(Math.abs(speed));
+            frontRight.setPower(Math.abs(speed));
+            rearLeft.setPower(Math.abs(speed));
+            rearRight.setPower(Math.abs(speed));
 
-            // keep looping while we are still active, and there is time left, and both motors are running.
-            // Note: We use (isBusy() && isBusy()) in the loop test, which means that when EITHER motor hits
-            // its target position, the motion will stop.  This is "safer" in the event that the robot will
+            // keep looping while we are still active, and there is time left, and both
+            // motors are running.
+            // Note: We use (isBusy() && isBusy()) in the loop test, which means that when
+            // EITHER motor hits
+            // its target position, the motion will stop. This is "safer" in the event that
+            // the robot will
             // always end the motion as soon as possible.
-            // However, if you require that BOTH motors have finished their moves before the robot continues
+            // However, if you require that BOTH motors have finished their moves before the
+            // robot continues
             // onto the next step, use (isBusy() || isBusy()) in the loop test.
             while (opModeIsActive() &&
-                   (runtime.seconds() < timeoutS) &&
-                   (leftDrive.isBusy() && rightDrive.isBusy())) {
+                    (runtime.seconds() < timeoutS) &&
+                    (frontLeft.isBusy() && frontRight.isBusy() && rearLeft.isBusy() && rearRight.isBusy())) {
 
                 // Display it for the driver.
-                telemetry.addData("Running to",  " %7d :%7d", newLeftTarget,  newRightTarget);
-                telemetry.addData("Currently at",  " at %7d :%7d",
-                                            leftDrive.getCurrentPosition(), rightDrive.getCurrentPosition());
+                telemetry.addData("Running to", " %7d :%7d", newLeftTarget, newRightTarget);
+                telemetry.addData("Currently at", " at %7d :%7d",
+                        frontLeft.getCurrentPosition(), frontRight.getCurrentPosition(), rearLeft.getCurrentPosition(),
+                        rearRight.getCurrentPosition());
                 telemetry.update();
             }
 
             // Stop all motion;
-            leftDrive.setPower(0);
-            rightDrive.setPower(0);
+            frontLeft.setPower(0);
+            frontRight.setPower(0);
+            rearLeft.setPower(0);
+            rearRight.setPower(0);
 
             // Turn off RUN_TO_POSITION
-            leftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            rightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            rearLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            rearRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-            sleep(250);   // optional pause after each move.
+            sleep(250); // optional pause after each move.
         }
+    }
+
+    public void rotateToColor(BallColor desired) {
+
+        // 1. Find which fin has the desired color
+        int targetFin = -1;
+        for (int i = 0; i < 3; i++) {
+            if (finColors[i] == desired) {
+                targetFin = i;
+                break;
+            }
+        }
+
+        if (targetFin == -1) {
+            telemetry.addLine("ERROR: Desired color not found in any fin!");
+            telemetry.update();
+            return;
+        }
+
+        // 2. Read current Geneva position
+        GenevaStatus status = getGenevaStatus(robot.feedingRotation);
+        int currentFin = status.fin; // 0–2
+
+        // 3. Compute shortest direction (CW / CCW)
+        int diff = targetFin - currentFin;
+
+        // Normalize difference to −1, 0, +1 (wraparound over 3 fins)
+        if (diff == 2)
+            diff = -1;
+        if (diff == -2)
+            diff = 1;
+
+        double direction = Math.signum(diff); // -1 → rotate backwards, +1 → forwards
+
+        if (direction == 0) {
+            // Already at correct fin
+            return;
+        }
+
+        // 4. Convert fin distance to ticks
+        final double TICKS_PER_REV = 5377.0;
+        final double TICKS_PER_FIN = TICKS_PER_REV / 3.0;
+
+        double targetTicks = robot.feedingRotation.getCurrentPosition() + direction * TICKS_PER_FIN;
+
+        // 5. Rotate until you reach the target
+        robot.feedingRotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        robot.feedingRotation.setTargetPosition((int) targetTicks);
+        robot.feedingRotation.setPower(1.0);
+
+        // Wait until done (non-blocking alternative inside loop if you prefer)
+        while (opModeIsActive() && robot.feedingRotation.isBusy()) {
+            // optional safety timeout
+        }
+
+        robot.feedingRotation.setPower(0);
+        robot.feedingRotation.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
+
+    public BallColor detectColor() {
+        NormalizedRGBA colors = colorSensor.getNormalizedColors();
+        int r = (int) (colors.red * 255);
+        int b = (int) (colors.blue * 255);
+
+        if (r > b + 40)
+            return BallColor.RED;
+        if (b > r + 40)
+            return BallColor.BLUE;
+        return BallColor.NONE;
+    }
+
+    public void shootOneBall() {
+        // Spin flywheel up
+        robot.launcher.setPower(1.0);
+        sleep(300); // change to your real spin-up time
+
+        // Fire
+        robot.kicker.setPosition(KICKER_UP);
+        sleep(130);
+        robot.kicker.setPosition(KICKER_DOWN);
+
+        // ===============================
+        // TUNEABLE PAUSE BETWEEN SHOTS
+        // ===============================
+        sleep(200); // <---- adjust this value
+    }
+
+    public void macroRandomizedShoot() {
+        for (int i = 0; i < 3; i++) {
+            rotateToColor(aprilOrder[i]);
+            shootOneBall();
+        }
+    }
+
+    public void macroSimpleShoot() {
+        for (int i = 0; i < 3; i++) {
+            shootOneBall();
+        }
+    }
+
+    public void readAprilTagAndStoreOrder(int tagId) {
+        switch (tagId) {
+            case 3:
+                aprilOrder[0] = BallColor.BLUE;
+                aprilOrder[1] = BallColor.RED;
+                aprilOrder[2] = BallColor.BLUE;
+                break;
+
+            case 7:
+                aprilOrder[0] = BallColor.RED;
+                aprilOrder[1] = BallColor.BLUE;
+                aprilOrder[2] = BallColor.RED;
+                break;
+
+            default:
+                aprilOrder[0] = BallColor.UNKNOWN;
+                aprilOrder[1] = BallColor.UNKNOWN;
+                aprilOrder[2] = BallColor.UNKNOWN;
+                break;
+        }
+    }
+
+    public void updateFinColors(GenevaStatus status) {
+
+        BallColor current = detectColor();
+
+        // Detect rising edge (a new ball just appeared at the sensor)
+        if (current != BallColor.NONE && lastDetected == BallColor.NONE) {
+
+            // Assign this new ball to the fin currently at the intake
+            finColors[status.fin] = current;
+        }
+
+        lastDetected = current;
+
+        // Telemetry
+        telemetry.addData("Fin Colors",
+                "0:" + finColors[0] + "  1:" + finColors[1] + "  2:" + finColors[2]);
+    }
+
+    public void feeding() {
+
+        // Kicker must be down/safe
+        boolean kickerDown = robot.kicker.getPosition() >= 0.79;
+
+        boolean feederUp = gamepad2.dpad_up;
+        boolean feederDown = gamepad2.dpad_down;
+
+        if (feederUp || feederDown) {
+            if (kickerDown) {
+                // SAFE → allow rotation
+                robot.feedingRotation.setPower(feederUp ? 1 : -1);
+            } else {
+                // NOT safe → block movement + rumble
+                robot.feedingRotation.setPower(0);
+
+                // One short rumble on both sides
+                gamepad1.rumble(1, 1, 300);
+            }
+        } else {
+            robot.feedingRotation.setPower(0);
+        }
+    }
+
+    /**
+     * Returns the Geneva wheel position (0–5) and whether it is in a gap (true) or
+     * on a fin (false).
+     */
+    public static class GenevaStatus {
+        public int zone; // 0–5
+        public int fin; // 0–2 (true fin index)
+        public boolean inGap;
+
+        public GenevaStatus(int zone, boolean inGap) {
+            this.zone = zone;
+            this.fin = zone / 2; // 0–2
+            this.inGap = inGap;
+        }
+    }
+
+    public GenevaStatus getGenevaStatus(DcMotor feedingRotation) {
+        final double TICKS_PER_REV = 5377.0; // motor + 10:1 reduction
+        final int ZONES = 6;
+        final int FIN_TICKS = 116; // fin width in encoder ticks
+
+        double ticksPerZone = TICKS_PER_REV / ZONES;
+
+        // Read encoder and normalize to 0 → TICKS_PER_REV
+        int ticks = robot.feedingRotation.getCurrentPosition();
+        ticks = ((ticks % (int) TICKS_PER_REV) + (int) TICKS_PER_REV) % (int) TICKS_PER_REV;
+
+        // Compute which zone (0–5)
+        int zone = (int) (ticks / ticksPerZone);
+
+        // Compute position inside current zone
+        double posInZone = ticks % ticksPerZone;
+
+        // true = in gap, false = on fin
+        boolean inGap = posInZone >= FIN_TICKS;
+
+        return new GenevaStatus(zone, inGap);
+    }
+
+    public void updateKicker() {
+
+        // Check launcher speed
+        boolean launcherAtSpeed = robot.launcher.getPower() >= LAUNCHER_MIN_POWER;
+
+        // Start cycle only if:
+        // - Button pressed (tap)
+        // - Not already cycling
+        // - Launcher is up to speed
+        if (!kickerCycling && launcherAtSpeed) {
+            kickerCycling = true;
+            robot.kicker.setPosition(KICKER_UP);
+            kickerTimer = System.currentTimeMillis();
+        }
+
+        // Cycle already started
+        if (kickerCycling) {
+            if (System.currentTimeMillis() - kickerTimer >= KICK_TIME) {
+                robot.kicker.setPosition(KICKER_DOWN);
+                kickerCycling = false;
+            }
+        }
+    }
+
+    @Override
+    public void stop() {
+        robot.limelight.stop();
     }
 }
