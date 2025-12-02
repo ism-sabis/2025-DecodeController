@@ -297,28 +297,28 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
             // --- Gamepad2 button actions ---
             // A button → shoot one ball
-            if (gamepad2.a && !aPrev) {
+            if (gamepad2.triangle && !aPrev) {
                 shootOneBall();
             }
-            aPrev = gamepad2.a;
+            aPrev = gamepad2.triangle;
 
             // B button → macro simple shoot
-            if (gamepad2.b && !bPrev) {
+            if (gamepad2.square && !bPrev) {
                 macroSimpleShoot();
             }
-            bPrev = gamepad2.b;
+            bPrev = gamepad2.square;
 
             // Y button → macro randomized shoot
-            if (gamepad2.y && !yPrev) {
+            if (gamepad2.x && !yPrev) {
                 macroRandomizedShoot();
             }
-            yPrev = gamepad2.y;
+            yPrev = gamepad2.x;
 
             // X button → rotate to RED (example)
-            if (gamepad2.x && !xPrev2) {
+            if (gamepad2.circle && !xPrev2) {
                 rotateToColor(BallColor.RED); // or add logic to choose color dynamically
             }
-            xPrev2 = gamepad2.x;
+            xPrev2 = gamepad2.circle;
 
 
 
