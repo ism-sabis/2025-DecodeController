@@ -89,6 +89,14 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
             BallColor.NONE, BallColor.NONE, BallColor.NONE
     };
 
+    double driverYawOffset = 0; // initial offset in radians
+    boolean squarePrev = false;   // to detect rising edge of square button
+
+    double lastForward = 0;
+    double lastRight = 0;
+    double lastRotate = 0;
+
+
 
 
     @Override
@@ -116,12 +124,20 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // double targetingLatency;
         // List<LLResultTypes.FiducialResult> fiducialResults;
         // LLResultTypes.FiducialResult fiducialResult;
+        // LLResultTypes.FiducialResult fiducialResult;
         // List<LLResultTypes.ColorResult> colorResults;
         // LLResultTypes.ColorResult colorResult;
 
         telemetry.setMsTransmissionInterval(11);
         telemetry.addData(">", "Robot Ready.  Press Play.");
         telemetry.update();
+
+
+
+        double driverYawOffset = Math.PI; // adjust to your driver position
+
+        robot.kicker.setPosition(KICKER_DOWN);
+
     }
 
 
@@ -231,14 +247,25 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         double yawDeg = robot.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
         telemetry.addData("Yaw (deg)", yawDeg);
-        telemetry.update();
+
+
+        // ===== TELEMETRY FOR DEBUGGING =====
+        telemetry.addLine("===== DRIVER-RELATIVE DEBUG =====");
+        telemetry.addData("driverYawOffset (deg)", Math.toDegrees(driverYawOffset));
+        //telemetry.addData("robotYaw (deg)", Math.toDegrees(robotYaw));
+        //telemetry.addData("joystickAngle (deg)", Math.toDegrees(Math.atan2(forward, right)));
+        //telemetry.addData("theta rotated (deg)", Math.toDegrees(theta));
+        //telemetry.addData("newForward", newForward);
+        //telemetry.addData("newRight", newRight);
+
 
 
         // If you press the A button, then you reset the Yaw to be zero from the way
         // the robot is currently pointing
-        if (gamepad1.a) {
+        if (gamepad1.triangle) {
             robot.imu.resetYaw();
         }
+        /*
         // If you press the left bumper, you get a drive from the point of view of the
         // robot
         // (much like driving an RC vehicle)
@@ -247,6 +274,67 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         } else {
             driveFieldRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
         }
+
+         */
+
+        // Rising edge detection for square button
+        boolean squareNow = gamepad1.square;
+        if (squareNow && !squarePrev) {
+            driverYawOffset += Math.PI / 2;
+            driverYawOffset = driverYawOffset % (2 * Math.PI);
+
+            // Immediately recalc motor powers using last joystick
+            applyDriverOffset(driverYawOffset);
+        }
+        squarePrev = squareNow;
+
+        // Rising edge detection variables
+        boolean aPrev = false;
+        boolean bPrev = false;
+        boolean yPrev = false;
+        boolean xPrev2 = false; // separate from Gamepad1 X
+
+
+            // --- Gamepad2 button actions ---
+            // A button → shoot one ball
+            if (gamepad2.a && !aPrev) {
+                shootOneBall();
+            }
+            aPrev = gamepad2.a;
+
+            // B button → macro simple shoot
+            if (gamepad2.b && !bPrev) {
+                macroSimpleShoot();
+            }
+            bPrev = gamepad2.b;
+
+            // Y button → macro randomized shoot
+            if (gamepad2.y && !yPrev) {
+                macroRandomizedShoot();
+            }
+            yPrev = gamepad2.y;
+
+            // X button → rotate to RED (example)
+            if (gamepad2.x && !xPrev2) {
+                rotateToColor(BallColor.RED); // or add logic to choose color dynamically
+            }
+            xPrev2 = gamepad2.x;
+
+
+
+
+
+        // Set driver orientation (angle between driver forward and field forward)
+// Example: driver on south side facing north = 180 degrees
+
+
+        if (gamepad1.left_bumper) {
+            drive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x); // robot-relative
+        } else {
+            driveDriverRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x, driverYawOffset);
+        }
+
+
 
         // Heading lock logic
         if (gamepad1.left_bumper) {
@@ -258,6 +346,8 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         } else {
             headingLocked = false; // release heading lock
         }
+
+
 
         robot.launcher.setPower(gamepad2.right_trigger);
 
@@ -338,6 +428,38 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Finally, call the drive method with robot relative forward and right amounts
         drive(newForward, newRight, rotate);
     }
+
+    private void driveDriverRelative(double forward, double right, double rotate, double driverYawOffset) {
+        // Store the last joystick values
+        lastForward = forward;
+        lastRight = right;
+        lastRotate = rotate;
+
+        double robotYaw = robot.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+
+        // Joystick vector → polar
+        double theta = Math.atan2(forward, right);
+        double r = Math.hypot(right, forward);
+
+        // Apply robot yaw and driver offset
+        theta = theta - robotYaw + driverYawOffset;
+
+        // Convert back to robot-relative Cartesian
+        double newForward = r * Math.sin(theta);
+        double newRight   = r * Math.cos(theta);
+
+        // Send to mecanum drive
+        drive(newForward, newRight, rotate);
+    }
+
+    // Call this when the square button is pressed to immediately recalc
+    private void applyDriverOffset(double driverYawOffset) {
+        driveDriverRelative(lastForward, lastRight, lastRotate, driverYawOffset);
+    }
+
+
+
+
 
     public void rotateToColor(BallColor desired) {
 
