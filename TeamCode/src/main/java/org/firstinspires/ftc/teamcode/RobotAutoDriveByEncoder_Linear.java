@@ -27,13 +27,21 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.firstinspires.ftc.robotcontroller.external.samples;
+package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
+import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.teamcode.RobotHardware;
+import org.firstinspires.ftc.teamcode.RobotTeleopMecanumFieldRelativeDrive;
+
+import org.firstinspires.ftc.teamcode.BallColor;
+
 
 /*
  * This OpMode illustrates the concept of driving a path based on encoder counts.
@@ -64,7 +72,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 @Autonomous(name = "Robot: Auto Drive By Encoder", group = "Robot")
 @Disabled
 public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
-
+    final private org.firstinspires.ftc.teamcode.RobotHardware robot = new RobotHardware();
     /* Declare OpMode members. */
     private DcMotor frontLeft = null;
     private DcMotor frontRight = null;
@@ -72,6 +80,42 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
     private DcMotor rearRight = null;
 
     private ElapsedTime runtime = new ElapsedTime();
+
+    // Kicker auto-cycle state
+    boolean kickerCycling = false;
+    long kickerTimer = 0;
+
+    // Kicker positions
+    static final double KICKER_DOWN = 0.8;
+    static final double KICKER_UP = 0.5; // adjust if needed
+
+    // Timing
+    static final long KICK_TIME = 200; // milliseconds for kick
+
+    // Launcher speed threshold (adjust)
+    static final double LAUNCHER_MIN_POWER = 0.1; // normalized 0 to 1.0
+
+    static final double LIFT_SPEED = 1;
+
+    BallColor lastDetected = BallColor.NONE;
+
+    // Heading lock
+    private double lockedHeading = 0.0;
+    private boolean headingLocked = false;
+
+    // Slow mode
+    private double maxSpeed = 1.0; // default full speed
+
+    // Color Sensor
+    NormalizedColorSensor colorSensor;
+    float colorGain = 2f;
+    final float[] hsvValues = new float[3];
+    boolean xPrev = false;
+
+    BallColor[] aprilOrder = new BallColor[3];
+
+    BallColor[] finColors = {
+            BallColor.NONE, BallColor.NONE, BallColor.NONE};
 
     // Calculate the COUNTS_PER_INCH for your specific drive train.
     // Go to your motor vendor website to determine your motor's
@@ -92,6 +136,8 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
 
     @Override
     public void runOpMode() {
+
+
 
         // Initialize the drive system variables.
         frontLeft = hardwareMap.get(DcMotor.class, "front_left");
@@ -158,6 +204,8 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
         telemetry.update();
         sleep(1000); // pause to display final telemetry message.
     }
+
+
 
     /*
      * Method to perform a relative move, based on encoder counts.
@@ -350,9 +398,9 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
                 break;
 
             default:
-                aprilOrder[0] = BallColor.UNKNOWN;
-                aprilOrder[1] = BallColor.UNKNOWN;
-                aprilOrder[2] = BallColor.UNKNOWN;
+                aprilOrder[0] = BallColor.NONE;
+                aprilOrder[1] = BallColor.NONE;
+                aprilOrder[2] = BallColor.NONE;
                 break;
         }
     }
@@ -462,8 +510,8 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
         }
     }
 
-    @Override
-    public void stop() {
-        robot.limelight.stop();
-    }
+    //@Override
+    //public void stop() {
+    //    robot.limelight.stop();
+    //}
 }

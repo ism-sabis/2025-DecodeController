@@ -31,6 +31,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
+import org.firstinspires.ftc.teamcode.BallColor;
+
+
 /*
  * This OpMode illustrates how to program your robot to drive field relative.  This means
  * that the robot drives the direction you push the joystick regardless of the current orientation
@@ -121,11 +124,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         telemetry.update();
     }
 
-    public enum BallColor {
-        RED,
-        BLUE,
-        NONE
-    }
+
 
     // Call functions here
     // Place actual instructions here
