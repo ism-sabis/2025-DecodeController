@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
@@ -33,7 +34,7 @@ import com.qualcomm.hardware.limelightvision.Limelight3A;
  *
  */
 
-public class RobotHardware {
+public class robotHardwareV2 {
 
     // Define Motor and Servo objects (Make them private so they can't be accessed
     // externally)
@@ -87,7 +88,7 @@ public class RobotHardware {
      */
 
     // Define a constructor that allows the OpMode to pass a reference to itself.
-    public RobotHardware() {
+    public robotHardwareV2() {
         // myOpMode = opmode;
     }
 

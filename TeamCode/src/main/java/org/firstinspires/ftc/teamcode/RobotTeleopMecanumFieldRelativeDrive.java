@@ -5,7 +5,11 @@ import org.firstinspires.ftc.robotcore.external.JavaUtil;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.hardware.DcMotor;
+
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.IMU;
 
@@ -15,7 +19,7 @@ import com.qualcomm.robotcore.hardware.SwitchableLight;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import android.graphics.Color;
 
-import org.firstinspires.ftc.robotcore.external.navigation.NormalizedRGBA;
+import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
@@ -24,6 +28,8 @@ import com.qualcomm.hardware.limelightvision.Limelight3A;
 import java.util.List;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 /*
  * This OpMode illustrates how to program your robot to drive field relative.  This means
@@ -42,7 +48,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 @TeleOp(name = "Robot: Field Relative Mecanum Drive", group = "Robot")
 // @Disabled
 public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
-    final private RobotHardware robot = new RobotHardware();
+    final private robotHardwareV2 robot = new robotHardwareV2();
     // Kicker auto-cycle state
     boolean kickerCycling = false;
     long kickerTimer = 0;
@@ -118,7 +124,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     public enum BallColor {
         RED,
         BLUE,
-        UNKNOWN
+        NONE
     }
 
     // Call functions here
@@ -378,9 +384,9 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         robot.feedingRotation.setPower(1.0);
 
         // Wait until done (non-blocking alternative inside loop if you prefer)
-        while (opModeIsActive() && robot.feedingRotation.isBusy()) {
+        //while (opModeIsActive() && robot.feedingRotation.isBusy()) {
             // optional safety timeout
-        }
+        //}
 
         robot.feedingRotation.setPower(0);
         robot.feedingRotation.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -401,17 +407,32 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     public void shootOneBall() {
         // Spin flywheel up
         robot.launcher.setPower(1.0);
-        sleep(300); // change to your real spin-up time
+        try {
+            Thread.sleep(300);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // restore interrupted status
+        }
+        // change to your real spin-up time
 
         // Fire
         robot.kicker.setPosition(KICKER_UP);
-        sleep(130);
+        try {
+            Thread.sleep(130);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // restore interrupted status
+        }
+
         robot.kicker.setPosition(KICKER_DOWN);
 
         // ===============================
         // TUNEABLE PAUSE BETWEEN SHOTS
         // ===============================
-        sleep(200); // <---- adjust this value
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // restore interrupted status
+        }
+         // <---- adjust this value
     }
 
     public void macroRandomizedShoot() {
@@ -442,9 +463,9 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 break;
 
             default:
-                aprilOrder[0] = BallColor.UNKNOWN;
-                aprilOrder[1] = BallColor.UNKNOWN;
-                aprilOrder[2] = BallColor.UNKNOWN;
+                aprilOrder[0] = BallColor.NONE;
+                aprilOrder[1] = BallColor.NONE;
+                aprilOrder[2] = BallColor.NONE;
                 break;
         }
     }
