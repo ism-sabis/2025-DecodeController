@@ -499,7 +499,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         double maxPower = 1.0;
         if (gamepad1.right_bumper) {
-            maxSpeed = 0.2; // slow mode
+            maxSpeed = 0.1; // slow mode
         } else {
             maxSpeed = 1.0; // default full speed, make this slower for outreaches
         }
