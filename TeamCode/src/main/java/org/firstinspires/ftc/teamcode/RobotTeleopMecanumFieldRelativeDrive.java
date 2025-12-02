@@ -96,7 +96,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         robot.init(hardwareMap);
 
         // Initialize color sensor
-        colorSensor = hardwareMap.get(NormalizedColorSensor.class, "sensor_color");
+        colorSensor = hardwareMap.get(NormalizedColorSensor.class, "colorSensor");
 
         // Set initial gain
         colorSensor.setGain(colorGain);
