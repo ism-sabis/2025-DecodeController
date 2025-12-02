@@ -48,7 +48,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 @TeleOp(name = "Robot: Field Relative Mecanum Drive", group = "Robot")
 // @Disabled
 public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
-    final private robotHardwareV2 robot = new robotHardwareV2();
+    final private RobotHardware robot = new RobotHardware();
     // Kicker auto-cycle state
     boolean kickerCycling = false;
     long kickerTimer = 0;

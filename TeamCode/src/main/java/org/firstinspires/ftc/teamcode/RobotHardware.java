@@ -34,7 +34,7 @@ import com.qualcomm.hardware.limelightvision.Limelight3A;
  *
  */
 
-public class robotHardwareV2 {
+public class RobotHardware {
 
     // Define Motor and Servo objects (Make them private so they can't be accessed
     // externally)
@@ -88,7 +88,7 @@ public class robotHardwareV2 {
      */
 
     // Define a constructor that allows the OpMode to pass a reference to itself.
-    public robotHardwareV2() {
+    public RobotHardware() {
         // myOpMode = opmode;
     }
 
