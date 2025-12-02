@@ -229,6 +229,11 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         telemetry.addLine("The left joystick sets the robot direction");
         telemetry.addLine("Moving the right joystick left and right turns the robot");
 
+        double yawDeg = robot.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+        telemetry.addData("Yaw (deg)", yawDeg);
+        telemetry.update();
+
+
         // If you press the A button, then you reset the Yaw to be zero from the way
         // the robot is currently pointing
         if (gamepad1.a) {
