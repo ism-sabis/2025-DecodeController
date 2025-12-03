@@ -101,6 +101,9 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     boolean dpadLeftPrev = false;
 
 
+    boolean lsButtonPreviouslyPressed = false;
+
+
 
 
 
@@ -138,7 +141,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         telemetry.setMsTransmissionInterval(11);
         telemetry.addData(">", "Robot Ready.  Press Play.");
-        telemetry.update();
+        //telemetry.update();
 
 
 
@@ -190,9 +193,27 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         } else {
             telemetry.addData("Limelight", "No data available");
         }
-        telemetry.update();
+        //telemetry.update();
 
         BallColor current = detectColor();
+
+        boolean lsButtonCurrentlyPressed = gamepad1.triangle;
+
+        // If button state changed…
+        if (lsButtonCurrentlyPressed != lsButtonPreviouslyPressed) {
+
+            // …and it's now down, toggle the LED
+            if (lsButtonCurrentlyPressed) {
+                if (colorSensor instanceof SwitchableLight) {
+                    SwitchableLight light = (SwitchableLight) colorSensor;
+                    light.enableLight(!light.isLightOn());
+                }
+            }
+        }
+
+        lsButtonPreviouslyPressed = lsButtonCurrentlyPressed;
+
+
 
 
 
