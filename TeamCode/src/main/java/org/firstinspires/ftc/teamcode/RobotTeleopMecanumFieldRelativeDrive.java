@@ -577,7 +577,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 double tx = tag.getTargetXDegrees();
 
                 double kP = 0.01; // tune this
-                double power = kP * tx;
+                double power = -kP * tx;
 
                 // Dead zone
                 if (Math.abs(tx) < 1.0) power = 0;
