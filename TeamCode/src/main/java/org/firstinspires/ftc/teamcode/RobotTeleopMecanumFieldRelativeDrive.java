@@ -57,7 +57,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     long kickerTimer = 0;
 
     // Kicker positions
-    static final double KICKER_DOWN = 0.8;
+    static final double KICKER_DOWN = 0.975;
     static final double KICKER_UP = 0.5; // adjust if needed
 
     // Timing
@@ -213,11 +213,11 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         int blue = (int) (colors.blue * 255);
         int alpha = (int) (colors.alpha * 255);
 
-        telemetry.addData("Red", red);
-        telemetry.addData("Green", green);
-        telemetry.addData("Blue", blue);
-        telemetry.addData("Alpha", alpha);
-        telemetry.update();
+        //telemetry.addData("Red", red);
+        //telemetry.addData("Green", green);
+        //telemetry.addData("Blue", blue);
+        //telemetry.addData("Alpha", alpha);
+        //telemetry.update();
         ;
 
         // Convert to HSV
@@ -240,18 +240,18 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
             telemetry.addData("Distance (cm)", "%.2f", dist);
         }
 
-        telemetry.addLine("Press A to reset Yaw");
-        telemetry.addLine("Hold left bumper to drive in robot relative");
-        telemetry.addLine("The left joystick sets the robot direction");
-        telemetry.addLine("Moving the right joystick left and right turns the robot");
+        //telemetry.addLine("Press A to reset Yaw");
+        //telemetry.addLine("Hold left bumper to drive in robot relative");
+        //telemetry.addLine("The left joystick sets the robot direction");
+       // telemetry.addLine("Moving the right joystick left and right turns the robot");
 
         double yawDeg = robot.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
-        telemetry.addData("Yaw (deg)", yawDeg);
+       // telemetry.addData("Yaw (deg)", yawDeg);
 
 
         // ===== TELEMETRY FOR DEBUGGING =====
-        telemetry.addLine("===== DRIVER-RELATIVE DEBUG =====");
-        telemetry.addData("driverYawOffset (deg)", Math.toDegrees(driverYawOffset));
+        //telemetry.addLine("===== DRIVER-RELATIVE DEBUG =====");
+        //telemetry.addData("driverYawOffset (deg)", Math.toDegrees(driverYawOffset));
         //telemetry.addData("robotYaw (deg)", Math.toDegrees(robotYaw));
         //telemetry.addData("joystickAngle (deg)", Math.toDegrees(Math.atan2(forward, right)));
         //telemetry.addData("theta rotated (deg)", Math.toDegrees(theta));
@@ -316,7 +316,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
             // X button → rotate to RED (example)
             if (gamepad2.circle && !xPrev2) {
-                rotateToColor(BallColor.RED); // or add logic to choose color dynamically
+                rotateToColor(BallColor.GREEN); // or add logic to choose color dynamically
             }
             xPrev2 = gamepad2.circle;
 
@@ -518,17 +518,24 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         robot.feedingRotation.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
-    public BallColor detectColor() {
+    private BallColor detectColor() {
         NormalizedRGBA colors = colorSensor.getNormalizedColors();
+
         int r = (int) (colors.red * 255);
+        int g = (int) (colors.green * 255);
         int b = (int) (colors.blue * 255);
 
-        if (r > b + 40)
-            return BallColor.RED;
-        if (b > r + 40)
-            return BallColor.BLUE;
-        return BallColor.NONE;
+        // Example thresholds – you may need to tune these
+        if (g > b + 40 && g > r + 40) {
+            return BallColor.GREEN;
+        } else if (b > g + 40 && r > g + 40) { // tweak logic for purple
+            return BallColor.PURPLE;
+        } else {
+            return BallColor.NONE;
+        }
     }
+
+
 
     public void shootOneBall() {
         // Spin flywheel up
@@ -576,19 +583,19 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     public void readAprilTagAndStoreOrder(int tagId) {
         switch (tagId) {
-            case 3:
-                aprilOrder[0] = BallColor.BLUE;
-                aprilOrder[1] = BallColor.RED;
-                aprilOrder[2] = BallColor.BLUE;
+            case 21:
+                aprilOrder[0] = BallColor.GREEN;
+                aprilOrder[1] = BallColor.PURPLE;
+                aprilOrder[2] = BallColor.GREEN;
                 break;
 
-            case 7:
-                aprilOrder[0] = BallColor.RED;
-                aprilOrder[1] = BallColor.BLUE;
-                aprilOrder[2] = BallColor.RED;
+            case 22:
+                aprilOrder[0] = BallColor.GREEN;
+                aprilOrder[1] = BallColor.GREEN;
+                aprilOrder[2] = BallColor.GREEN;
                 break;
 
-            default:
+            case 23:
                 aprilOrder[0] = BallColor.NONE;
                 aprilOrder[1] = BallColor.NONE;
                 aprilOrder[2] = BallColor.NONE;
