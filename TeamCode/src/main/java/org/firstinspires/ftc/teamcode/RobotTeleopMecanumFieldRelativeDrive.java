@@ -539,24 +539,25 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         robot.feedingRotation.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
-    private BallColor detectColor() {
+    private BallColor detectColor(){
         NormalizedRGBA colors = colorSensor.getNormalizedColors();
 
         int r = (int)(colors.red * 255);
         int g = (int)(colors.green * 255);
         int b = (int)(colors.blue * 255);
 
-        // Very wide green spectrum: mostly just requires green to be higher than the other two
-        if (g > r - 20 && g > b - 20) {
+        // Moderate wide green: require green to be reasonably strong
+        if (g > 70 && g > r - 5 && g > b - 5) {
             return BallColor.GREEN;
         }
-        // Keep purple detection tuned more strictly
+        // Keep purple detection tuned strictly
         else if (b > r + 10 && b > g + 10) {
             return BallColor.PURPLE;
         } else {
             return BallColor.NONE;
         }
     }
+
 
 
 
