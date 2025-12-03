@@ -540,21 +540,27 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     }
 
     private BallColor detectColor() {
+        // Read normalized colors
         NormalizedRGBA colors = colorSensor.getNormalizedColors();
 
-        int r = (int) (colors.red * 255);
-        int g = (int) (colors.green * 255);
-        int b = (int) (colors.blue * 255);
+        // Convert to 0–255
+        int r = (int)(colors.red * 255);
+        int g = (int)(colors.green * 255);
+        int b = (int)(colors.blue * 255);
 
-        // Adjust thresholds based on your balls
-        if (g > r * 1.2 && g > b * 1.2) {
+        // Tuned thresholds
+        boolean isGreen = (r < 100 && g > 150 && b < 120);
+        boolean isPurple = (r > 160 && g < 120 && b > 200);
+
+        if (isGreen) {
             return BallColor.GREEN;
-        } else if (b > r + 10 && b > g + 10) { // tuned for purple detection
+        } else if (isPurple) {
             return BallColor.PURPLE;
         } else {
             return BallColor.NONE;
         }
     }
+
 
 
 
