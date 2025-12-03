@@ -420,7 +420,10 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         feeding();
 
-        aimTurretAtRedGoal();
+        updateTurretControl();
+
+
+
 
 
         LLResult limelightResult = robot.limelight.getLatestResult();
@@ -792,6 +795,31 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
             robot.turretSpinner.setPower(0);
         }
     }
+
+    public void updateTurretControl() {
+
+        // ----------------------------
+        //  MANUAL MODE (bumper override)
+        // ----------------------------
+        if (gamepad2.left_bumper) {
+            robot.turretSpinner.setPower(0.8);   // tune speed
+            telemetry.addData("Turret Mode", "Manual Left");
+            return;
+        }
+
+        if (gamepad2.right_bumper) {
+            robot.turretSpinner.setPower(-0.8);  // tune speed
+            telemetry.addData("Turret Mode", "Manual Right");
+            return;
+        }
+
+        // -----------------------------------
+        //  AUTO MODE (no bumpers → auto aim)
+        // -----------------------------------
+        aimTurretAtRedGoal();   // calls the auto-aim code you added earlier
+    }
+
+
 
     /**
      * Returns the Geneva wheel position (0–5) and whether it is in a gap (true) or
