@@ -79,7 +79,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     // Color Sensor
     NormalizedColorSensor colorSensor;
-    float colorGain = 2f;
+
     final float[] hsvValues = new float[3];
     boolean xPrev = false;
 
@@ -95,6 +95,14 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     double lastForward = 0;
     double lastRight = 0;
     double lastRotate = 0;
+
+    float colorGain = 2.0f; // class-level
+    boolean dpadRightPrev = false;
+    boolean dpadLeftPrev = false;
+
+
+
+
 
 
 
@@ -186,15 +194,9 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         BallColor current = detectColor();
 
-        // Gain increase (A) / decrease (B)
-        if (gamepad1.a) {
-            colorGain += 0.005;
-        } else if (gamepad1.b && colorGain > 1) {
-            colorGain -= 0.005;
-        }
 
-        // Apply gain
-        colorSensor.setGain(colorGain);
+
+
 
         // Toggle light on X press
         boolean xNow = gamepad1.x;
@@ -269,6 +271,32 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
 
          */
+
+        // Current button states
+        boolean dpadRightNow = gamepad2.dpad_right;
+        boolean dpadLeftNow  = gamepad2.dpad_left;
+
+// Increase gain on right D-pad press (rising edge)
+        if (dpadRightNow && !dpadRightPrev) {
+            colorGain += 0.05f;
+        }
+
+// Decrease gain on left D-pad press (rising edge)
+        if (dpadLeftNow && !dpadLeftPrev && colorGain > 0.1f) {
+            colorGain -= 0.05f;
+        }
+
+// Apply gain to the color sensor
+        colorSensor.setGain(colorGain);
+
+// Save previous states for rising edge detection
+        dpadRightPrev = dpadRightNow;
+        dpadLeftPrev  = dpadLeftNow;
+
+// Telemetry
+        telemetry.addData("Color Sensor Gain", colorGain);
+
+
 
         // Rising edge detection for square button
         boolean squareNow = gamepad1.square;
@@ -518,15 +546,16 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         int g = (int) (colors.green * 255);
         int b = (int) (colors.blue * 255);
 
-        // Example thresholds – you may need to tune these
-        if (g > b + 40 && g > r + 40) {
+        // Adjust thresholds based on your balls
+        if (g > r + 20 && g > b + 20) {
             return BallColor.GREEN;
-        } else if (b > g + 40 && r > g + 40) { // tweak logic for purple
+        } else if (b > r + 10 && b > g + 10) { // tuned for purple detection
             return BallColor.PURPLE;
         } else {
             return BallColor.NONE;
         }
     }
+
 
 
 
@@ -595,7 +624,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 break;
         }
     }
-    
+
 
     // Call this every loop
     public void updateFinColor() {
@@ -612,8 +641,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
             finColors[finIndex] = current;
         }
 
-        // Update last detected
-        lastDetected = current;
+
     }
 
 
