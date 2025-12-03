@@ -184,7 +184,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
         telemetry.update();
 
-        // ===================== COLOR SENSOR LOGIC =====================
+        BallColor current = detectColor();
 
         // Gain increase (A) / decrease (B)
         if (gamepad1.a) {
@@ -223,16 +223,9 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Convert to HSV
         Color.colorToHSV(colors.toColor(), hsvValues);
 
-        // Telemetry
-        telemetry.addLine("===== COLOR SENSOR =====");
-        telemetry.addData("Gain", colorGain);
-        telemetry.addData("Red", "%.3f", colors.red);
-        telemetry.addData("Green", "%.3f", colors.green);
-        telemetry.addData("Blue", "%.3f", colors.blue);
-        telemetry.addData("Alpha", "%.3f", colors.alpha);
-        telemetry.addData("Hue", "%.1f", hsvValues[0]);
-        telemetry.addData("Saturation", "%.3f", hsvValues[1]);
-        telemetry.addData("Value", "%.3f", hsvValues[2]);
+        telemetry.addData("Current Ball", current); // shows NONE, GREEN, or PURPLE
+        telemetry.addData("Fin Colors",
+                "0: " + finColors[0] + " 1: " + finColors[1] + " 2: " + finColors[2]);
 
         // Show distance if supported
         if (colorSensor instanceof DistanceSensor) {
@@ -604,22 +597,18 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     }
 
     public void updateFinColors(GenevaStatus status) {
-
         BallColor current = detectColor();
 
-        // Detect rising edge (a new ball just appeared at the sensor)
-        if (current != BallColor.NONE && lastDetected == BallColor.NONE) {
-
-            // Assign this new ball to the fin currently at the intake
+        // Only update if a color is detected
+        if (current != BallColor.NONE) {
             finColors[status.fin] = current;
         }
-
-        lastDetected = current;
 
         // Telemetry
         telemetry.addData("Fin Colors",
                 "0:" + finColors[0] + "  1:" + finColors[1] + "  2:" + finColors[2]);
     }
+
 
     // Thanks to FTC16072 for sharing this code!!
     public void drive(double forward, double right, double rotate) {
