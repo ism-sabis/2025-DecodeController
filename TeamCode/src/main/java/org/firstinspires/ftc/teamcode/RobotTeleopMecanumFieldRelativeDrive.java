@@ -346,7 +346,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         GenevaStatus genevaStatus = getGenevaStatus(robot.feedingRotation);
 
-        updateFinColors(genevaStatus);
+        updateFinColor();
 
         // Kicker
         // Kicker auto-cycle logic (tap to fire)
@@ -595,19 +595,27 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 break;
         }
     }
+    
 
-    public void updateFinColors(GenevaStatus status) {
+    // Call this every loop
+    public void updateFinColor() {
+        // Read current color
         BallColor current = detectColor();
 
-        // Only update if a color is detected
-        if (current != BallColor.NONE) {
-            finColors[status.fin] = current;
+        // Get the Geneva fin currently at the sensor
+        GenevaStatus status = getGenevaStatus(robot.feedingRotation);
+        int finIndex = status.fin;
+
+        // If a new ball just arrived (rising edge)
+        if (current != BallColor.NONE && lastDetected == BallColor.NONE) {
+            // Assign color to that fin
+            finColors[finIndex] = current;
         }
 
-        // Telemetry
-        telemetry.addData("Fin Colors",
-                "0:" + finColors[0] + "  1:" + finColors[1] + "  2:" + finColors[2]);
+        // Update last detected
+        lastDetected = current;
     }
+
 
 
     // Thanks to FTC16072 for sharing this code!!
