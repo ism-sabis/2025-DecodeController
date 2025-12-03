@@ -58,7 +58,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     // Kicker positions
     static final double KICKER_DOWN = 0.975;
-    static final double KICKER_UP = 0.5; // adjust if needed
+    static final double KICKER_UP = 0.75; // adjust if needed
 
     // Timing
     static final long KICK_TIME = 200; // milliseconds for kick
