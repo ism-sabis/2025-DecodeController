@@ -342,17 +342,23 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
         robot.feedingRotation.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
-    public BallColor detectColor() {
+    private BallColor detectColor() {
         NormalizedRGBA colors = colorSensor.getNormalizedColors();
+
         int r = (int) (colors.red * 255);
+        int g = (int) (colors.green * 255);
         int b = (int) (colors.blue * 255);
 
-        if (r > b + 40)
-            return BallColor.RED;
-        if (b > r + 40)
-            return BallColor.BLUE;
-        return BallColor.NONE;
+        // Example thresholds – you may need to tune these
+        if (g > b + 40 && g > r + 40) {
+            return BallColor.GREEN;
+        } else if (b > g + 40 && r > g + 40) { // tweak logic for purple
+            return BallColor.PURPLE;
+        } else {
+            return BallColor.NONE;
+        }
     }
+
 
     public void shootOneBall() {
         // Spin flywheel up
@@ -385,19 +391,19 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
 
     public void readAprilTagAndStoreOrder(int tagId) {
         switch (tagId) {
-            case 3:
-                aprilOrder[0] = BallColor.BLUE;
-                aprilOrder[1] = BallColor.RED;
-                aprilOrder[2] = BallColor.BLUE;
+            case 21:
+                aprilOrder[0] = BallColor.GREEN;
+                aprilOrder[1] = BallColor.GREEN;
+                aprilOrder[2] = BallColor.GREEN;
                 break;
 
-            case 7:
-                aprilOrder[0] = BallColor.RED;
-                aprilOrder[1] = BallColor.BLUE;
-                aprilOrder[2] = BallColor.RED;
+            case 22:
+                aprilOrder[0] = BallColor.GREEN;
+                aprilOrder[1] = BallColor.GREEN;
+                aprilOrder[2] = BallColor.GREEN;
                 break;
 
-            default:
+            case 23:
                 aprilOrder[0] = BallColor.NONE;
                 aprilOrder[1] = BallColor.NONE;
                 aprilOrder[2] = BallColor.NONE;
