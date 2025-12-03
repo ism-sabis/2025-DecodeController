@@ -119,6 +119,7 @@ public class RobotHardware {
         kicker = hardwareMap.get(Servo.class, "Kicker");
 
         turretSpinner = hardwareMap.get(CRServo.class, "turretSpinner");
+        turretSpinner.setPower(0); // stop initially
 
         // To drive forward, most robots need the motor on one side to be reversed,
         // because the axles point in opposite directions.

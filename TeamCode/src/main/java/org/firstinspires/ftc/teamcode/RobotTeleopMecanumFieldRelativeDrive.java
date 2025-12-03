@@ -572,36 +572,32 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
             return;
         }
 
-        // 1. Look through detected fiducial (AprilTag) results
         for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
-
-            // 2. Check for Red Alliance goal ID 24
-            if (tag.getFiducialId() == 24) {
-
+            if (tag.getFiducialId() == 24) { // Red goal
                 double tx = tag.getTargetXDegrees();
 
-                // 3. Convert degrees to turret power
-                // Increase or decrease kP based on your robot’s speed
-                double kP = 0.01;
+                double kP = 0.01; // tune this
+                double power = kP * tx;
 
-                double turretPower = kP * tx;
+                // Dead zone
+                if (Math.abs(tx) < 1.0) power = 0;
 
-                // 4. Dead zone for small noise
-                if (Math.abs(tx) < 1.0) {
-                    turretPower = 0;
-                }
+                // Clamp to CRServo limits
+                power = Math.max(-1, Math.min(1, power));
 
-                robot.turretSpinner.setPower(turretPower);
+                robot.turretSpinner.setPower(power);
+
                 telemetry.addData("Turret Tracking", "Aiming at Tag 24");
                 telemetry.addData("tx", tx);
                 return;
             }
         }
 
-        // 5. If we reach here → no tag 24 detected
+        // No tag found → stop
         robot.turretSpinner.setPower(0);
         telemetry.addData("Turret Tracking", "No target");
     }
+
 
 
     private BallColor detectColor(){
@@ -802,13 +798,13 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         //  MANUAL MODE (bumper override)
         // ----------------------------
         if (gamepad2.left_bumper) {
-            robot.turretSpinner.setPower(0.8);   // tune speed
+            robot.turretSpinner.setPower(0.8);   // rotate left
             telemetry.addData("Turret Mode", "Manual Left");
             return;
         }
 
         if (gamepad2.right_bumper) {
-            robot.turretSpinner.setPower(-0.8);  // tune speed
+            robot.turretSpinner.setPower(-0.8);  // rotate right
             telemetry.addData("Turret Mode", "Manual Right");
             return;
         }
@@ -816,8 +812,9 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // -----------------------------------
         //  AUTO MODE (no bumpers → auto aim)
         // -----------------------------------
-        aimTurretAtRedGoal();   // calls the auto-aim code you added earlier
+        aimTurretAtRedGoal();   // calls the auto-aim code
     }
+
 
 
 
