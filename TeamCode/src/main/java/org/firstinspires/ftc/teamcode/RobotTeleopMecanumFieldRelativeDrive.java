@@ -573,30 +573,33 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
 
         for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
-            if (tag.getFiducialId() == 24) { // Red goal
+            if (tag.getFiducialId() == 24) { // Red Alliance goal
                 double tx = tag.getTargetXDegrees();
 
-                double kP = 0.01; // tune this
-                double power = -kP * tx;
+                // Higher sensitivity (tune if necessary)
+                double kP = 0.05; // bigger than 0.01 → faster response
+                double turretPower = -kP * tx; // negative to move toward target
 
-                // Dead zone
-                if (Math.abs(tx) < 1.0) power = 0;
+                // Clamp max power to prevent overdrive
+                turretPower = Math.max(Math.min(turretPower, 1.0), -1.0);
 
-                // Clamp to CRServo limits
-                power = Math.max(-1, Math.min(1, power));
+                // Optional deadzone for very small errors
+                if (Math.abs(tx) < 0.5) turretPower = 0;
 
-                robot.turretSpinner.setPower(power);
+                robot.turretSpinner.setPower(turretPower);
 
                 telemetry.addData("Turret Tracking", "Aiming at Tag 24");
                 telemetry.addData("tx", tx);
+                telemetry.addData("Power", turretPower);
                 return;
             }
         }
 
-        // No tag found → stop
+        // No target → stop
         robot.turretSpinner.setPower(0);
         telemetry.addData("Turret Tracking", "No target");
     }
+
 
 
 
