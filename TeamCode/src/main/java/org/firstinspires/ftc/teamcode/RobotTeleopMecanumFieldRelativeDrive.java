@@ -96,7 +96,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     double lastRight = 0;
     double lastRotate = 0;
 
-    float colorGain = 2.0f; // class-level
+    float colorGain = 12.65f; // class-level
     boolean dpadRightPrev = false;
     boolean dpadLeftPrev = false;
 
