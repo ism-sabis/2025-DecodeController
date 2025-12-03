@@ -420,7 +420,8 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         feeding();
 
-        turret();
+        aimTurretAtRedGoal();
+
 
         LLResult limelightResult = robot.limelight.getLatestResult();
         // TODO: Fix Limelight code
@@ -559,6 +560,46 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         robot.feedingRotation.setPower(0);
         robot.feedingRotation.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
+
+    public void aimTurretAtRedGoal() {
+        LLResult result = robot.limelight.getLatestResult();
+
+        if (result == null) {
+            robot.turretSpinner.setPower(0);
+            return;
+        }
+
+        // 1. Look through detected fiducial (AprilTag) results
+        for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+
+            // 2. Check for Red Alliance goal ID 24
+            if (tag.getFiducialId() == 24) {
+
+                double tx = tag.getTargetXDegrees();
+
+                // 3. Convert degrees to turret power
+                // Increase or decrease kP based on your robot’s speed
+                double kP = 0.01;
+
+                double turretPower = kP * tx;
+
+                // 4. Dead zone for small noise
+                if (Math.abs(tx) < 1.0) {
+                    turretPower = 0;
+                }
+
+                robot.turretSpinner.setPower(turretPower);
+                telemetry.addData("Turret Tracking", "Aiming at Tag 24");
+                telemetry.addData("tx", tx);
+                return;
+            }
+        }
+
+        // 5. If we reach here → no tag 24 detected
+        robot.turretSpinner.setPower(0);
+        telemetry.addData("Turret Tracking", "No target");
+    }
+
 
     private BallColor detectColor(){
         NormalizedRGBA colors = colorSensor.getNormalizedColors();
