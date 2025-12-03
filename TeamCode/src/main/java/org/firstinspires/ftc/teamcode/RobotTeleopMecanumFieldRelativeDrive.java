@@ -547,7 +547,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         int b = (int) (colors.blue * 255);
 
         // Adjust thresholds based on your balls
-        if (g > r + 20 && g > b + 20) {
+        if (g > r * 1.2 && g > b * 1.2) {
             return BallColor.GREEN;
         } else if (b > r + 10 && b > g + 10) { // tuned for purple detection
             return BallColor.PURPLE;
