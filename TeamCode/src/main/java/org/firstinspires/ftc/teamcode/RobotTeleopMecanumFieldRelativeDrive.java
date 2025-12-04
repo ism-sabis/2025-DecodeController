@@ -199,6 +199,10 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         BallColor current = detectColor();
 
+        BallColor current1 = detectColor1();
+        telemetry.addData("Current Ball Sensor1", current1); // shows NONE, GREEN, or PURPLE
+
+
 
 
 
