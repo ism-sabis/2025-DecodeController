@@ -105,6 +105,13 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     boolean lsButtonPreviouslyPressed = false;
 
+    final double TOLERANCE = 0.01;
+
+    double kickerPosition = robot.kicker.getPosition(); // current servo position
+
+
+
+
 
 
 
@@ -123,6 +130,8 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Set initial gain
         colorSensor.setGain(colorGain);
         colorSensor1.setGain(colorGain);
+
+
 
 
 
@@ -507,6 +516,11 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 break;
             }
         }
+        telemetry.addData("Fin Colors",
+                "%s | %s | %s", finColors[0], finColors[1], finColors[2]);
+
+        telemetry.addData("Detected1", detectColor1());
+
 
         if (targetFin == -1) {
             telemetry.addLine("ERROR: Desired color not found in any fin!");
@@ -648,6 +662,12 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         // Fire
         robot.kicker.setPosition(KICKER_UP);
+
+        // Clear ball from the fin currently in shoot position
+        GenevaStatus shootStatus = getGenevaStatus(robot.feedingRotation);
+        int shootFin = shootStatus.fin;
+        finColors[shootFin] = BallColor.NONE;
+
         try {
             Thread.sleep(250);
         } catch (InterruptedException e) {
@@ -704,17 +724,34 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
 
     // Call this every loop
+    // Call this every loop
     private void updateFinColor() {
-        // Read ONLY from the new color sensor
-        BallColor detected = detectColor1();
+        BallColor detected = detectColor1();   // only the new sensor
 
-        // Determine which fin is currently under the sensor
         GenevaStatus status = getGenevaStatus(robot.feedingRotation);
-        int finIndex = status.fin; // 0, 1, or 2 depending on Geneva position
+        int finIndex = status.fin; // 0,1,2
 
-        // Update only that fin
-        finColors[finIndex] = detected;
+        boolean inOuttakeZone = status.inGap;
+        // TRUE = gap, ball leaving → NONE allowed
+        // FALSE = over fin -> ignore NONE
+
+        BallColor currentStored = finColors[finIndex];
+
+        // 1) If we detect a REAL color → always update
+        if (detected != BallColor.NONE) {
+            finColors[finIndex] = detected;
+            return;
+        }
+
+        // 2) If detected NONE but we are NOT in the outtake zone → ignore
+        if (!inOuttakeZone) {
+            return; // keep stored color
+        }
+
+        // 3) If detected NONE AND we ARE in outtake zone → clear it
+        finColors[finIndex] = BallColor.NONE;
     }
+
 
 
 
@@ -769,27 +806,35 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     public void feeding() {
 
-        // Kicker must be down/safe
-        boolean kickerDown = robot.kicker.getPosition() >= 0.79;
+        // Constants
+        final double KICKER_DOWN = 0.975;  // your actual down position
+        final double TOLERANCE = 0.01;     // small buffer for float comparison
 
+        // Current servo position
+        double kickerPos = robot.kicker.getPosition();
+
+        // Feeder input
         boolean feederUp = gamepad2.dpad_up;
         boolean feederDown = gamepad2.dpad_down;
+
+        // Check if kicker is down
+        boolean kickerDown = Math.abs(kickerPos - KICKER_DOWN) < TOLERANCE;
 
         if (feederUp || feederDown) {
             if (kickerDown) {
                 // SAFE → allow rotation
                 robot.feedingRotation.setPower(feederUp ? 1 : -1);
             } else {
-                // NOT safe → block movement + rumble
+                // NOT safe → stop motor + rumble
                 robot.feedingRotation.setPower(0);
-
-                // One short rumble on both sides
-                gamepad1.rumble(1, 1, 300);
+                gamepad2.rumble(1, 1, 300);  // rumble on the same gamepad
             }
         } else {
+            // No buttons pressed → stop motor
             robot.feedingRotation.setPower(0);
         }
     }
+
 
     public void turret() {
         if (gamepad2.left_bumper) {
