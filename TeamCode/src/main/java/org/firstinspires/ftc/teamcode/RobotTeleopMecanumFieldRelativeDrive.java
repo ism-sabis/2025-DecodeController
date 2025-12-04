@@ -197,7 +197,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
         //telemetry.update();
 
-        BallColor current = detectColor();
+        //BallColor current = detectColor();
 
         BallColor current1 = detectColor1();
         telemetry.addData("Current Ball Sensor1", current1); // shows NONE, GREEN, or PURPLE
@@ -230,7 +230,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Convert to HSV
         Color.colorToHSV(colors.toColor(), hsvValues);
 
-        telemetry.addData("Current Ball", current); // shows NONE, GREEN, or PURPLE
+        //telemetry.addData("Current Ball", current); // shows NONE, GREEN, or PURPLE
         telemetry.addData("Fin Colors",
                 "0: " + finColors[0] + " 1: " + finColors[1] + " 2: " + finColors[2]);
 
@@ -704,22 +704,19 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
 
     // Call this every loop
-    public void updateFinColor() {
-        // Read current color
-        BallColor current = detectColor();
+    private void updateFinColor() {
+        // Read ONLY from the new color sensor
+        BallColor detected = detectColor1();
 
-        // Get the Geneva fin currently at the sensor
+        // Determine which fin is currently under the sensor
         GenevaStatus status = getGenevaStatus(robot.feedingRotation);
-        int finIndex = status.fin;
+        int finIndex = status.fin; // 0, 1, or 2 depending on Geneva position
 
-        // If a new ball just arrived (rising edge)
-        if (current != BallColor.NONE && lastDetected == BallColor.NONE) {
-            // Assign color to that fin
-            finColors[finIndex] = current;
-        }
-
-
+        // Update only that fin
+        finColors[finIndex] = detected;
     }
+
+
 
 
 
