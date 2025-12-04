@@ -51,6 +51,7 @@ public class RobotHardware {
     public Limelight3A limelight = null;
 
     public NormalizedColorSensor colorSensor = null;
+    public NormalizedColorSensor colorSensor1 = null;
 
     // This declares the IMU needed to get the current direction the robot is facing
     public IMU imu;
@@ -114,6 +115,7 @@ public class RobotHardware {
         limelight = hardwareMap.get(Limelight3A.class, "Ethernet Device");
 
         colorSensor = hardwareMap.get(NormalizedColorSensor.class, "colorSensor");
+        colorSensor1 = hardwareMap.get(NormalizedColorSensor.class, "colorSensor1");
 
         // Define and initialize ALL installed servos.
         kicker = hardwareMap.get(Servo.class, "Kicker");

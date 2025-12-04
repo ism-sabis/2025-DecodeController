@@ -58,10 +58,10 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     // Kicker positions
     static final double KICKER_DOWN = 0.975;
-    static final double KICKER_UP = 0.75; // adjust if needed
+    static final double KICKER_UP = 0.5; // adjust if needed
 
     // Timing
-    static final long KICK_TIME = 200; // milliseconds for kick
+    static final long KICK_TIME = 500; // milliseconds for kick
 
     // Launcher speed threshold (adjust)
     static final double LAUNCHER_MIN_POWER = 0.1; // normalized 0 to 1.0
@@ -79,6 +79,8 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     // Color Sensor
     NormalizedColorSensor colorSensor;
+
+    NormalizedColorSensor colorSensor1;
 
     final float[] hsvValues = new float[3];
     boolean xPrev = false;
@@ -116,16 +118,16 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         // Initialize color sensor
         colorSensor = hardwareMap.get(NormalizedColorSensor.class, "colorSensor");
+        colorSensor1 = hardwareMap.get(NormalizedColorSensor.class, "colorSensor1");
 
         // Set initial gain
         colorSensor.setGain(colorGain);
+        colorSensor1.setGain(colorGain);
 
-        // Turn on light if supported
-        if (colorSensor instanceof SwitchableLight) {
-            ((SwitchableLight) colorSensor).enableLight(true);
-        }
+
 
         telemetry.addData("ColorSensor", "Initialized");
+        telemetry.addData("ColorSensor1", "Initialized");
 
         // Limelight3A
         // LLStatus status;
@@ -197,21 +199,6 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         BallColor current = detectColor();
 
-        boolean lsButtonCurrentlyPressed = gamepad1.triangle;
-
-        // If button state changed…
-        if (lsButtonCurrentlyPressed != lsButtonPreviouslyPressed) {
-
-            // …and it's now down, toggle the LED
-            if (lsButtonCurrentlyPressed) {
-                if (colorSensor instanceof SwitchableLight) {
-                    SwitchableLight light = (SwitchableLight) colorSensor;
-                    light.enableLight(!light.isLightOn());
-                }
-            }
-        }
-
-        lsButtonPreviouslyPressed = lsButtonCurrentlyPressed;
 
 
 
@@ -219,17 +206,10 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
 
 
-        // Toggle light on X press
-        boolean xNow = gamepad1.x;
-        if (xNow && !xPrev) {
-            if (colorSensor instanceof SwitchableLight) {
-                SwitchableLight light = (SwitchableLight) colorSensor;
-                light.enableLight(!light.isLightOn());
-            }
-        }
-        xPrev = xNow;
+
 
         NormalizedRGBA colors = colorSensor.getNormalizedColors();
+        NormalizedRGBA colors1 = colorSensor1.getNormalizedColors();
 
         int red = (int) (colors.red * 255);
         int green = (int) (colors.green * 255);
@@ -253,6 +233,11 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Show distance if supported
         if (colorSensor instanceof DistanceSensor) {
             double dist = ((DistanceSensor) colorSensor).getDistance(DistanceUnit.CM);
+            telemetry.addData("Distance (cm)", "%.2f", dist);
+        }
+        // Show distance if supported
+        if (colorSensor1 instanceof DistanceSensor) {
+            double dist = ((DistanceSensor) colorSensor1).getDistance(DistanceUnit.CM);
             telemetry.addData("Distance (cm)", "%.2f", dist);
         }
 
@@ -309,6 +294,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
 // Apply gain to the color sensor
         colorSensor.setGain(colorGain);
+        colorSensor1.setGain(colorGain);
 
 // Save previous states for rising edge detection
         dpadRightPrev = dpadRightNow;
@@ -622,6 +608,25 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
     }
 
+    private BallColor detectColor1(){
+        NormalizedRGBA colors1 = colorSensor1.getNormalizedColors();
+
+        int r = (int)(colors1.red * 255);
+        int g = (int)(colors1.green * 255);
+        int b = (int)(colors1.blue * 255);
+
+        // Moderate wide green: require green to be reasonably strong
+        if (g > 70 && g > r - 5 && g > b - 5) {
+            return BallColor.GREEN;
+        }
+        // Keep purple detection tuned strictly
+        else if (b > r + 10 && b > g + 10) {
+            return BallColor.PURPLE;
+        } else {
+            return BallColor.NONE;
+        }
+    }
+
 
 
 
@@ -631,7 +636,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Spin flywheel up
         robot.launcher.setPower(1.0);
         try {
-            Thread.sleep(300);
+            Thread.sleep(750);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt(); // restore interrupted status
         }
@@ -640,7 +645,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Fire
         robot.kicker.setPosition(KICKER_UP);
         try {
-            Thread.sleep(130);
+            Thread.sleep(250);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt(); // restore interrupted status
         }
