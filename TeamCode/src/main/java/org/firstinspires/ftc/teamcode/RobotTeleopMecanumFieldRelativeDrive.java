@@ -361,9 +361,10 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
 
         if (gamepad1.left_bumper) {
-            drive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x); // robot-relative
-        } else {
             driveDriverRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x, driverYawOffset);
+        } else {
+
+            drive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x); // robot-relative
         }
 
 
@@ -553,7 +554,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         robot.feedingRotation.setPower(0);
         robot.feedingRotation.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
-
+/*
     public void aimTurretAtRedGoal() {
         LLResult result = robot.limelight.getLatestResult();
 
@@ -569,6 +570,8 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 // Higher sensitivity (tune if necessary)
                 double kP = 0.05; // bigger than 0.01 → faster response
                 double turretPower = -kP * tx; // negative to move toward target
+
+
 
                 // Clamp max power to prevent overdrive
                 turretPower = Math.max(Math.min(turretPower, 1.0), -1.0);
@@ -589,6 +592,51 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         robot.turretSpinner.setPower(0);
         telemetry.addData("Turret Tracking", "No target");
     }
+*/
+
+    public void aimTurretAtRedGoal() {
+        LLResult result = robot.limelight.getLatestResult();
+
+        if (result == null) {
+            // No target → stop turret
+            robot.turretSpinner.setPower(0);
+            return;
+        }
+
+        for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+            if (tag.getFiducialId() == 24) { // Red Alliance goal
+                double tx = tag.getTargetXDegrees();
+
+                // ------------------------
+                // Adaptive CR servo control
+                // ------------------------
+                double deadband = 0.5;          // degrees, ignore tiny offsets
+                double maxPower = 0.2;          // max speed at close range
+                double minPower = 0.05;         // minimum speed to overcome friction
+                double kP = 0.05;               // proportional gain
+
+                if (Math.abs(tx) < deadband) {
+                    // close enough → stop
+                    robot.turretSpinner.setPower(0);
+                } else {
+                    // scale proportional to error, clamp to min/max
+                    double scaledPower = Math.min(maxPower, Math.max(minPower, Math.abs(kP * tx)));
+                    // apply direction
+                    robot.turretSpinner.setPower(Math.signum(-tx) * scaledPower);
+                }
+
+                telemetry.addData("Turret Tracking", "Aiming at Tag 24");
+                telemetry.addData("tx", tx);
+                telemetry.addData("Power", robot.turretSpinner.getPower());
+                return;
+            }
+        }
+
+        // No target found → stop turret
+        robot.turretSpinner.setPower(0);
+        telemetry.addData("Turret Tracking", "No target");
+    }
+
 
 
 
