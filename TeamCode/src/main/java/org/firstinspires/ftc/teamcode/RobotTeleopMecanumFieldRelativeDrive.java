@@ -57,8 +57,8 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     long kickerTimer = 0;
 
     // Kicker positions
-    static final double KICKER_DOWN = 0.975;
-    static final double KICKER_UP = 0.5; // adjust if needed
+    static final double KICKER_DOWN = 0.725;
+    static final double KICKER_UP = 0.55; // adjust if needed
 
     // Timing
     static final long KICK_TIME = 500; // milliseconds for kick
@@ -106,6 +106,8 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     boolean lsButtonPreviouslyPressed = false;
 
     long intakeColorIgnoreUntil = 0;
+
+    private boolean aprilOrderSet = false;
 
 
 
@@ -201,6 +203,28 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         //telemetry.update();
 
         //BallColor current = detectColor();
+
+        // ----- Separate AprilTag detection for MOTIF -----
+        if (!aprilOrderSet) {
+            LLResult tagResult = robot.limelight.getLatestResult();
+            if (tagResult != null) {
+                List<LLResultTypes.FiducialResult> tags = tagResult.getFiducialResults();
+                if (!tags.isEmpty()) {
+                    int detectedTagId = tags.get(0).getFiducialId();
+
+                    // Store the order for this match
+                    readAprilTagAndStoreOrder(detectedTagId);
+                    aprilOrderSet = true; // lock order
+
+                    // Telemetry: show the scanned order
+                    telemetry.addData("AprilTag ID", detectedTagId);
+                    telemetry.addData("AprilOrder",
+                            "0: " + aprilOrder[0] + ", 1: " + aprilOrder[1] + ", 2: " + aprilOrder[2]);
+                    telemetry.update();
+                }
+            }
+        }
+
 
         BallColor current1 = detectColor1();
         telemetry.addData("Current Ball Sensor1", current1); // shows NONE, GREEN, or PURPLE
@@ -360,6 +384,21 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
             }
             xPrev2 = gamepad2.circle;
 
+        // Inside your TeleOp loop or as a separate function
+        if (gamepad2.left_trigger > 0.4) {
+            // -----------------------
+            // LAYER 2: Single-shot shooter
+            // -----------------------
+            if (gamepad2.triangle && !lsButtonPreviouslyPressed) {
+                lsButtonPreviouslyPressed = true; // rising edge detection
+                shootOneBallAlways();             // new function
+            }
+            else if (!gamepad2.triangle) {
+                lsButtonPreviouslyPressed = false; // reset for next press
+            }
+        }
+
+
 
 
 
@@ -501,6 +540,36 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
     private void applyDriverOffset(double driverYawOffset) {
         driveDriverRelative(lastForward, lastRight, lastRotate, driverYawOffset);
     }
+
+    public void shootOneBallAlways() {
+        // Spin flywheel
+        robot.launcher.setPower(1.0);
+
+        try {
+            Thread.sleep(750); // spin-up time
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        // Fire regardless of kicker position
+        robot.kicker.setPosition(KICKER_UP);
+
+        try {
+            Thread.sleep(250); // allow kick
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        robot.kicker.setPosition(KICKER_DOWN);
+
+        // Optional small pause between shots
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
 
 
 
@@ -725,38 +794,90 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     public void macroRandomizedShoot() {
         for (int i = 0; i < 3; i++) {
-            rotateToColor(aprilOrder[i]);
+            BallColor targetColor = aprilOrder[i];
+
+            // Skip if no color assigned
+            if (targetColor == BallColor.NONE) continue;
+
+            // Rotate until the correct color is detected
+            while (true) {
+                BallColor current = detectColor1();
+
+                if (current == targetColor) {
+                    // Target color found, stop rotation
+                    robot.feedingRotation.setPower(0);
+                    break; // exit while loop
+                } else {
+                    // Rotate feeder forward to find the target
+                    robot.feedingRotation.setPower(1);
+                }
+            }
+
+            // Shoot the detected ball
             shootOneBall();
         }
+
+        // Ensure feeder stops at the end
+        robot.feedingRotation.setPower(0);
     }
 
+
     public void macroSimpleShoot() {
-        for (int i = 0; i < 3; i++) {
+        // Number of balls to shoot
+        int ballsToShoot = 3;
+
+        for (int i = 0; i < ballsToShoot; i++) {
+            // Rotate until a ball of color GREEN or PURPLE is detected
+            while (true) {
+                BallColor current = detectColor1();
+
+                if (current == BallColor.GREEN || current == BallColor.PURPLE) {
+                    // Ball detected, stop feeder rotation
+                    robot.feedingRotation.setPower(0);
+                    break; // exit while loop
+                } else {
+                    // Keep rotating forward to find the next ball
+                    robot.feedingRotation.setPower(1);
+                }
+            }
+
+            // Shoot the detected ball
             shootOneBall();
         }
+
+        // Ensure feeder stops at the end
+        robot.feedingRotation.setPower(0);
     }
+
 
     public void readAprilTagAndStoreOrder(int tagId) {
         switch (tagId) {
             case 21:
                 aprilOrder[0] = BallColor.GREEN;
                 aprilOrder[1] = BallColor.PURPLE;
-                aprilOrder[2] = BallColor.GREEN;
+                aprilOrder[2] = BallColor.PURPLE;
                 break;
 
             case 22:
-                aprilOrder[0] = BallColor.GREEN;
+                aprilOrder[0] = BallColor.PURPLE;
                 aprilOrder[1] = BallColor.GREEN;
-                aprilOrder[2] = BallColor.GREEN;
+                aprilOrder[2] = BallColor.PURPLE;
                 break;
 
             case 23:
+                aprilOrder[0] = BallColor.PURPLE;
+                aprilOrder[1] = BallColor.PURPLE;
+                aprilOrder[2] = BallColor.GREEN;
+                break;
+
+            default:
                 aprilOrder[0] = BallColor.NONE;
                 aprilOrder[1] = BallColor.NONE;
                 aprilOrder[2] = BallColor.NONE;
                 break;
         }
     }
+
 
 
     // Call this every loop
@@ -835,7 +956,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     public void feeding() {
         BallColor current1 = detectColor1();
-        boolean kickerDown = robot.kicker.getPosition() >= 0.79;
+        boolean kickerDown = robot.kicker.getPosition() >= 0.725;
 
         boolean feederUp = gamepad2.dpad_up;
         boolean feederDown = gamepad2.dpad_down;
@@ -847,10 +968,10 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
             // Manual kicker (bypass)
             if (gamepad2.dpad_left) {
-                robot.kicker.setPosition(KICKER_UP);
+                robot.kicker.setPosition(0.55);
             }
             else if (gamepad2.dpad_right) {
-                robot.kicker.setPosition(KICKER_DOWN);
+                robot.kicker.setPosition(0.725);
             }
 
             // Manual feeder (requires kicker down)
@@ -859,7 +980,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
                     robot.feedingRotation.setPower(feederUp ? 1 : -1);
                 } else {
                     robot.feedingRotation.setPower(0);
-                    gamepad1.rumble(1, 1, 300); // same as before
+                    gamepad2.rumble(1, 1, 300); // same as before
                 }
             } else {
                 robot.feedingRotation.setPower(0);
