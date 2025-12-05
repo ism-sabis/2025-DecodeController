@@ -77,7 +77,7 @@ import java.util.List;
 
 @Autonomous(name = "Robot: Auto Drive By Encoder", group = "Robot")
 //@Disabled
-public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
+public class RedGoalRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     final private org.firstinspires.ftc.teamcode.RobotHardware robot = new RobotHardware();
     /* Declare OpMode members. */
     private DcMotor frontLeft = null;
