@@ -834,7 +834,6 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
 
     public void feeding() {
-
         BallColor current1 = detectColor1();
         boolean kickerDown = robot.kicker.getPosition() >= 0.79;
 
@@ -846,19 +845,27 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // -----------------------
         if (gamepad2.left_trigger > 0.4) {
 
+            // Manual kicker (bypass)
+            if (gamepad2.dpad_left) {
+                robot.kicker.setPosition(KICKER_UP);
+            }
+            else if (gamepad2.dpad_right) {
+                robot.kicker.setPosition(KICKER_DOWN);
+            }
+
+            // Manual feeder (requires kicker down)
             if (feederUp || feederDown) {
                 if (kickerDown) {
                     robot.feedingRotation.setPower(feederUp ? 1 : -1);
                 } else {
                     robot.feedingRotation.setPower(0);
-                    gamepad1.rumble(1, 1, 300); // already yours
+                    gamepad1.rumble(1, 1, 300); // same as before
                 }
             } else {
                 robot.feedingRotation.setPower(0);
             }
 
-            return;
-
+            return; // bypass auto layer
         }
 
         // -------------------------------------
@@ -876,8 +883,6 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
             intakeColorIgnoreUntil = System.currentTimeMillis() + 1000; // 1 sec ignore
         }
 
-
-
         // -------------------------------------
         // Auto-stop when color is detected
         // but ONLY after timeout expires
@@ -888,6 +893,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
             }
         }
     }
+
 
 
 
