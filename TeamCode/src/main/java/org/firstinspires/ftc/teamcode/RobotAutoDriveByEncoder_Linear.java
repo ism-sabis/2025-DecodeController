@@ -29,18 +29,29 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import android.graphics.Color;
+
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.hardware.limelightvision.LLStatus;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.JavaUtil;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.teamcode.RobotHardware;
 import org.firstinspires.ftc.teamcode.RobotTeleopMecanumFieldRelativeDrive;
 
 import org.firstinspires.ftc.teamcode.BallColor;
+
+import java.util.List;
 
 
 /*
@@ -70,7 +81,7 @@ import org.firstinspires.ftc.teamcode.BallColor;
  */
 
 @Autonomous(name = "Robot: Auto Drive By Encoder", group = "Robot")
-@Disabled
+//@Disabled
 public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
     final private org.firstinspires.ftc.teamcode.RobotHardware robot = new RobotHardware();
     /* Declare OpMode members. */
@@ -86,11 +97,11 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
     long kickerTimer = 0;
 
     // Kicker positions
-    static final double KICKER_DOWN = 0.8;
-    static final double KICKER_UP = 0.5; // adjust if needed
+    static final double KICKER_DOWN = 0.725;
+    static final double KICKER_UP = 0.55; // adjust if needed
 
     // Timing
-    static final long KICK_TIME = 200; // milliseconds for kick
+    static final long KICK_TIME = 500; // milliseconds for kick
 
     // Launcher speed threshold (adjust)
     static final double LAUNCHER_MIN_POWER = 0.1; // normalized 0 to 1.0
@@ -108,14 +119,34 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
 
     // Color Sensor
     NormalizedColorSensor colorSensor;
-    float colorGain = 2f;
+
+    NormalizedColorSensor colorSensor1;
+
     final float[] hsvValues = new float[3];
     boolean xPrev = false;
 
     BallColor[] aprilOrder = new BallColor[3];
 
     BallColor[] finColors = {
-            BallColor.NONE, BallColor.NONE, BallColor.NONE};
+            BallColor.NONE, BallColor.NONE, BallColor.NONE
+    };
+
+    boolean squarePrev = false;   // to detect rising edge of square button
+
+    double lastForward = 0;
+    double lastRight = 0;
+    double lastRotate = 0;
+
+    float colorGain = 12.65f; // class-level
+    boolean dpadRightPrev = false;
+    boolean dpadLeftPrev = false;
+
+
+    boolean lsButtonPreviouslyPressed = false;
+
+    long intakeColorIgnoreUntil = 0;
+
+    private boolean aprilOrderSet = false;
 
     // Calculate the COUNTS_PER_INCH for your specific drive train.
     // Go to your motor vendor website to determine your motor's
@@ -177,28 +208,132 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
         // Wait for the game to start (driver presses START)
         waitForStart();
 
+        // Limelight3A
+        LLStatus status = robot.limelight.getStatus();
+        // telemetry.addData("Name", status.getName());
+        //telemetry.addData("LL", "Temp: " + JavaUtil.formatNumber(status.getTemp(), 1) + "C, CPU: "
+        //    + JavaUtil.formatNumber(status.getCpu(), 1) + "%, FPS: " + Math.round(status.getFps()));
+        //telemetry.addData("Pipeline",
+        //     "Index: " + status.getPipelineIndex() + ", Type: " + status.getPipelineType());
+        LLResult result = robot.limelight.getLatestResult();
+        if (result != null) {
+            // Access general information.
+            Pose3D botpose = result.getBotpose();
+            double captureLatency = result.getCaptureLatency();
+            double targetingLatency = result.getTargetingLatency();
+            //telemetry.addData("PythonOutput", JavaUtil.makeTextFromList(result.getPythonOutput(), ","));
+            //telemetry.addData("tx", result.getTx());
+            //telemetry.addData("txnc", result.getTxNC());
+            //telemetry.addData("ty", result.getTy());
+            //telemetry.addData("tync", result.getTyNC());
+            //telemetry.addData("Botpose", botpose.toString());
+            //telemetry.addData("LL Latency", captureLatency + targetingLatency);
+            // Access fiducial results.
+            for (LLResultTypes.FiducialResult fiducialResult : result.getFiducialResults()) {
+                //telemetry.addData("Fiducial",
+                // "ID: " + fiducialResult.getFiducialId() + ", Family: " + fiducialResult.getFamily()
+                //+ ", X: " + JavaUtil.formatNumber(fiducialResult.getTargetXDegrees(), 2) + ", Y: "
+                //+ JavaUtil.formatNumber(fiducialResult.getTargetYDegrees(), 2));
+                // Access color results.
+                for (LLResultTypes.ColorResult colorResult : result.getColorResults()) {
+                    telemetry.addData("Color", "X: " + JavaUtil.formatNumber(colorResult.getTargetXDegrees(), 2)
+                            + ", Y: " + JavaUtil.formatNumber(colorResult.getTargetYDegrees(), 2));
+                }
+            }
+        } else {
+            telemetry.addData("Limelight", "No data available");
+        }
+
+        // ----- Separate AprilTag detection for MOTIF -----
+        if (!aprilOrderSet) {
+            LLResult tagResult = robot.limelight.getLatestResult();
+            if (tagResult != null) {
+                List<LLResultTypes.FiducialResult> tags = tagResult.getFiducialResults();
+                if (!tags.isEmpty()) {
+                    int detectedTagId = tags.get(0).getFiducialId();
+
+                    // Store the order for this match
+                    readAprilTagAndStoreOrder(detectedTagId);
+                    aprilOrderSet = true; // lock order
+
+                    // Telemetry: show the scanned order
+                    telemetry.addData("AprilTag ID", detectedTagId);
+                    telemetry.addData("AprilOrder",
+                            "0: " + aprilOrder[0] + ", 1: " + aprilOrder[1] + ", 2: " + aprilOrder[2]);
+                    telemetry.update();
+                }
+            }
+        }
+
+        BallColor current1 = detectColor1();
+        telemetry.addData("Current Ball Sensor1", current1); // shows NONE, GREEN, or PURPLE
+
+        NormalizedRGBA colors1 = colorSensor1.getNormalizedColors();
+
+        // Convert to HSV
+        Color.colorToHSV(colors1.toColor(), hsvValues);
+
+        //telemetry.addData("Current Ball", current); // shows NONE, GREEN, or PURPLE
+        telemetry.addData("Fin Colors",
+                "0: " + finColors[0] + " 1: " + finColors[1] + " 2: " + finColors[2]);
+
+        // Show distance if supported
+        if (colorSensor instanceof DistanceSensor) {
+            double dist = ((DistanceSensor) colorSensor).getDistance(DistanceUnit.CM);
+            //telemetry.addData("Distance (cm)", "%.2f", dist);
+        }
+        // Show distance if supported
+        if (colorSensor1 instanceof DistanceSensor) {
+            double dist = ((DistanceSensor) colorSensor1).getDistance(DistanceUnit.CM);
+            //telemetry.addData("Distance (cm)", "%.2f", dist);
+        }
+
+        // Apply gain to the color sensor
+        colorSensor.setGain(colorGain);
+        colorSensor1.setGain(colorGain);
+
         // Step through each leg of the path,
         // Note: Reverse movement is obtained by setting a negative distance (not speed)
         encoderDrive(DRIVE_SPEED, 48, 48, 5.0); // S1: Forward 47 Inches with 5 Sec timeout
+        updateTelemetry();
         encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn Left 12 Inches with 4 Sec timeout
+        updateTelemetry();
         shootOneBall();
+        updateTelemetry();
         encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn Right 12 Inches with 4 Sec timeout
+        updateTelemetry();
         encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Forward 24 Inches with 4 Sec timeout
+        updateTelemetry();
         encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Reverse 24 Inches with 4 Sec timeout
+        updateTelemetry();
         encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn Left 12 Inches with 4 Sec timeout
+        updateTelemetry();
         macroRandomizedShoot();
+        updateTelemetry();
         encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn Right 12 Inches with 4 Sec timeout
+        updateTelemetry();
         encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Forward 24 Inches with 4 Sec timeout
+        updateTelemetry();
         encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Reverse 24 Inches with 4 Sec timeout
+        updateTelemetry();
         encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn Left 12 Inches with 4 Sec timeout
+        updateTelemetry();
         macroRandomizedShoot();
+        updateTelemetry();
         encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn Right 12 Inches with 4 Sec timeout
+        updateTelemetry();
         encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Forward 24 Inches with 4 Sec timeout
+        updateTelemetry();
         encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Reverse 24 Inches with 4 Sec timeout
+        updateTelemetry();
         encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn Left 12 Inches with 4 Sec timeout
+        updateTelemetry();
         macroRandomizedShoot();
+        updateTelemetry();
         encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn Right 12 Inches with 4 Sec timeout
+        updateTelemetry();
         encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Forward 24 Inches with 4 Sec timeout
+        updateTelemetry();
 
         telemetry.addData("Path", "Complete");
         telemetry.update();
@@ -285,6 +420,40 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
         }
     }
 
+    public void shootOneBallAlways() {
+        // Spin flywheel
+        robot.launcher.setPower(1.0);
+
+        try {
+            Thread.sleep(750); // spin-up time
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        // Fire regardless of kicker position
+        robot.kicker.setPosition(KICKER_UP);
+
+        try {
+            Thread.sleep(250); // allow kick
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        robot.kicker.setPosition(KICKER_DOWN);
+
+        // Optional small pause between shots
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+
+
+
+
+
     public void rotateToColor(BallColor desired) {
 
         // 1. Find which fin has the desired color
@@ -303,7 +472,7 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
         }
 
         // 2. Read current Geneva position
-        GenevaStatus status = getGenevaStatus(robot.feedingRotation);
+        RobotTeleopMecanumFieldRelativeDrive.GenevaStatus status = getGenevaStatus(robot.feedingRotation);
         int currentFin = status.fin; // 0–2
 
         // 3. Compute shortest direction (CW / CCW)
@@ -334,25 +503,132 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
         robot.feedingRotation.setPower(1.0);
 
         // Wait until done (non-blocking alternative inside loop if you prefer)
-        while (opModeIsActive() && robot.feedingRotation.isBusy()) {
-            // optional safety timeout
-        }
+        //while (opModeIsActive() && robot.feedingRotation.isBusy()) {
+        // optional safety timeout
+        //}
 
         robot.feedingRotation.setPower(0);
         robot.feedingRotation.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
+/*
+    public void aimTurretAtRedGoal() {
+        LLResult result = robot.limelight.getLatestResult();
 
-    private BallColor detectColor() {
+        if (result == null) {
+            robot.turretSpinner.setPower(0);
+            return;
+        }
+
+        for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+            if (tag.getFiducialId() == 24) { // Red Alliance goal
+                double tx = tag.getTargetXDegrees();
+
+                // Higher sensitivity (tune if necessary)
+                double kP = 0.05; // bigger than 0.01 → faster response
+                double turretPower = -kP * tx; // negative to move toward target
+
+
+
+                // Clamp max power to prevent overdrive
+                turretPower = Math.max(Math.min(turretPower, 1.0), -1.0);
+
+                // Optional deadzone for very small errors
+                if (Math.abs(tx) < 0.5) turretPower = 0;
+
+                robot.turretSpinner.setPower(turretPower);
+
+                telemetry.addData("Turret Tracking", "Aiming at Tag 24");
+                telemetry.addData("tx", tx);
+                telemetry.addData("Power", turretPower);
+                return;
+            }
+        }
+
+        // No target → stop
+        robot.turretSpinner.setPower(0);
+        telemetry.addData("Turret Tracking", "No target");
+    }
+*/
+
+    public void aimTurretAtRedGoal() {
+        LLResult result = robot.limelight.getLatestResult();
+
+        if (result == null) {
+            // No target → stop turret
+            robot.turretSpinner.setPower(0);
+            return;
+        }
+
+        for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+            if (tag.getFiducialId() == 24) { // Red Alliance goal
+                double tx = tag.getTargetXDegrees();
+
+                // ------------------------
+                // Adaptive CR servo control
+                // ------------------------
+                double deadband = 0.5;          // degrees, ignore tiny offsets
+                double maxPower = 0.15;          // max speed at close range
+                double minPower = 0.05;         // minimum speed to overcome friction
+                double kP = 0.05;               // proportional gain
+
+                if (Math.abs(tx) < deadband) {
+                    // close enough → stop
+                    robot.turretSpinner.setPower(0);
+                } else {
+                    // scale proportional to error, clamp to min/max
+                    double scaledPower = Math.min(maxPower, Math.max(minPower, Math.abs(kP * tx)));
+                    // apply direction
+                    robot.turretSpinner.setPower(Math.signum(-tx) * scaledPower);
+                }
+
+                telemetry.addData("Turret Tracking", "Aiming at Tag 24");
+                telemetry.addData("tx", tx);
+                telemetry.addData("Power", robot.turretSpinner.getPower());
+                return;
+            }
+        }
+
+        // No target found → stop turret
+        robot.turretSpinner.setPower(0);
+        telemetry.addData("Turret Tracking", "No target");
+    }
+
+
+
+
+
+    private BallColor detectColor(){
         NormalizedRGBA colors = colorSensor.getNormalizedColors();
 
-        int r = (int) (colors.red * 255);
-        int g = (int) (colors.green * 255);
-        int b = (int) (colors.blue * 255);
+        int r = (int)(colors.red * 255);
+        int g = (int)(colors.green * 255);
+        int b = (int)(colors.blue * 255);
 
-        // Example thresholds – you may need to tune these
-        if (g > b + 40 && g > r + 40) {
+        // Moderate wide green: require green to be reasonably strong
+        if (g > 70 && g > r - 5 && g > b - 5) {
             return BallColor.GREEN;
-        } else if (b > g + 40 && r > g + 40) { // tweak logic for purple
+        }
+        // Keep purple detection tuned strictly
+        else if (b > r + 10 && b > g + 10) {
+            return BallColor.PURPLE;
+        } else {
+            return BallColor.NONE;
+        }
+    }
+
+    private BallColor detectColor1(){
+        NormalizedRGBA colors1 = colorSensor1.getNormalizedColors();
+
+        int r = (int)(colors1.red * 255);
+        int g = (int)(colors1.green * 255);
+        int b = (int)(colors1.blue * 255);
+
+        // Moderate wide green: require green to be reasonably strong
+        if (g > 70 && g > r - 5 && g > b - 5) {
+            return BallColor.GREEN;
+        }
+        // Keep purple detection tuned strictly
+        else if (b > r + 10 && b > g + 10) {
             return BallColor.PURPLE;
         } else {
             return BallColor.NONE;
@@ -360,40 +636,104 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
     }
 
 
+
+
+
+
     public void shootOneBall() {
         // Spin flywheel up
         robot.launcher.setPower(1.0);
-        sleep(300); // change to your real spin-up time
+        try {
+            Thread.sleep(750);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // restore interrupted status
+        }
+        // change to your real spin-up time
 
         // Fire
-        robot.kicker.setPosition(KICKER_UP);
-        sleep(130);
+        safeKick();
+        try {
+            Thread.sleep(250);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // restore interrupted status
+        }
+
         robot.kicker.setPosition(KICKER_DOWN);
 
         // ===============================
         // TUNEABLE PAUSE BETWEEN SHOTS
         // ===============================
-        sleep(200); // <---- adjust this value
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // restore interrupted status
+        }
+        // <---- adjust this value
     }
 
     public void macroRandomizedShoot() {
         for (int i = 0; i < 3; i++) {
-            rotateToColor(aprilOrder[i]);
+            BallColor targetColor = aprilOrder[i];
+
+            // Skip if no color assigned
+            if (targetColor == BallColor.NONE) continue;
+
+            // Rotate until the correct color is detected
+            while (true) {
+                BallColor current = detectColor1();
+
+                if (current == targetColor) {
+                    // Target color found, stop rotation
+                    robot.feedingRotation.setPower(0);
+                    break; // exit while loop
+                } else {
+                    // Rotate feeder forward to find the target
+                    robot.feedingRotation.setPower(1);
+                }
+            }
+
+            // Shoot the detected ball
             shootOneBall();
         }
+
+        // Ensure feeder stops at the end
+        robot.feedingRotation.setPower(0);
     }
 
+
     public void macroSimpleShoot() {
-        for (int i = 0; i < 3; i++) {
+        // Number of balls to shoot
+        int ballsToShoot = 3;
+
+        for (int i = 0; i < ballsToShoot; i++) {
+            // Rotate until a ball of color GREEN or PURPLE is detected
+            while (true) {
+                BallColor current = detectColor1();
+
+                if (current == BallColor.GREEN || current == BallColor.PURPLE) {
+                    // Ball detected, stop feeder rotation
+                    robot.feedingRotation.setPower(0);
+                    break; // exit while loop
+                } else {
+                    // Keep rotating forward to find the next ball
+                    robot.feedingRotation.setPower(1);
+                }
+            }
+
+            // Shoot the detected ball
             shootOneBall();
         }
+
+        // Ensure feeder stops at the end
+        robot.feedingRotation.setPower(0);
     }
+
 
     public void readAprilTagAndStoreOrder(int tagId) {
         switch (tagId) {
             case 21:
                 aprilOrder[0] = BallColor.GREEN;
-                aprilOrder[1] = BallColor.GREEN;
+                aprilOrder[1] = BallColor.PURPLE;
                 aprilOrder[2] = BallColor.GREEN;
                 break;
 
@@ -411,47 +751,181 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
         }
     }
 
-    public void updateFinColors(GenevaStatus status) {
 
-        BallColor current = detectColor();
+    // Call this every loop
+    private void updateFinColor() {
+        // Read ONLY from the new color sensor
+        BallColor detected = detectColor1();
 
-        // Detect rising edge (a new ball just appeared at the sensor)
-        if (current != BallColor.NONE && lastDetected == BallColor.NONE) {
+        // Determine which fin is currently under the sensor
+        RobotTeleopMecanumFieldRelativeDrive.GenevaStatus status = getGenevaStatus(robot.feedingRotation);
+        int finIndex = status.fin; // 0, 1, or 2 depending on Geneva position
 
-            // Assign this new ball to the fin currently at the intake
-            finColors[status.fin] = current;
-        }
+        // Update only that fin
+        finColors[finIndex] = detected;
 
-        lastDetected = current;
 
-        // Telemetry
-        telemetry.addData("Fin Colors",
-                "0:" + finColors[0] + "  1:" + finColors[1] + "  2:" + finColors[2]);
     }
 
-    public void feeding() {
 
-        // Kicker must be down/safe
-        boolean kickerDown = robot.kicker.getPosition() >= 0.79;
+
+
+
+    // Thanks to FTC16072 for sharing this code!!
+    public void drive(double forward, double right, double rotate) {
+        // This calculates the power needed for each wheel based on the amount of
+        // forward,
+        // strafe right, and rotate
+        double frontLeftPower = forward + right + rotate;
+        double frontRightPower = forward - right - rotate;
+        double backRightPower = forward + right - rotate;
+        double backLeftPower = forward - right + rotate;
+
+        double maxPower = 1.0;
+        if (gamepad1.right_bumper) {
+            maxSpeed = 0.1; // slow mode
+        } else {
+            maxSpeed = 1.0; // default full speed, make this slower for outreaches
+        }
+
+        // This is needed to make sure we don't pass > 1.0 to any wheel
+        // It allows us to keep all of the motors in proportion to what they should
+        // be and not get clipped
+        maxPower = Math.max(maxPower, Math.abs(frontLeftPower));
+        maxPower = Math.max(maxPower, Math.abs(frontRightPower));
+        maxPower = Math.max(maxPower, Math.abs(backRightPower));
+        maxPower = Math.max(maxPower, Math.abs(backLeftPower));
+
+        // We multiply by maxSpeed so that it can be set lower for outreaches
+        // When a young child is driving the robot, we may not want to allow full
+        // speed.
+        robot.frontLeft.setPower(maxSpeed * (frontLeftPower / maxPower));
+        robot.frontRight.setPower(maxSpeed * (frontRightPower / maxPower));
+        robot.rearLeft.setPower(maxSpeed * (backLeftPower / maxPower));
+        robot.rearRight.setPower(maxSpeed * (backRightPower / maxPower));
+    }
+
+    public void lift() {
+        if (gamepad1.dpad_up) {
+            robot.leftLift.setPower(LIFT_SPEED);
+            robot.rightLift.setPower(LIFT_SPEED);
+        } else if (gamepad1.dpad_down) {
+            robot.leftLift.setPower(-LIFT_SPEED);
+            robot.rightLift.setPower(-LIFT_SPEED);
+        } else {
+            robot.rightLift.setPower(0);
+            robot.leftLift.setPower(0);
+        }
+    }
+
+    public void safeKick() {
+        BallColor current1 = detectColor1();
+        if (current1 == BallColor.GREEN || current1 == BallColor.PURPLE) {
+            robot.kicker.setPosition(KICKER_UP);
+        }
+    }
+
+
+    public void feeding() {
+        BallColor current1 = detectColor1();
+        boolean kickerDown = robot.kicker.getPosition() >= 0.725;
 
         boolean feederUp = gamepad2.dpad_up;
         boolean feederDown = gamepad2.dpad_down;
 
-        if (feederUp || feederDown) {
-            if (kickerDown) {
-                // SAFE → allow rotation
-                robot.feedingRotation.setPower(feederUp ? 1 : -1);
-            } else {
-                // NOT safe → block movement + rumble
-                robot.feedingRotation.setPower(0);
+        // -----------------------
+        // LAYER 2: Manual (LT held)
+        // -----------------------
+        if (gamepad2.left_trigger > 0.4) {
 
-                // One short rumble on both sides
-                gamepad1.rumble(1, 1, 300);
+            // Manual kicker (bypass)
+            if (gamepad2.dpad_left) {
+                robot.kicker.setPosition(0.55);
             }
-        } else {
-            robot.feedingRotation.setPower(0);
+            else if (gamepad2.dpad_right) {
+                robot.kicker.setPosition(0.725);
+            }
+
+            // Manual feeder (requires kicker down)
+            if (feederUp || feederDown) {
+                if (kickerDown) {
+                    robot.feedingRotation.setPower(feederUp ? 1 : -1);
+                } else {
+                    robot.feedingRotation.setPower(0);
+                    gamepad2.rumble(1, 1, 300); // same as before
+                }
+            } else {
+                robot.feedingRotation.setPower(0);
+            }
+
+            return; // bypass auto layer
+        }
+
+        // -------------------------------------
+        // LAYER 1: Auto (no LT held)
+        // Pressing button ALWAYS starts spinning
+        // AND starts a 1-second ignore period
+        // -------------------------------------
+        if (feederUp) {
+            robot.feedingRotation.setPower(1);
+            intakeColorIgnoreUntil = System.currentTimeMillis() + 1000; // 1 sec ignore
+        }
+
+        if (feederDown) {
+            robot.feedingRotation.setPower(-1);
+            intakeColorIgnoreUntil = System.currentTimeMillis() + 1000; // 1 sec ignore
+        }
+
+        // -------------------------------------
+        // Auto-stop when color is detected
+        // but ONLY after timeout expires
+        // -------------------------------------
+        if (System.currentTimeMillis() > intakeColorIgnoreUntil) {
+            if (current1 == BallColor.GREEN || current1 == BallColor.PURPLE) {
+                robot.feedingRotation.setPower(0);
+            }
         }
     }
+
+
+
+
+
+    public void turret() {
+        if (gamepad2.left_bumper) {
+            robot.turretSpinner.setPower(1);
+        } else if (gamepad2.right_bumper) {
+            robot.turretSpinner.setPower(-1);
+        } else {
+            robot.turretSpinner.setPower(0);
+        }
+    }
+
+    public void updateTurretControl() {
+
+        // ----------------------------
+        //  MANUAL MODE (bumper override)
+        // ----------------------------
+        if (gamepad2.left_bumper) {
+            robot.turretSpinner.setPower(0.8);   // rotate left
+            telemetry.addData("Turret Mode", "Manual Left");
+            return;
+        }
+
+        if (gamepad2.right_bumper) {
+            robot.turretSpinner.setPower(-0.8);  // rotate right
+            telemetry.addData("Turret Mode", "Manual Right");
+            return;
+        }
+
+        // -----------------------------------
+        //  AUTO MODE (no bumpers → auto aim)
+        // -----------------------------------
+        aimTurretAtRedGoal();   // calls the auto-aim code
+    }
+
+
+
 
     /**
      * Returns the Geneva wheel position (0–5) and whether it is in a gap (true) or
@@ -469,7 +943,7 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
         }
     }
 
-    public GenevaStatus getGenevaStatus(DcMotor feedingRotation) {
+    public RobotTeleopMecanumFieldRelativeDrive.GenevaStatus getGenevaStatus(DcMotor feedingRotation) {
         final double TICKS_PER_REV = 5377.0; // motor + 10:1 reduction
         final int ZONES = 6;
         final int FIN_TICKS = 116; // fin width in encoder ticks
@@ -489,25 +963,30 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
         // true = in gap, false = on fin
         boolean inGap = posInZone >= FIN_TICKS;
 
-        return new GenevaStatus(zone, inGap);
+        return new RobotTeleopMecanumFieldRelativeDrive.GenevaStatus(zone, inGap);
+    }
+
+    //@Override
+    public void onStop() {
+        robot.limelight.stop();
     }
 
     public void updateKicker() {
 
-        // Check launcher speed
+        BallColor current1 = detectColor1(); // use your existing detection
         boolean launcherAtSpeed = robot.launcher.getPower() >= LAUNCHER_MIN_POWER;
 
-        // Start cycle only if:
-        // - Button pressed (tap)
-        // - Not already cycling
-        // - Launcher is up to speed
-        if (!kickerCycling && launcherAtSpeed) {
+        // Only allow kicker to go up when a ball color is sensed
+        if (!kickerCycling
+                && gamepad2.x
+                && launcherAtSpeed
+                && (current1 == BallColor.GREEN || current1 == BallColor.PURPLE)) {
+
             kickerCycling = true;
-            robot.kicker.setPosition(KICKER_UP);
+            safeKick();
             kickerTimer = System.currentTimeMillis();
         }
 
-        // Cycle already started
         if (kickerCycling) {
             if (System.currentTimeMillis() - kickerTimer >= KICK_TIME) {
                 robot.kicker.setPosition(KICKER_DOWN);
@@ -516,8 +995,55 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
         }
     }
 
-    //@Override
-    //public void stop() {
-    //    robot.limelight.stop();
-    //}
+    // Call this method whenever you want to update telemetry in Auto
+    public void updateTelemetry() {
+        // ----- Limelight -----
+        LLResult result = robot.limelight.getLatestResult();
+        if (result != null) {
+            for (LLResultTypes.FiducialResult fiducialResult : result.getFiducialResults()) {
+                for (LLResultTypes.ColorResult colorResult : result.getColorResults()) {
+                    telemetry.addData("Color", "X: " + JavaUtil.formatNumber(colorResult.getTargetXDegrees(), 2)
+                            + ", Y: " + JavaUtil.formatNumber(colorResult.getTargetYDegrees(), 2));
+                }
+            }
+        } else {
+            telemetry.addData("Limelight", "No data available");
+        }
+
+        // ----- Separate AprilTag detection for MOTIF -----
+        if (aprilOrderSet) {
+            telemetry.addData("AprilOrder",
+                    "0: " + aprilOrder[0] + ", 1: " + aprilOrder[1] + ", 2: " + aprilOrder[2]);
+        }
+
+        // ----- Current ball color -----
+        BallColor current1 = detectColor1();
+        telemetry.addData("Current Ball Sensor1", current1); // shows NONE, GREEN, or PURPLE
+
+        // ----- HSV from color sensor1 -----
+        NormalizedRGBA colors1 = colorSensor1.getNormalizedColors();
+        Color.colorToHSV(colors1.toColor(), hsvValues);
+
+        // ----- Fin colors -----
+        telemetry.addData("Fin Colors",
+                "0: " + finColors[0] + " 1: " + finColors[1] + " 2: " + finColors[2]);
+
+        // ----- Optional distance -----
+        if (colorSensor instanceof DistanceSensor) {
+            double dist = ((DistanceSensor) colorSensor).getDistance(DistanceUnit.CM);
+            // telemetry.addData("Distance Sensor0 (cm)", "%.2f", dist);
+        }
+        if (colorSensor1 instanceof DistanceSensor) {
+            double dist = ((DistanceSensor) colorSensor1).getDistance(DistanceUnit.CM);
+            // telemetry.addData("Distance Sensor1 (cm)", "%.2f", dist);
+        }
+
+        // ----- Color sensor gain -----
+        // telemetry.addData("Color Sensor Gain", colorGain);
+
+        telemetry.update(); // send all telemetry at once
+    }
+
+
+
 }

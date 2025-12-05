@@ -260,7 +260,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         ;
 
         // Convert to HSV
-        Color.colorToHSV(colors.toColor(), hsvValues);
+        Color.colorToHSV(colors1.toColor(), hsvValues);
 
         //telemetry.addData("Current Ball", current); // shows NONE, GREEN, or PURPLE
         telemetry.addData("Fin Colors",
