@@ -107,7 +107,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     long intakeColorIgnoreUntil = 0;
 
-    private boolean aprilOrderSet = false;
+    
 
 
 
@@ -203,28 +203,6 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         //telemetry.update();
 
         //BallColor current = detectColor();
-
-        // ----- Separate AprilTag detection for MOTIF -----
-        if (!aprilOrderSet) {
-            LLResult tagResult = robot.limelight.getLatestResult();
-            if (tagResult != null) {
-                List<LLResultTypes.FiducialResult> tags = tagResult.getFiducialResults();
-                if (!tags.isEmpty()) {
-                    int detectedTagId = tags.get(0).getFiducialId();
-
-                    // Store the order for this match
-                    readAprilTagAndStoreOrder(detectedTagId);
-                    aprilOrderSet = true; // lock order
-
-                    // Telemetry: show the scanned order
-                    telemetry.addData("AprilTag ID", detectedTagId);
-                    telemetry.addData("AprilOrder",
-                            "0: " + aprilOrder[0] + ", 1: " + aprilOrder[1] + ", 2: " + aprilOrder[2]);
-                    telemetry.update();
-                }
-            }
-        }
-
 
         BallColor current1 = detectColor1();
         telemetry.addData("Current Ball Sensor1", current1); // shows NONE, GREEN, or PURPLE
@@ -855,29 +833,22 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
             case 21:
                 aprilOrder[0] = BallColor.GREEN;
                 aprilOrder[1] = BallColor.PURPLE;
-                aprilOrder[2] = BallColor.PURPLE;
-                break;
-
-            case 22:
-                aprilOrder[0] = BallColor.PURPLE;
-                aprilOrder[1] = BallColor.GREEN;
-                aprilOrder[2] = BallColor.PURPLE;
-                break;
-
-            case 23:
-                aprilOrder[0] = BallColor.PURPLE;
-                aprilOrder[1] = BallColor.PURPLE;
                 aprilOrder[2] = BallColor.GREEN;
                 break;
 
-            default:
+            case 22:
+                aprilOrder[0] = BallColor.GREEN;
+                aprilOrder[1] = BallColor.GREEN;
+                aprilOrder[2] = BallColor.GREEN;
+                break;
+
+            case 23:
                 aprilOrder[0] = BallColor.NONE;
                 aprilOrder[1] = BallColor.NONE;
                 aprilOrder[2] = BallColor.NONE;
                 break;
         }
     }
-
 
 
     // Call this every loop
