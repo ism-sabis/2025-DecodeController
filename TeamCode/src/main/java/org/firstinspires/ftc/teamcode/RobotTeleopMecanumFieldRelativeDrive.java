@@ -202,6 +202,11 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         BallColor current1 = detectColor1();
         telemetry.addData("Current Ball Sensor1", current1); // shows NONE, GREEN, or PURPLE
 
+        // Vibrate if green or purple is detected
+        if (current1 == BallColor.GREEN || current1 == BallColor.PURPLE) {
+            gamepad2.rumble(1, 1, 300); // strong, weak, duration in ms
+        }
+
 
 
 
@@ -393,7 +398,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         if (!kickerCycling && gamepad2.x) {
             // Start the cycle
             kickerCycling = true;
-            robot.kicker.setPosition(KICKER_UP);
+            safeKick();
             kickerTimer = System.currentTimeMillis();
         }
 
@@ -611,7 +616,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 // Adaptive CR servo control
                 // ------------------------
                 double deadband = 0.5;          // degrees, ignore tiny offsets
-                double maxPower = 0.2;          // max speed at close range
+                double maxPower = 0.15;          // max speed at close range
                 double minPower = 0.05;         // minimum speed to overcome friction
                 double kP = 0.05;               // proportional gain
 
@@ -695,7 +700,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // change to your real spin-up time
 
         // Fire
-        robot.kicker.setPosition(KICKER_UP);
+        safeKick();
         try {
             Thread.sleep(250);
         } catch (InterruptedException e) {
@@ -762,6 +767,8 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         // Update only that fin
         finColors[finIndex] = detected;
+
+
     }
 
 
@@ -815,29 +822,53 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
     }
 
+    public void safeKick() {
+        BallColor current1 = detectColor1();
+        if (current1 == BallColor.GREEN || current1 == BallColor.PURPLE) {
+            robot.kicker.setPosition(KICKER_UP);
+        }
+    }
+
+
     public void feeding() {
 
-        // Kicker must be down/safe
+        BallColor current1 = detectColor1();
         boolean kickerDown = robot.kicker.getPosition() >= 0.79;
 
         boolean feederUp = gamepad2.dpad_up;
         boolean feederDown = gamepad2.dpad_down;
 
-        if (feederUp || feederDown) {
-            if (kickerDown) {
-                // SAFE → allow rotation
-                robot.feedingRotation.setPower(feederUp ? 1 : -1);
+        // Layer 2: Manual control (LT held)
+        if (gamepad2.left_trigger > 0.4) {
+            if (feederUp || feederDown) {
+                if (kickerDown) {
+                    robot.feedingRotation.setPower(feederUp ? 1 : -1);
+                } else {
+                    robot.feedingRotation.setPower(0);
+                    gamepad1.rumble(1, 1, 300); // you already had this, unchanged
+                }
             } else {
-                // NOT safe → block movement + rumble
                 robot.feedingRotation.setPower(0);
-
-                // One short rumble on both sides
-                gamepad1.rumble(1, 1, 300);
             }
-        } else {
+            return; // stay in manual mode
+        }
+
+        // Layer 1: Auto system (no LT held)
+        // Press button to start spinning
+        if (feederUp) {
+            robot.feedingRotation.setPower(1);
+        }
+        if (feederDown) {
+            robot.feedingRotation.setPower(-1);
+        }
+
+        // Auto stop when a color appears
+        if (current1 == BallColor.GREEN || current1 == BallColor.PURPLE) {
             robot.feedingRotation.setPower(0);
+            // NO RUMBLE added here
         }
     }
+
 
     public void turret() {
         if (gamepad2.left_bumper) {
@@ -921,20 +952,20 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     public void updateKicker() {
 
-        // Check launcher speed
+        BallColor current1 = detectColor1(); // use your existing detection
         boolean launcherAtSpeed = robot.launcher.getPower() >= LAUNCHER_MIN_POWER;
 
-        // Start cycle only if:
-        // - Button pressed (tap)
-        // - Not already cycling
-        // - Launcher is up to speed
-        if (!kickerCycling && gamepad2.x && launcherAtSpeed) {
+        // Only allow kicker to go up when a ball color is sensed
+        if (!kickerCycling
+                && gamepad2.x
+                && launcherAtSpeed
+                && (current1 == BallColor.GREEN || current1 == BallColor.PURPLE)) {
+
             kickerCycling = true;
-            robot.kicker.setPosition(KICKER_UP);
+            safeKick();
             kickerTimer = System.currentTimeMillis();
         }
 
-        // Cycle already started
         if (kickerCycling) {
             if (System.currentTimeMillis() - kickerTimer >= KICK_TIME) {
                 robot.kicker.setPosition(KICKER_DOWN);
@@ -942,5 +973,6 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
             }
         }
     }
+
 
 }
