@@ -225,10 +225,10 @@ public class BlueAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
             //telemetry.addData("LL Latency", captureLatency + targetingLatency);
             // Access fiducial results.
             for (LLResultTypes.FiducialResult fiducialResult : result.getFiducialResults()) {
-                //telemetry.addData("Fiducial",
-                // "ID: " + fiducialResult.getFiducialId() + ", Family: " + fiducialResult.getFamily()
-                //+ ", X: " + JavaUtil.formatNumber(fiducialResult.getTargetXDegrees(), 2) + ", Y: "
-                //+ JavaUtil.formatNumber(fiducialResult.getTargetYDegrees(), 2));
+                telemetry.addData("Fiducial",
+                 "ID: " + fiducialResult.getFiducialId() + ", Family: " + fiducialResult.getFamily()
+                + ", X: " + JavaUtil.formatNumber(fiducialResult.getTargetXDegrees(), 2) + ", Y: "
+                + JavaUtil.formatNumber(fiducialResult.getTargetYDegrees(), 2));
                 // Access color results.
                 for (LLResultTypes.ColorResult colorResult : result.getColorResults()) {
                     telemetry.addData("Color", "X: " + JavaUtil.formatNumber(colorResult.getTargetXDegrees(), 2)
