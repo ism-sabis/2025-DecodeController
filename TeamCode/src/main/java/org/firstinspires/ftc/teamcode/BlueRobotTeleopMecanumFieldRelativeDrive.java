@@ -1,32 +1,3 @@
-/* Copyright (c) 2017 FIRST. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted (subject to the limitations in the disclaimer below) provided that
- * the following conditions are met:
- *
- * Redistributions of source code must retain the above copyright notice, this list
- * of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright notice, this
- * list of conditions and the following disclaimer in the documentation and/or
- * other materials provided with the distribution.
- *
- * Neither the name of FIRST nor the names of its contributors may be used to endorse or
- * promote products derived from this software without specific prior written permission.
- *
- * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS
- * LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
 package org.firstinspires.ftc.teamcode;
 
 import android.graphics.Color;
@@ -34,15 +5,15 @@ import android.graphics.Color;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.LLStatus;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.JavaUtil;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 
@@ -50,43 +21,23 @@ import java.util.List;
 
 
 /*
- * This OpMode illustrates the concept of driving a path based on encoder counts.
- * The code is structured as a LinearOpMode
+ * This OpMode illustrates how to program your robot to drive field relative.  This means
+ * that the robot drives the direction you push the joystick regardless of the current orientation
+ * of the robot.
  *
- * The code REQUIRES that you DO have encoders on the wheels,
- *   otherwise you would use: RobotAutoDriveByTime;
+ * This OpMode assumes that you have four mecanum wheels each on its own motor named:
+ *   front_left_motor, front_right_motor, back_left_motor, back_right_motor
  *
- *  This code ALSO requires that the drive Motors have been configured such that a positive
- *  power command moves them forward, and causes the encoders to count UP.
- *
- *   The desired path in this example is:
- *   - Drive forward for 48 inches
- *   - Spin right for 12 Inches
- *   - Drive Backward for 24 inches
- *   - Stop and close the claw.
- *
- *  The code is written using a method called: encoderDrive(speed, leftInches, rightInches, timeoutS)
- *  that performs the actual movement.
- *  This method assumes that each movement is relative to the last stopping place.
- *  There are other ways to perform encoder based moves, but this method is probably the simplest.
- *  This code uses the RUN_TO_POSITION mode to enable the Motor controllers to generate the run profile
+ *   and that the left motors are flipped such that when they turn clockwise the wheel moves backwards
  *
  * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
+ *
  */
-
-@Autonomous(name = "Robot: Auto Drive By Encoder", group = "Robot")
-//@Disabled
-public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
-    final private org.firstinspires.ftc.teamcode.RobotHardware robot = new RobotHardware();
-    /* Declare OpMode members. */
-    private DcMotor frontLeft = null;
-    private DcMotor frontRight = null;
-    private DcMotor rearLeft = null;
-    private DcMotor rearRight = null;
-
-    private ElapsedTime runtime = new ElapsedTime();
-
+@TeleOp(name = "Robot: Field Relative Mecanum Drive", group = "Robot")
+// @Disabled
+public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
+    final private RobotHardware robot = new RobotHardware();
     // Kicker auto-cycle state
     boolean kickerCycling = false;
     long kickerTimer = 0;
@@ -126,6 +77,7 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
             BallColor.NONE, BallColor.NONE, BallColor.NONE
     };
 
+    double driverYawOffset = 0; // initial offset in radians
     boolean squarePrev = false;   // to detect rising edge of square button
 
     double lastForward = 0;
@@ -143,73 +95,69 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
 
     private boolean aprilOrderSet = false;
 
-    // Calculate the COUNTS_PER_INCH for your specific drive train.
-    // Go to your motor vendor website to determine your motor's
-    // COUNTS_PER_MOTOR_REV
-    // For external drive gearing, set DRIVE_GEAR_REDUCTION as needed.
-    // For example, use a value of 2.0 for a 12-tooth spur gear driving a 24-tooth
-    // spur gear.
-    // This is gearing DOWN for less speed and more torque.
-    // For gearing UP, use a gear ratio less than 1.0. Note this will affect the
-    // direction of wheel rotation.
-    static final double COUNTS_PER_MOTOR_REV = 537.7; // eg: TETRIX Motor Encoder
-    static final double DRIVE_GEAR_REDUCTION = 2.0; // No External Gearing.
-    static final double WHEEL_DIAMETER_INCHES = 3.78; // For figuring circumference
-    static final double COUNTS_PER_INCH = (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
-            (WHEEL_DIAMETER_INCHES * 3.1415);
-    static final double DRIVE_SPEED = 0.6;
-    static final double TURN_SPEED = 0.5;
+
+
+
+
+
+
+
 
     @Override
-    public void runOpMode() {
+    public void init() {
+        robot.init(hardwareMap);
+
+        // Initialize color sensor
+        colorSensor = hardwareMap.get(NormalizedColorSensor.class, "colorSensor");
+        colorSensor1 = hardwareMap.get(NormalizedColorSensor.class, "colorSensor1");
+
+        // Set initial gain
+        colorSensor.setGain(colorGain);
+        colorSensor1.setGain(colorGain);
 
 
 
-        // Initialize the drive system variables.
-        frontLeft = hardwareMap.get(DcMotor.class, "front_left");
-        frontRight = hardwareMap.get(DcMotor.class, "front_right");
-        rearLeft = hardwareMap.get(DcMotor.class, "rear_left");
-        rearRight = hardwareMap.get(DcMotor.class, "rear_right");
+        telemetry.addData("ColorSensor", "Initialized");
+        telemetry.addData("ColorSensor1", "Initialized");
 
-        // To drive forward, most robots need the motor on one side to be reversed,
-        // because the axles point in opposite directions.
-        // When run, this OpMode should start both motors driving forward. So adjust
-        // these two lines based on your first test drive.
-        // Note: The settings here assume direct drive on left and right wheels. Gear
-        // Reduction or 90 Deg drives may require direction flips
-        frontLeft.setDirection(DcMotor.Direction.REVERSE);
-        frontRight.setDirection(DcMotor.Direction.FORWARD);
-        rearLeft.setDirection(DcMotor.Direction.REVERSE);
-        rearRight.setDirection(DcMotor.Direction.FORWARD);
+        // Limelight3A
+        // LLStatus status;
+        // LLResult result;
+        // Pose3D botpose;
+        // double captureLatency;
+        // double targetingLatency;
+        // List<LLResultTypes.FiducialResult> fiducialResults;
+        // LLResultTypes.FiducialResult fiducialResult;
+        // LLResultTypes.FiducialResult fiducialResult;
+        // List<LLResultTypes.ColorResult> colorResults;
+        // LLResultTypes.ColorResult colorResult;
 
-        frontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        frontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rearLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rearRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        telemetry.setMsTransmissionInterval(11);
+        telemetry.addData(">", "Robot Ready.  Press Play.");
+        //telemetry.update();
 
-        frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rearLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rearRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        // Send telemetry message to indicate successful Encoder reset
-        telemetry.addData("Starting at", "%7d :%7d",
-                frontLeft.getCurrentPosition(),
-                frontRight.getCurrentPosition(),
-                rearLeft.getCurrentPosition(),
-                rearRight.getCurrentPosition());
-        telemetry.update();
 
-        // Wait for the game to start (driver presses START)
-        waitForStart();
+        double driverYawOffset = Math.PI; // adjust to your driver position
+
+        robot.kicker.setPosition(KICKER_DOWN);
+
+    }
+
+
+
+    // Call functions here
+    // Place actual instructions here
+    @Override
+    public void loop() {
 
         // Limelight3A
         LLStatus status = robot.limelight.getStatus();
-        // telemetry.addData("Name", status.getName());
+       // telemetry.addData("Name", status.getName());
         //telemetry.addData("LL", "Temp: " + JavaUtil.formatNumber(status.getTemp(), 1) + "C, CPU: "
-        //    + JavaUtil.formatNumber(status.getCpu(), 1) + "%, FPS: " + Math.round(status.getFps()));
+            //    + JavaUtil.formatNumber(status.getCpu(), 1) + "%, FPS: " + Math.round(status.getFps()));
         //telemetry.addData("Pipeline",
-        //     "Index: " + status.getPipelineIndex() + ", Type: " + status.getPipelineType());
+           //     "Index: " + status.getPipelineIndex() + ", Type: " + status.getPipelineType());
         LLResult result = robot.limelight.getLatestResult();
         if (result != null) {
             // Access general information.
@@ -226,9 +174,9 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
             // Access fiducial results.
             for (LLResultTypes.FiducialResult fiducialResult : result.getFiducialResults()) {
                 //telemetry.addData("Fiducial",
-                // "ID: " + fiducialResult.getFiducialId() + ", Family: " + fiducialResult.getFamily()
-                //+ ", X: " + JavaUtil.formatNumber(fiducialResult.getTargetXDegrees(), 2) + ", Y: "
-                //+ JavaUtil.formatNumber(fiducialResult.getTargetYDegrees(), 2));
+                       // "ID: " + fiducialResult.getFiducialId() + ", Family: " + fiducialResult.getFamily()
+                                //+ ", X: " + JavaUtil.formatNumber(fiducialResult.getTargetXDegrees(), 2) + ", Y: "
+                                //+ JavaUtil.formatNumber(fiducialResult.getTargetYDegrees(), 2));
                 // Access color results.
                 for (LLResultTypes.ColorResult colorResult : result.getColorResults()) {
                     telemetry.addData("Color", "X: " + JavaUtil.formatNumber(colorResult.getTargetXDegrees(), 2)
@@ -260,10 +208,42 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
             }
         }
 
+        //telemetry.update();
+
+        //BallColor current = detectColor();
+
         BallColor current1 = detectColor1();
         telemetry.addData("Current Ball Sensor1", current1); // shows NONE, GREEN, or PURPLE
 
+        // Vibrate if green or purple is detected
+        if (current1 == BallColor.GREEN || current1 == BallColor.PURPLE) {
+            gamepad2.rumble(1, 1, 300); // strong, weak, duration in ms
+        }
+
+
+
+
+
+
+
+
+
+
+
+        NormalizedRGBA colors = colorSensor.getNormalizedColors();
         NormalizedRGBA colors1 = colorSensor1.getNormalizedColors();
+
+        int red = (int) (colors.red * 255);
+        int green = (int) (colors.green * 255);
+        int blue = (int) (colors.blue * 255);
+        int alpha = (int) (colors.alpha * 255);
+
+        //telemetry.addData("Red", red);
+        //telemetry.addData("Green", green);
+        //telemetry.addData("Blue", blue);
+        //telemetry.addData("Alpha", alpha);
+        //telemetry.update();
+        ;
 
         // Convert to HSV
         Color.colorToHSV(colors1.toColor(), hsvValues);
@@ -283,136 +263,268 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
             //telemetry.addData("Distance (cm)", "%.2f", dist);
         }
 
-        // Apply gain to the color sensor
+        //telemetry.addLine("Press A to reset Yaw");
+        //telemetry.addLine("Hold left bumper to drive in robot relative");
+        //telemetry.addLine("The left joystick sets the robot direction");
+       // telemetry.addLine("Moving the right joystick left and right turns the robot");
+
+        double yawDeg = robot.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+       // telemetry.addData("Yaw (deg)", yawDeg);
+
+
+        // ===== TELEMETRY FOR DEBUGGING =====
+        //telemetry.addLine("===== DRIVER-RELATIVE DEBUG =====");
+        //telemetry.addData("driverYawOffset (deg)", Math.toDegrees(driverYawOffset));
+        //telemetry.addData("robotYaw (deg)", Math.toDegrees(robotYaw));
+        //telemetry.addData("joystickAngle (deg)", Math.toDegrees(Math.atan2(forward, right)));
+        //telemetry.addData("theta rotated (deg)", Math.toDegrees(theta));
+        //telemetry.addData("newForward", newForward);
+        //telemetry.addData("newRight", newRight);
+
+
+
+        // If you press the A button, then you reset the Yaw to be zero from the way
+        // the robot is currently pointing
+        if (gamepad1.triangle) {
+            robot.imu.resetYaw();
+        }
+        /*
+        // If you press the left bumper, you get a drive from the point of view of the
+        // robot
+        // (much like driving an RC vehicle)
+        if (gamepad1.left_bumper) {
+            drive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
+        } else {
+            driveFieldRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
+        }
+
+         */
+
+        // Current button states
+        boolean dpadRightNow = gamepad2.dpad_right;
+        boolean dpadLeftNow  = gamepad2.dpad_left;
+
+// Increase gain on right D-pad press (rising edge)
+        //if (dpadRightNow && !dpadRightPrev) {
+       //     colorGain += 0.05f;
+       // }
+
+// Decrease gain on left D-pad press (rising edge)
+        //if (dpadLeftNow && !dpadLeftPrev && colorGain > 0.1f) {
+        //    colorGain -= 0.05f;
+        //}
+
+// Apply gain to the color sensor
         colorSensor.setGain(colorGain);
         colorSensor1.setGain(colorGain);
 
-        // Step through each leg of the path,
-        // Note: Reverse movement is obtained by setting a negative distance (not speed)
-        encoderDrive(DRIVE_SPEED, 48, 48, 5.0); // S1: Forward 47 Inches with 5 Sec timeout
-        updateTelemetry();
-        encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn Left 12 Inches with 4 Sec timeout
-        updateTelemetry();
-        shootOneBall();
-        updateTelemetry();
-        encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn Right 12 Inches with 4 Sec timeout
-        updateTelemetry();
-        encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Forward 24 Inches with 4 Sec timeout
-        updateTelemetry();
-        encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Reverse 24 Inches with 4 Sec timeout
-        updateTelemetry();
-        encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn Left 12 Inches with 4 Sec timeout
-        updateTelemetry();
-        macroRandomizedShoot();
-        updateTelemetry();
-        encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn Right 12 Inches with 4 Sec timeout
-        updateTelemetry();
-        encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Forward 24 Inches with 4 Sec timeout
-        updateTelemetry();
-        encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Reverse 24 Inches with 4 Sec timeout
-        updateTelemetry();
-        encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn Left 12 Inches with 4 Sec timeout
-        updateTelemetry();
-        macroRandomizedShoot();
-        updateTelemetry();
-        encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn Right 12 Inches with 4 Sec timeout
-        updateTelemetry();
-        encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Forward 24 Inches with 4 Sec timeout
-        updateTelemetry();
-        encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Reverse 24 Inches with 4 Sec timeout
-        updateTelemetry();
-        encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn Left 12 Inches with 4 Sec timeout
-        updateTelemetry();
-        macroRandomizedShoot();
-        updateTelemetry();
-        encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn Right 12 Inches with 4 Sec timeout
-        updateTelemetry();
-        encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Forward 24 Inches with 4 Sec timeout
-        updateTelemetry();
+// Save previous states for rising edge detection
+        dpadRightPrev = dpadRightNow;
+        dpadLeftPrev  = dpadLeftNow;
 
-        telemetry.addData("Path", "Complete");
-        telemetry.update();
-        sleep(1000); // pause to display final telemetry message.
+// Telemetry
+        //telemetry.addData("Color Sensor Gain", colorGain);
+
+
+
+        // Rising edge detection for square button
+        boolean squareNow = gamepad1.square;
+        if (squareNow && !squarePrev) {
+            driverYawOffset += Math.PI / 2;
+            driverYawOffset = driverYawOffset % (2 * Math.PI);
+
+            // Immediately recalc motor powers using last joystick
+            applyDriverOffset(driverYawOffset);
+        }
+        squarePrev = squareNow;
+
+        // Rising edge detection variables
+        boolean aPrev = false;
+        boolean bPrev = false;
+        boolean yPrev = false;
+        boolean xPrev2 = false; // separate from Gamepad1 X
+
+
+            // --- Gamepad2 button actions ---
+            // A button → shoot one ball
+            if (gamepad2.triangle && !aPrev) {
+                shootOneBall();
+            }
+            aPrev = gamepad2.triangle;
+
+            // B button → macro simple shoot
+            if (gamepad2.square && !bPrev) {
+                macroSimpleShoot();
+            }
+            bPrev = gamepad2.square;
+
+            // Y button → macro randomized shoot
+            if (gamepad2.x && !yPrev) {
+                macroRandomizedShoot();
+            }
+            yPrev = gamepad2.x;
+
+            // X button → rotate to RED (example)
+            if (gamepad2.circle && !xPrev2) {
+                rotateToColor(BallColor.GREEN); // or add logic to choose color dynamically
+            }
+            xPrev2 = gamepad2.circle;
+
+        // Inside your TeleOp loop or as a separate function
+        if (gamepad2.left_trigger > 0.4) {
+            // -----------------------
+            // LAYER 2: Single-shot shooter
+            // -----------------------
+            if (gamepad2.triangle && !lsButtonPreviouslyPressed) {
+                lsButtonPreviouslyPressed = true; // rising edge detection
+                shootOneBallAlways();             // new function
+            }
+            else if (!gamepad2.triangle) {
+                lsButtonPreviouslyPressed = false; // reset for next press
+            }
+        }
+
+
+
+
+
+
+        // Set driver orientation (angle between driver forward and field forward)
+// Example: driver on south side facing north = 180 degrees
+
+
+        if (gamepad1.left_bumper) {
+            driveDriverRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x, driverYawOffset);
+        } else {
+
+            drive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x); // robot-relative
+        }
+
+
+
+        // Heading lock logic
+        if (gamepad1.left_bumper) {
+            if (!headingLocked) {
+                // Store the current IMU yaw once
+                lockedHeading = robot.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+                headingLocked = true;
+            }
+        } else {
+            headingLocked = false; // release heading lock
+        }
+
+
+
+        robot.launcher.setPower(gamepad2.right_trigger);
+
+        GenevaStatus genevaStatus = getGenevaStatus(robot.feedingRotation);
+
+        updateFinColor();
+
+        // Kicker
+        // Kicker auto-cycle logic (tap to fire)
+        if (!kickerCycling && gamepad2.x) {
+            // Start the cycle
+            kickerCycling = true;
+            safeKick();
+            kickerTimer = System.currentTimeMillis();
+        }
+
+        updateKicker();
+
+        /*
+         * if (status.inGap) {
+         * robot.kicker.setPosition(0.8 - gamepad2.left_trigger * 0.3);
+         * } else {
+         * robot.kicker.setPosition(0.8);
+         * }
+         */
+
+        lift();
+
+        feeding();
+
+        updateTurretControl();
+
+
+
+
+
+        LLResult limelightResult = robot.limelight.getLatestResult();
+        // TODO: Fix Limelight code
+        // if (limelightResult != null) {
+        // double tx = limelightResult.getTx();
+        // double ty = limelightResult.getTy();
+
+        // final double targetHeight = 65;
+        // final double mountAngle = 90;
+
+        // // 1. Rotate turret
+        // double turretPower = (Math.abs(tx) < 1.0) ? 0 : (0.01 * tx);
+        // robot.turretSpinner.setPower(turretPower);
+
+        // // 2. Calculate distance & launcher speed
+        // double distance = (targetHeight - robot.limelightHeight) /
+        // Math.tan(Math.toRadians(ty + mountAngle));
+        // double launchAngle = Math.toRadians(45); // or your tuned angle
+        // double velocity = Math.sqrt(9.81 * distance * distance /
+        // (2 * (targetHeight - robot.limelightHeight - distance *
+        // Math.tan(launchAngle))
+        // * Math.pow(Math.cos(launchAngle), 2)));
+
+        // double launcherTicksPerSec = velocity / (2 * Math.PI *
+        // robot.launcherWheelRadius) * robot.motorTicksPerRev * robot.gearRatio;
+        // robot.launcher.setVelocity(launcherTicksPerSec);
+        // }
+
     }
 
+    // This routine drives the robot field relative
+    private void driveFieldRelative(double forward, double right, double rotate) {
+        // First, convert direction being asked to drive to polar coordinates
+        double theta = Math.atan2(forward, right);
+        double r = Math.hypot(right, forward);
 
+        // Second, rotate angle by the angle the robot is pointing
+        // theta = AngleUnit.normalizeRadians(theta -
+        // robot.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS));
+        double yaw = headingLocked ? lockedHeading : robot.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+        theta = AngleUnit.normalizeRadians(theta - yaw);
 
-    /*
-     * Method to perform a relative move, based on encoder counts.
-     * Encoders are not reset as the move is based on the current position.
-     * Move will stop if any of three conditions occur:
-     * 1) Move gets to the desired position
-     * 2) Move runs out of time
-     * 3) Driver stops the OpMode running.
-     */
-    public void encoderDrive(double speed,
-                             double leftInches, double rightInches,
-                             double timeoutS) {
-        int newLeftTarget;
-        int newRightTarget;
+        // Third, convert back to cartesian
+        double newForward = r * Math.sin(theta);
+        double newRight = r * Math.cos(theta);
 
-        // Ensure that the OpMode is still active
-        if (opModeIsActive()) {
+        // Finally, call the drive method with robot relative forward and right amounts
+        drive(newForward, newRight, rotate);
+    }
 
-            // Determine new target position, and pass to motor controller
-            newLeftTarget = frontLeft.getCurrentPosition() + (int) (leftInches * COUNTS_PER_INCH);
-            newRightTarget = frontRight.getCurrentPosition() + (int) (rightInches * COUNTS_PER_INCH);
+    private void driveDriverRelative(double forward, double right, double rotate, double driverYawOffset) {
+        // Store the last joystick values
+        lastForward = forward;
+        lastRight = right;
+        lastRotate = rotate;
 
-            // debug
-            frontLeft.setTargetPosition(newLeftTarget);
-            frontRight.setTargetPosition(newRightTarget);
-            rearLeft.setTargetPosition(newLeftTarget);
-            rearRight.setTargetPosition(newRightTarget);
+        double robotYaw = robot.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
 
-            // Turn On RUN_TO_POSITION
-            frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            rearLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            rearRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        // Joystick vector → polar
+        double theta = Math.atan2(forward, right);
+        double r = Math.hypot(right, forward);
 
-            // reset the timeout time and start motion.
-            runtime.reset();
-            frontLeft.setPower(Math.abs(speed));
-            frontRight.setPower(Math.abs(speed));
-            rearLeft.setPower(Math.abs(speed));
-            rearRight.setPower(Math.abs(speed));
+        // Apply robot yaw and driver offset
+        theta = theta - robotYaw + driverYawOffset;
 
-            // keep looping while we are still active, and there is time left, and both
-            // motors are running.
-            // Note: We use (isBusy() && isBusy()) in the loop test, which means that when
-            // EITHER motor hits
-            // its target position, the motion will stop. This is "safer" in the event that
-            // the robot will
-            // always end the motion as soon as possible.
-            // However, if you require that BOTH motors have finished their moves before the
-            // robot continues
-            // onto the next step, use (isBusy() || isBusy()) in the loop test.
-            while (opModeIsActive() &&
-                    (runtime.seconds() < timeoutS) &&
-                    (frontLeft.isBusy() && frontRight.isBusy() && rearLeft.isBusy() && rearRight.isBusy())) {
+        // Convert back to robot-relative Cartesian
+        double newForward = r * Math.sin(theta);
+        double newRight   = r * Math.cos(theta);
 
-                // Display it for the driver.
-                telemetry.addData("Running to", " %7d :%7d", newLeftTarget, newRightTarget);
-                telemetry.addData("Currently at", " at %7d :%7d",
-                        frontLeft.getCurrentPosition(), frontRight.getCurrentPosition(), rearLeft.getCurrentPosition(),
-                        rearRight.getCurrentPosition());
-                telemetry.update();
-            }
+        // Send to mecanum drive
+        drive(newForward, newRight, rotate);
+    }
 
-            // Stop all motion;
-            frontLeft.setPower(0);
-            frontRight.setPower(0);
-            rearLeft.setPower(0);
-            rearRight.setPower(0);
-
-            // Turn off RUN_TO_POSITION
-            frontLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            frontRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            rearLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            rearRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-            sleep(250); // optional pause after each move.
-        }
+    // Call this when the square button is pressed to immediately recalc
+    private void applyDriverOffset(double driverYawOffset) {
+        driveDriverRelative(lastForward, lastRight, lastRotate, driverYawOffset);
     }
 
     public void shootOneBallAlways() {
@@ -467,7 +579,7 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
         }
 
         // 2. Read current Geneva position
-        RedRobotTeleopMecanumFieldRelativeDrive.GenevaStatus status = getGenevaStatus(robot.feedingRotation);
+        GenevaStatus status = getGenevaStatus(robot.feedingRotation);
         int currentFin = status.fin; // 0–2
 
         // 3. Compute shortest direction (CW / CCW)
@@ -545,7 +657,7 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
     }
 */
 
-    public void aimTurretAtRedGoal() {
+    public void aimTurretAtBlueGoal() {
         LLResult result = robot.limelight.getLatestResult();
 
         if (result == null) {
@@ -555,7 +667,7 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
         }
 
         for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
-            if (tag.getFiducialId() == 24) { // Red Alliance goal
+            if (tag.getFiducialId() == 20) { // Blue Alliance goal
                 double tx = tag.getTargetXDegrees();
 
                 // ------------------------
@@ -576,7 +688,7 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
                     robot.turretSpinner.setPower(Math.signum(-tx) * scaledPower);
                 }
 
-                telemetry.addData("Turret Tracking", "Aiming at Tag 24");
+                telemetry.addData("Turret Tracking", "Aiming at Tag 20");
                 telemetry.addData("tx", tx);
                 telemetry.addData("Power", robot.turretSpinner.getPower());
                 return;
@@ -753,7 +865,7 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
         BallColor detected = detectColor1();
 
         // Determine which fin is currently under the sensor
-        RedRobotTeleopMecanumFieldRelativeDrive.GenevaStatus status = getGenevaStatus(robot.feedingRotation);
+        GenevaStatus status = getGenevaStatus(robot.feedingRotation);
         int finIndex = status.fin; // 0, 1, or 2 depending on Geneva position
 
         // Update only that fin
@@ -916,7 +1028,7 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
         // -----------------------------------
         //  AUTO MODE (no bumpers → auto aim)
         // -----------------------------------
-        aimTurretAtRedGoal();   // calls the auto-aim code
+        aimTurretAtBlueGoal();   // calls the auto-aim code
     }
 
 
@@ -938,7 +1050,7 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
         }
     }
 
-    public RedRobotTeleopMecanumFieldRelativeDrive.GenevaStatus getGenevaStatus(DcMotor feedingRotation) {
+    public GenevaStatus getGenevaStatus(DcMotor feedingRotation) {
         final double TICKS_PER_REV = 5377.0; // motor + 10:1 reduction
         final int ZONES = 6;
         final int FIN_TICKS = 116; // fin width in encoder ticks
@@ -958,11 +1070,11 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
         // true = in gap, false = on fin
         boolean inGap = posInZone >= FIN_TICKS;
 
-        return new RedRobotTeleopMecanumFieldRelativeDrive.GenevaStatus(zone, inGap);
+        return new GenevaStatus(zone, inGap);
     }
 
-    //@Override
-    public void onStop() {
+    @Override
+    public void stop() {
         robot.limelight.stop();
     }
 
@@ -989,56 +1101,6 @@ public class RobotAutoDriveByEncoder_Linear extends LinearOpMode {
             }
         }
     }
-
-    // Call this method whenever you want to update telemetry in Auto
-    public void updateTelemetry() {
-        // ----- Limelight -----
-        LLResult result = robot.limelight.getLatestResult();
-        if (result != null) {
-            for (LLResultTypes.FiducialResult fiducialResult : result.getFiducialResults()) {
-                for (LLResultTypes.ColorResult colorResult : result.getColorResults()) {
-                    telemetry.addData("Color", "X: " + JavaUtil.formatNumber(colorResult.getTargetXDegrees(), 2)
-                            + ", Y: " + JavaUtil.formatNumber(colorResult.getTargetYDegrees(), 2));
-                }
-            }
-        } else {
-            telemetry.addData("Limelight", "No data available");
-        }
-
-        // ----- Separate AprilTag detection for MOTIF -----
-        if (aprilOrderSet) {
-            telemetry.addData("AprilOrder",
-                    "0: " + aprilOrder[0] + ", 1: " + aprilOrder[1] + ", 2: " + aprilOrder[2]);
-        }
-
-        // ----- Current ball color -----
-        BallColor current1 = detectColor1();
-        telemetry.addData("Current Ball Sensor1", current1); // shows NONE, GREEN, or PURPLE
-
-        // ----- HSV from color sensor1 -----
-        NormalizedRGBA colors1 = colorSensor1.getNormalizedColors();
-        Color.colorToHSV(colors1.toColor(), hsvValues);
-
-        // ----- Fin colors -----
-        telemetry.addData("Fin Colors",
-                "0: " + finColors[0] + " 1: " + finColors[1] + " 2: " + finColors[2]);
-
-        // ----- Optional distance -----
-        if (colorSensor instanceof DistanceSensor) {
-            double dist = ((DistanceSensor) colorSensor).getDistance(DistanceUnit.CM);
-            // telemetry.addData("Distance Sensor0 (cm)", "%.2f", dist);
-        }
-        if (colorSensor1 instanceof DistanceSensor) {
-            double dist = ((DistanceSensor) colorSensor1).getDistance(DistanceUnit.CM);
-            // telemetry.addData("Distance Sensor1 (cm)", "%.2f", dist);
-        }
-
-        // ----- Color sensor gain -----
-        // telemetry.addData("Color Sensor Gain", colorGain);
-
-        telemetry.update(); // send all telemetry at once
-    }
-
 
 
 }
