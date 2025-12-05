@@ -167,30 +167,30 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         // Limelight3A
         LLStatus status = robot.limelight.getStatus();
-        telemetry.addData("Name", status.getName());
-        telemetry.addData("LL", "Temp: " + JavaUtil.formatNumber(status.getTemp(), 1) + "C, CPU: "
-                + JavaUtil.formatNumber(status.getCpu(), 1) + "%, FPS: " + Math.round(status.getFps()));
-        telemetry.addData("Pipeline",
-                "Index: " + status.getPipelineIndex() + ", Type: " + status.getPipelineType());
+       // telemetry.addData("Name", status.getName());
+        //telemetry.addData("LL", "Temp: " + JavaUtil.formatNumber(status.getTemp(), 1) + "C, CPU: "
+            //    + JavaUtil.formatNumber(status.getCpu(), 1) + "%, FPS: " + Math.round(status.getFps()));
+        //telemetry.addData("Pipeline",
+           //     "Index: " + status.getPipelineIndex() + ", Type: " + status.getPipelineType());
         LLResult result = robot.limelight.getLatestResult();
         if (result != null) {
             // Access general information.
             Pose3D botpose = result.getBotpose();
             double captureLatency = result.getCaptureLatency();
             double targetingLatency = result.getTargetingLatency();
-            telemetry.addData("PythonOutput", JavaUtil.makeTextFromList(result.getPythonOutput(), ","));
-            telemetry.addData("tx", result.getTx());
-            telemetry.addData("txnc", result.getTxNC());
-            telemetry.addData("ty", result.getTy());
-            telemetry.addData("tync", result.getTyNC());
-            telemetry.addData("Botpose", botpose.toString());
-            telemetry.addData("LL Latency", captureLatency + targetingLatency);
+            //telemetry.addData("PythonOutput", JavaUtil.makeTextFromList(result.getPythonOutput(), ","));
+            //telemetry.addData("tx", result.getTx());
+            //telemetry.addData("txnc", result.getTxNC());
+            //telemetry.addData("ty", result.getTy());
+            //telemetry.addData("tync", result.getTyNC());
+            //telemetry.addData("Botpose", botpose.toString());
+            //telemetry.addData("LL Latency", captureLatency + targetingLatency);
             // Access fiducial results.
             for (LLResultTypes.FiducialResult fiducialResult : result.getFiducialResults()) {
-                telemetry.addData("Fiducial",
-                        "ID: " + fiducialResult.getFiducialId() + ", Family: " + fiducialResult.getFamily()
-                                + ", X: " + JavaUtil.formatNumber(fiducialResult.getTargetXDegrees(), 2) + ", Y: "
-                                + JavaUtil.formatNumber(fiducialResult.getTargetYDegrees(), 2));
+                //telemetry.addData("Fiducial",
+                       // "ID: " + fiducialResult.getFiducialId() + ", Family: " + fiducialResult.getFamily()
+                                //+ ", X: " + JavaUtil.formatNumber(fiducialResult.getTargetXDegrees(), 2) + ", Y: "
+                                //+ JavaUtil.formatNumber(fiducialResult.getTargetYDegrees(), 2));
                 // Access color results.
                 for (LLResultTypes.ColorResult colorResult : result.getColorResults()) {
                     telemetry.addData("Color", "X: " + JavaUtil.formatNumber(colorResult.getTargetXDegrees(), 2)
@@ -269,12 +269,12 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Show distance if supported
         if (colorSensor instanceof DistanceSensor) {
             double dist = ((DistanceSensor) colorSensor).getDistance(DistanceUnit.CM);
-            telemetry.addData("Distance (cm)", "%.2f", dist);
+            //telemetry.addData("Distance (cm)", "%.2f", dist);
         }
         // Show distance if supported
         if (colorSensor1 instanceof DistanceSensor) {
             double dist = ((DistanceSensor) colorSensor1).getDistance(DistanceUnit.CM);
-            telemetry.addData("Distance (cm)", "%.2f", dist);
+            //telemetry.addData("Distance (cm)", "%.2f", dist);
         }
 
         //telemetry.addLine("Press A to reset Yaw");
@@ -319,14 +319,14 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         boolean dpadLeftNow  = gamepad2.dpad_left;
 
 // Increase gain on right D-pad press (rising edge)
-        if (dpadRightNow && !dpadRightPrev) {
-            colorGain += 0.05f;
-        }
+        //if (dpadRightNow && !dpadRightPrev) {
+       //     colorGain += 0.05f;
+       // }
 
 // Decrease gain on left D-pad press (rising edge)
-        if (dpadLeftNow && !dpadLeftPrev && colorGain > 0.1f) {
-            colorGain -= 0.05f;
-        }
+        //if (dpadLeftNow && !dpadLeftPrev && colorGain > 0.1f) {
+        //    colorGain -= 0.05f;
+        //}
 
 // Apply gain to the color sensor
         colorSensor.setGain(colorGain);
@@ -337,7 +337,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         dpadLeftPrev  = dpadLeftNow;
 
 // Telemetry
-        telemetry.addData("Color Sensor Gain", colorGain);
+        //telemetry.addData("Color Sensor Gain", colorGain);
 
 
 
