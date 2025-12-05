@@ -107,7 +107,7 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     long intakeColorIgnoreUntil = 0;
 
-    
+    private boolean aprilOrderSet = false;
 
 
 
@@ -200,6 +200,28 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         } else {
             telemetry.addData("Limelight", "No data available");
         }
+
+        // ----- Separate AprilTag detection for MOTIF -----
+        if (!aprilOrderSet) {
+            LLResult tagResult = robot.limelight.getLatestResult();
+            if (tagResult != null) {
+                List<LLResultTypes.FiducialResult> tags = tagResult.getFiducialResults();
+                if (!tags.isEmpty()) {
+                    int detectedTagId = tags.get(0).getFiducialId();
+
+                    // Store the order for this match
+                    readAprilTagAndStoreOrder(detectedTagId);
+                    aprilOrderSet = true; // lock order
+
+                    // Telemetry: show the scanned order
+                    telemetry.addData("AprilTag ID", detectedTagId);
+                    telemetry.addData("AprilOrder",
+                            "0: " + aprilOrder[0] + ", 1: " + aprilOrder[1] + ", 2: " + aprilOrder[2]);
+                    telemetry.update();
+                }
+            }
+        }
+
         //telemetry.update();
 
         //BallColor current = detectColor();
