@@ -105,6 +105,9 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     boolean lsButtonPreviouslyPressed = false;
 
+    long intakeColorIgnoreUntil = 0;
+
+
 
 
 
@@ -838,36 +841,55 @@ public class RobotTeleopMecanumFieldRelativeDrive extends OpMode {
         boolean feederUp = gamepad2.dpad_up;
         boolean feederDown = gamepad2.dpad_down;
 
-        // Layer 2: Manual control (LT held)
+        // -----------------------
+        // LAYER 2: Manual (LT held)
+        // -----------------------
         if (gamepad2.left_trigger > 0.4) {
+
             if (feederUp || feederDown) {
                 if (kickerDown) {
                     robot.feedingRotation.setPower(feederUp ? 1 : -1);
                 } else {
                     robot.feedingRotation.setPower(0);
-                    gamepad1.rumble(1, 1, 300); // you already had this, unchanged
+                    gamepad1.rumble(1, 1, 300); // already yours
                 }
             } else {
                 robot.feedingRotation.setPower(0);
             }
-            return; // stay in manual mode
+
+            return;
+
         }
 
-        // Layer 1: Auto system (no LT held)
-        // Press button to start spinning
+        // -------------------------------------
+        // LAYER 1: Auto (no LT held)
+        // Pressing button ALWAYS starts spinning
+        // AND starts a 1-second ignore period
+        // -------------------------------------
         if (feederUp) {
             robot.feedingRotation.setPower(1);
-        }
-        if (feederDown) {
-            robot.feedingRotation.setPower(-1);
+            intakeColorIgnoreUntil = System.currentTimeMillis() + 1000; // 1 sec ignore
         }
 
-        // Auto stop when a color appears
-        if (current1 == BallColor.GREEN || current1 == BallColor.PURPLE) {
-            robot.feedingRotation.setPower(0);
-            // NO RUMBLE added here
+        if (feederDown) {
+            robot.feedingRotation.setPower(-1);
+            intakeColorIgnoreUntil = System.currentTimeMillis() + 1000; // 1 sec ignore
+        }
+
+
+
+        // -------------------------------------
+        // Auto-stop when color is detected
+        // but ONLY after timeout expires
+        // -------------------------------------
+        if (System.currentTimeMillis() > intakeColorIgnoreUntil) {
+            if (current1 == BallColor.GREEN || current1 == BallColor.PURPLE) {
+                robot.feedingRotation.setPower(0);
+            }
         }
     }
+
+
 
 
     public void turret() {
