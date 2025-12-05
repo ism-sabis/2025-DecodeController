@@ -215,6 +215,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 */
         displayAprilTagOrder();
 
+        displayMotifOrderTelemetry();
+
 
 
 
@@ -1117,27 +1119,34 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     // ----- Function to detect AprilTag and display MOTIF order -----
     private void displayAprilTagOrder() {
         // Only run if we haven’t set the order yet
+        // Detect tag only once
         if (!aprilOrderSet) {
-            LLResult tagResult = robot.limelight.getLatestResult(); // get latest camera result
+            LLResult tagResult = robot.limelight.getLatestResult();
             if (tagResult != null) {
-                List<LLResultTypes.FiducialResult> tags = tagResult.getFiducialResults(); // get detected tags
-
-                if (!tags.isEmpty()) { // if a tag was detected
-                    int detectedTagId = tags.get(0).getFiducialId(); // first tag
-
-                    // Use your existing function to set the order
+                List<LLResultTypes.FiducialResult> tags = tagResult.getFiducialResults();
+                if (!tags.isEmpty()) {
+                    int detectedTagId = tags.get(0).getFiducialId();
                     readAprilTagAndStoreOrder(detectedTagId);
-                    aprilOrderSet = true; // lock order
-
-                    // Show telemetry
-                    telemetry.addData("AprilTag ID", detectedTagId);
-                    telemetry.addData("AprilOrder",
-                            "0: " + aprilOrder[0] + ", 1: " + aprilOrder[1] + ", 2: " + aprilOrder[2]);
-                    telemetry.update(); // make sure it actually shows
+                    aprilOrderSet = true;
                 }
             }
         }
+
+
     }
+
+    // Call this every loop
+    private void displayMotifOrderTelemetry() {
+        // Only show telemetry if order has been set
+        if (aprilOrderSet) {
+            telemetry.addData("AprilOrder",
+                    "0: " + aprilOrder[0].name() +
+                            ", 1: " + aprilOrder[1].name() +
+                            ", 2: " + aprilOrder[2].name());
+            telemetry.update();
+        }
+    }
+
 
 
 
