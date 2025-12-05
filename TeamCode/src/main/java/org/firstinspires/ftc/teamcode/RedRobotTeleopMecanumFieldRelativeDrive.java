@@ -176,10 +176,10 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             //telemetry.addData("LL Latency", captureLatency + targetingLatency);
             // Access fiducial results.
             for (LLResultTypes.FiducialResult fiducialResult : result.getFiducialResults()) {
-                //telemetry.addData("Fiducial",
-                       // "ID: " + fiducialResult.getFiducialId() + ", Family: " + fiducialResult.getFamily()
-                                //+ ", X: " + JavaUtil.formatNumber(fiducialResult.getTargetXDegrees(), 2) + ", Y: "
-                                //+ JavaUtil.formatNumber(fiducialResult.getTargetYDegrees(), 2));
+                telemetry.addData("Fiducial",
+                        "ID: " + fiducialResult.getFiducialId() + ", Family: " + fiducialResult.getFamily()
+                                + ", X: " + JavaUtil.formatNumber(fiducialResult.getTargetXDegrees(), 2) + ", Y: "
+                                + JavaUtil.formatNumber(fiducialResult.getTargetYDegrees(), 2));
                 // Access color results.
                 for (LLResultTypes.ColorResult colorResult : result.getColorResults()) {
                     telemetry.addData("Color", "X: " + JavaUtil.formatNumber(colorResult.getTargetXDegrees(), 2)
@@ -190,6 +190,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             telemetry.addData("Limelight", "No data available");
         }
 
+
+        /*
         // ----- Separate AprilTag detection for MOTIF -----
         if (!aprilOrderSet) {
             LLResult tagResult = robot.limelight.getLatestResult();
@@ -206,10 +208,15 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                     telemetry.addData("AprilTag ID", detectedTagId);
                     telemetry.addData("AprilOrder",
                             "0: " + aprilOrder[0] + ", 1: " + aprilOrder[1] + ", 2: " + aprilOrder[2]);
-                    telemetry.update();
+                    //telemetry.update();
                 }
             }
         }
+*/
+        displayAprilTagOrder();
+
+
+
 
         //telemetry.update();
 
@@ -1104,6 +1111,34 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             }
         }
     }
+
+
+    // ----- Function to detect AprilTag and show MOTIF order -----
+    // ----- Function to detect AprilTag and display MOTIF order -----
+    private void displayAprilTagOrder() {
+        // Only run if we haven’t set the order yet
+        if (!aprilOrderSet) {
+            LLResult tagResult = robot.limelight.getLatestResult(); // get latest camera result
+            if (tagResult != null) {
+                List<LLResultTypes.FiducialResult> tags = tagResult.getFiducialResults(); // get detected tags
+
+                if (!tags.isEmpty()) { // if a tag was detected
+                    int detectedTagId = tags.get(0).getFiducialId(); // first tag
+
+                    // Use your existing function to set the order
+                    readAprilTagAndStoreOrder(detectedTagId);
+                    aprilOrderSet = true; // lock order
+
+                    // Show telemetry
+                    telemetry.addData("AprilTag ID", detectedTagId);
+                    telemetry.addData("AprilOrder",
+                            "0: " + aprilOrder[0] + ", 1: " + aprilOrder[1] + ", 2: " + aprilOrder[2]);
+                    telemetry.update(); // make sure it actually shows
+                }
+            }
+        }
+    }
+
 
 
 }
