@@ -34,7 +34,7 @@ import java.util.List;
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  *
  */
-@TeleOp(name = "Robot: Field Relative Mecanum Drive", group = "Robot")
+@TeleOp(name = "Blue Robot: Field Relative Mecanum Drive", group = "Robot")
 // @Disabled
 public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     final private RobotHardware robot = new RobotHardware();
