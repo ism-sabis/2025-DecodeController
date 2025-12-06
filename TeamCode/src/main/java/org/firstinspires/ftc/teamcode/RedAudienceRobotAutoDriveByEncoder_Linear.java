@@ -109,8 +109,8 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     long kickerTimer = 0;
 
     // Kicker positions
-    static final double KICKER_DOWN = 0.725;
-    static final double KICKER_UP = 0.55; // adjust if needed
+    static final double KICKER_DOWN = 0.7;
+    static final double KICKER_UP = 0.45; // adjust if needed
 
     // Timing
     static final long KICK_TIME = 500; // milliseconds for kick
@@ -326,7 +326,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         encoderDrive(TURN_SPEED, -23, 23, 4.0); // S2: Turn left 50 inches (mirrored right), 4 sec timeout
 
 
-        encoderDrive(DRIVE_SPEED, 20, 20, 4.0); // S3: Forward 24 inches (mirrored), 4 sec timeout
+        encoderDrive(DRIVE_SPEED, 17, 17, 4.0); // S3: Forward 24 inches (mirrored), 4 sec timeout
 
 
         encoderDrive(TURN_SPEED, 23, -23, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
@@ -337,7 +337,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
 
 
 
-        encoderDrive(DRIVE_SPEED, 18, 18, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
+       /*encoderDrive(DRIVE_SPEED, 18, 18, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
 
 
         encoderDrive(TURN_SPEED, 23, -23, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
@@ -366,30 +366,6 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         encoderDrive(DRIVE_SPEED, 55, 55, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
 
 //        awaitFeederColor(BallColor.GREEN);
-        
-        encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
-
-
-        macroSimpleShoot(); // Shoot balls based on AprilTag order
-
-
-        encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn left 12 inches (mirrored right), 4 sec timeout
-
-
-        encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Forward 24 inches (mirrored), 4 sec timeout
-
-
-        encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
-
-
-        encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
-
-
-        encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
-
-
-        encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
-
 
         encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
 
@@ -426,6 +402,30 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
 
         encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Forward 24 inches (mirrored), 4 sec timeout
 
+
+        encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
+
+
+        encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
+
+
+        encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
+
+
+        encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
+
+
+        encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
+
+
+        macroSimpleShoot(); // Shoot balls based on AprilTag order
+
+
+        encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn left 12 inches (mirrored right), 4 sec timeout
+
+
+        encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Forward 24 inches (mirrored), 4 sec timeout
+*/
 
 
         telemetry.addData("Path", "Complete");
@@ -753,7 +753,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         // 1) Aim for 1.0 seconds
         // --------------------------
         double startTime = runtime.seconds();
-        while (opModeIsActive() && runtime.seconds() - startTime < 1.0) {
+        while (opModeIsActive() && runtime.seconds() - startTime < 5) {
             aimTurretAtRedGoal();
             updateLimelightTelemetry();
             telemetry.update();
@@ -762,9 +762,9 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         // --------------------------
         // 2) Spin flywheel up
         // --------------------------
-        robot.launcher.setPower(1.0);
+        robot.launcher.setPower(0.85);
         startTime = runtime.seconds();
-        while (opModeIsActive() && runtime.seconds() - startTime < 0.75) {
+        while (opModeIsActive() && runtime.seconds() - startTime < 4) {
             aimTurretAtRedGoal();   // keep aiming while spinning up
             updateLimelightTelemetry();
             telemetry.update();
@@ -775,7 +775,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         // --------------------------
         safeKick();
         startTime = runtime.seconds();
-        while (opModeIsActive() && runtime.seconds() - startTime < 0.25) {
+        while (opModeIsActive() && runtime.seconds() - startTime < 4) {
             aimTurretAtRedGoal();
             updateLimelightTelemetry();
             telemetry.update();
@@ -787,7 +787,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         // 4) Brief pause between shots
         // --------------------------
         startTime = runtime.seconds();
-        while (opModeIsActive() && runtime.seconds() - startTime < 0.20) {
+        while (opModeIsActive() && runtime.seconds() - startTime < 4) {
             aimTurretAtRedGoal();
             updateLimelightTelemetry();
             telemetry.update();
