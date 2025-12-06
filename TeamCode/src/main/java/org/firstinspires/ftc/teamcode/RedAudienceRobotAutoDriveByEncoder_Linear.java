@@ -333,7 +333,46 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
 
         shootOneBall(); // Shoot a single ball
 
-        sleep(5000);
+        //sleep(5000);
+
+        int ballsToShoot = 3;
+
+
+        for (int i = 0; i < ballsToShoot; i++) {
+            // Rotate until a ball of color GREEN or PURPLE is detected
+            while (true) {
+                BallColor current = detectColor1();
+
+                if (current == BallColor.GREEN || current == BallColor.PURPLE) {
+                    // Ball detected, stop feeder rotation
+                    robot.feedingRotation.setPower(0);
+                    break; // exit while loop
+                } else {
+                    // Keep rotating forward to find the next ball
+                    robot.feedingRotation.setPower(1);
+                }
+            }
+        }
+
+        shootOneBall(); // Shoot a single ball
+
+        //sleep(5000);
+
+        for (int i = 0; i < ballsToShoot; i++) {
+            // Rotate until a ball of color GREEN or PURPLE is detected
+            while (true) {
+                BallColor current = detectColor1();
+
+                if (current == BallColor.GREEN || current == BallColor.PURPLE) {
+                    // Ball detected, stop feeder rotation
+                    robot.feedingRotation.setPower(0);
+                    break; // exit while loop
+                } else {
+                    // Keep rotating forward to find the next ball
+                    robot.feedingRotation.setPower(1);
+                }
+            }
+        }
 
 
 
@@ -753,7 +792,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         // 1) Aim for 1.0 seconds
         // --------------------------
         double startTime = runtime.seconds();
-        while (opModeIsActive() && runtime.seconds() - startTime < 5) {
+        while (opModeIsActive() && runtime.seconds() - startTime < 2) {
             aimTurretAtRedGoal();
             updateLimelightTelemetry();
             telemetry.update();
