@@ -47,7 +47,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     // Kicker positions
     static final double KICKER_DOWN = 0.725;
-    static final double KICKER_UP = 0.55; // adjust if needed
+    static final double KICKER_UP = 0.5; // adjust if needed
 
     // Timing
     static final long KICK_TIME = 500; // milliseconds for kick
@@ -459,7 +459,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
 
 
-        LLResult limelightResult = robot.limelight.getLatestResult();
+//        LLResult limelightResult = robot.limelight.getLatestResult();
         // TODO: Fix Limelight code
         // if (limelightResult != null) {
         // double tx = limelightResult.getTx();
