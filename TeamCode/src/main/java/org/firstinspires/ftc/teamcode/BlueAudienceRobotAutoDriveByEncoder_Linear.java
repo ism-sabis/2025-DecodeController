@@ -109,14 +109,14 @@ public class BlueAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     long kickerTimer = 0;
 
     // Kicker positions
-    static final double KICKER_DOWN = 0.7;
-    static final double KICKER_UP = 0.45; // adjust if needed
+    static final double KICKER_DOWN = 0.725;
+    static final double KICKER_UP = 0.5; // adjust if needed
 
     // Timing
     static final long KICK_TIME = 500; // milliseconds for kick
 
     // Launcher speed threshold (adjust)
-    static final double LAUNCHER_MIN_POWER = 0.1; // normalized 0 to 1.0
+    static final double LAUNCHER_MIN_POWER = 0.05; // normalized 0 to 1.0
 
     static final double LIFT_SPEED = 1;
 
@@ -334,7 +334,7 @@ public class BlueAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         shootOneBall(); // Shoot a single ball
 
         //sleep(5000);
-
+    /*
         int ballsToShoot = 3;
 
 
@@ -399,16 +399,16 @@ public class BlueAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
                 }
             }
         }
-
+*/
 //        seekFeederToColor(BallColor.GREEN);
 
-        encoderDrive(DRIVE_SPEED, 55, 55, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
+        encoderDrive(DRIVE_SPEED, 10, 10, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
 
 //        awaitFeederColor(BallColor.GREEN);
 
         encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
 
-
+/*
         macroSimpleShoot(); // Shoot balls based on AprilTag order
 
 
@@ -792,7 +792,7 @@ public class BlueAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         // 1) Aim for 1.0 seconds
         // --------------------------
         double startTime = runtime.seconds();
-        while (opModeIsActive() && runtime.seconds() - startTime < 3) {
+        while (opModeIsActive() && runtime.seconds() - startTime < 2) {
             aimTurretAtBlueGoal();
             updateLimelightTelemetry();
             telemetry.update();
@@ -801,9 +801,9 @@ public class BlueAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         // --------------------------
         // 2) Spin flywheel up
         // --------------------------
-        robot.launcher.setPower(0.85);
+        robot.launcher.setPower(0.075);
         startTime = runtime.seconds();
-        while (opModeIsActive() && runtime.seconds() - startTime < 4) {
+        while (opModeIsActive() && runtime.seconds() - startTime < 5) {
             aimTurretAtBlueGoal();   // keep aiming while spinning up
             updateLimelightTelemetry();
             telemetry.update();

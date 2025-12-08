@@ -769,7 +769,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Fire
         safeKick();
         try {
-            Thread.sleep(250);
+            Thread.sleep(500);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt(); // restore interrupted status
         }

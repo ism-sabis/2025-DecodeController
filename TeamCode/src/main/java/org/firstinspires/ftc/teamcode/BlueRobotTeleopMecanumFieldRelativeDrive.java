@@ -44,7 +44,7 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     // Kicker positions
     static final double KICKER_DOWN = 0.725;
-    static final double KICKER_UP = 0.5; // adjust if needed
+    static final double KICKER_UP =0.5; // adjust if needed
 
     // Timing
     static final long KICK_TIME = 500; // milliseconds for kick
@@ -760,7 +760,7 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Fire
         safeKick();
         try {
-            Thread.sleep(250);
+            Thread.sleep(500);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt(); // restore interrupted status
         }
