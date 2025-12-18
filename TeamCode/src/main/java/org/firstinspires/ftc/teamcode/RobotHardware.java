@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.CRServo;
@@ -48,6 +49,7 @@ public class RobotHardware {
     public DcMotor feedingRotation = null;
     public Servo kicker = null;
     public CRServo turretSpinner = null;
+    public CRServo indexer = null;
     public Limelight3A limelight = null;
 
     public NormalizedColorSensor colorSensor = null;
@@ -123,6 +125,9 @@ public class RobotHardware {
         turretSpinner = hardwareMap.get(CRServo.class, "turretSpinner");
         turretSpinner.setPower(0); // stop initially
 
+        indexer = hardwareMap.get(CRServo.class, "indexer");
+        indexer.setPower(0); // stop initially
+
         // To drive forward, most robots need the motor on one side to be reversed,
         // because the axles point in opposite directions.
         // Pushing the left stick forward MUST make robot go forward. So adjust these
@@ -134,6 +139,7 @@ public class RobotHardware {
         rearRight.setDirection(DcMotor.Direction.FORWARD);
         frontRight.setDirection(DcMotor.Direction.FORWARD);
         turretSpinner.setDirection(CRServo.Direction.REVERSE);
+        turretSpinner.setDirection(CRServo.Direction.FORWARD);
 
         // If there are encoders connected, switch to RUN_USING_ENCODER mode for greater
         // accuracy

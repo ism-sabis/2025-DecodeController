@@ -694,7 +694,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                     // scale proportional to error, clamp to min/max
                     double scaledPower = Math.min(maxPower, Math.max(minPower, Math.abs(kP * tx)));
                     // apply direction
-                    robot.turretSpinner.setPower(Math.signum(-tx) * scaledPower);
+                    robot.turretSpinner.setPower(Math.signum(tx) * scaledPower);
                 }
 
                 telemetry.addData("Turret Tracking", "Aiming at Tag 24");
@@ -800,11 +800,11 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
                 if (current == targetColor) {
                     // Target color found, stop rotation
-                    robot.feedingRotation.setPower(0);
+                    robot.indexer.setPower(0);
                     break; // exit while loop
                 } else {
                     // Rotate feeder forward to find the target
-                    robot.feedingRotation.setPower(1);
+                    robot.indexer.setPower(1);
                 }
             }
 
@@ -813,7 +813,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
 
         // Ensure feeder stops at the end
-        robot.feedingRotation.setPower(0);
+        robot.indexer.setPower(0);
     }
 
 
@@ -828,11 +828,11 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
                 if (current == BallColor.GREEN || current == BallColor.PURPLE) {
                     // Ball detected, stop feeder rotation
-                    robot.feedingRotation.setPower(0);
+                    robot.indexer.setPower(0);
                     break; // exit while loop
                 } else {
                     // Keep rotating forward to find the next ball
-                    robot.feedingRotation.setPower(1);
+                    robot.indexer.setPower(1);
                 }
             }
 
@@ -841,7 +841,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
 
         // Ensure feeder stops at the end
-        robot.feedingRotation.setPower(0);
+        robot.indexer.setPower(0);
     }
 
 
@@ -965,13 +965,13 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             // Manual feeder (requires kicker down)
             if (feederUp || feederDown) {
                 if (kickerDown) {
-                    robot.feedingRotation.setPower(feederUp ? 1 : -1);
+                    robot.indexer.setPower(feederUp ? 1 : -1);
                 } else {
-                    robot.feedingRotation.setPower(0);
+                    robot.indexer.setPower(0);
                     gamepad2.rumble(1, 1, 300); // same as before
                 }
             } else {
-                robot.feedingRotation.setPower(0);
+                robot.indexer.setPower(0);
             }
 
             return; // bypass auto layer
@@ -983,12 +983,12 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // AND starts a 1-second ignore period
         // -------------------------------------
         if (feederUp) {
-            robot.feedingRotation.setPower(1);
+            robot.indexer.setPower(1);
             intakeColorIgnoreUntil = System.currentTimeMillis() + 1000; // 1 sec ignore
         }
 
         if (feederDown) {
-            robot.feedingRotation.setPower(-1);
+            robot.indexer.setPower(-1);
             intakeColorIgnoreUntil = System.currentTimeMillis() + 1000; // 1 sec ignore
         }
 
@@ -998,7 +998,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // -------------------------------------
         if (System.currentTimeMillis() > intakeColorIgnoreUntil) {
             if (current1 == BallColor.GREEN || current1 == BallColor.PURPLE) {
-                robot.feedingRotation.setPower(0);
+                robot.indexer.setPower(0);
             }
         }
     }
