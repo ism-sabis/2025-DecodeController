@@ -239,6 +239,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             robot.feedingRotation.setPower(1.0);
         }
 
+        if (gamepad1.square) {
+            robot.feedingRotation.setPower(1);
+        }
 
 
 
