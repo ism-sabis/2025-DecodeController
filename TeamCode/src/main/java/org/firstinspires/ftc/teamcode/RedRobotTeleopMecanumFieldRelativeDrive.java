@@ -236,7 +236,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         if (current1 == BallColor.GREEN || current1 == BallColor.PURPLE) {
             gamepad2.rumble(1, 1, 300); // strong, weak, duration in ms
         }
-
+/*
         if (feederState == 1) {
             // Forward
             robot.feedingRotation.setPower(1);
@@ -247,6 +247,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             // Off
             robot.feedingRotation.setPower(0);
         }
+
+ */
 
 
 
@@ -639,7 +641,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         double targetTicks = robot.feedingRotation.getCurrentPosition() + direction * TICKS_PER_FIN;
 
         // 5. Rotate until you reach the target
-        //robot.feedingRotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         //robot.feedingRotation.setTargetPosition((int) targetTicks);
         //robot.feedingRotation.setPower(1.0);
 
@@ -649,7 +650,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         //}
 
         //robot.feedingRotation.setPower(0);
-        //robot.feedingRotation.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
     }
 /*
     public void aimTurretAtRedGoal() {
