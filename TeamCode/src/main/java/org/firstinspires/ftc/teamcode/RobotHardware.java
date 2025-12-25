@@ -50,6 +50,8 @@ public class RobotHardware {
     public Servo kicker = null;
     public CRServo turretSpinner = null;
     public CRServo indexer = null;
+
+    public CRServo indexer1 = null;
     public Limelight3A limelight = null;
 
     public NormalizedColorSensor colorSensor = null;
@@ -127,6 +129,9 @@ public class RobotHardware {
 
         indexer = hardwareMap.get(CRServo.class, "indexer");
         indexer.setPower(0); // stop initially
+
+        indexer1 = hardwareMap.get(CRServo.class, "indexer1");
+        indexer1.setPower(0); // stop initially
 
         // To drive forward, most robots need the motor on one side to be reversed,
         // because the axles point in opposite directions.
