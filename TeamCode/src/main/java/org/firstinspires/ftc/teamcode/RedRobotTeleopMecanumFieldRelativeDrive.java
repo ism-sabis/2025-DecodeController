@@ -639,17 +639,17 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         double targetTicks = robot.feedingRotation.getCurrentPosition() + direction * TICKS_PER_FIN;
 
         // 5. Rotate until you reach the target
-        robot.feedingRotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        robot.feedingRotation.setTargetPosition((int) targetTicks);
-        robot.feedingRotation.setPower(1.0);
+        //robot.feedingRotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        //robot.feedingRotation.setTargetPosition((int) targetTicks);
+        //robot.feedingRotation.setPower(1.0);
 
         // Wait until done (non-blocking alternative inside loop if you prefer)
         //while (opModeIsActive() && robot.feedingRotation.isBusy()) {
         // optional safety timeout
         //}
 
-        robot.feedingRotation.setPower(0);
-        robot.feedingRotation.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        //robot.feedingRotation.setPower(0);
+        //robot.feedingRotation.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 /*
     public void aimTurretAtRedGoal() {
