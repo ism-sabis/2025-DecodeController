@@ -163,7 +163,7 @@ public class RobotHardware {
         frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         rearLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         rearRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        //feedingRotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        feedingRotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         // ZeroPowerBehavior
         frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
