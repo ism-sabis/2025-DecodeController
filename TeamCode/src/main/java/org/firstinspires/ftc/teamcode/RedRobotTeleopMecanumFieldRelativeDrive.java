@@ -236,7 +236,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         if (current1 == BallColor.GREEN || current1 == BallColor.PURPLE) {
             gamepad2.rumble(1, 1, 300); // strong, weak, duration in ms
         }
-/*
+
         if (feederState == 1) {
             // Forward
             robot.feedingRotation.setPower(1);
@@ -248,11 +248,10 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             robot.feedingRotation.setPower(0);
         }
 
- */
 
 
 
-        robot.feedingRotation.setPower(1);
+
 
 
 
