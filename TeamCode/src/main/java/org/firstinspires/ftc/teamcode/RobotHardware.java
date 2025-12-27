@@ -159,10 +159,10 @@ public class RobotHardware {
 
         //leftLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         //rightLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        rearLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        rearRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        //frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        //frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        //rearLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        //rearRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         //feedingRotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         // ZeroPowerBehavior
