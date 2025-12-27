@@ -1,6 +1,11 @@
 package org.firstinspires.ftc.teamcode;
 
+import org.firstinspires.ftc.teamcode.RTPAxon;
+
+import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import org.firstinspires.ftc.teamcode.GamepadPair;
+import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.CRServo;
@@ -54,6 +59,10 @@ public class RobotHardware {
     public CRServo indexer1 = null;
     public Limelight3A limelight = null;
 
+    public RTPAxon indexerAxon;
+    public RTPAxon indexerAxon1;
+
+
     public NormalizedColorSensor colorSensor = null;
     public NormalizedColorSensor colorSensor1 = null;
 
@@ -105,6 +114,12 @@ public class RobotHardware {
      * initialized.
      */
     public void init(HardwareMap hardwareMap) {
+
+        Gamepad gamepad1 = hardwareMap.get(Gamepad.class, "gamepad1");
+        Gamepad gamepad2 = hardwareMap.get(Gamepad.class, "gamepad2");
+
+        GamepadPair gamepadPair = new GamepadPair(gamepad1, gamepad2);
+
         // Define and Initialize Motors (note: need to use reference to actual OpMode).
         leftLift = hardwareMap.get(DcMotor.class, "leftLift");
         rightLift = hardwareMap.get(DcMotor.class, "rightLift");
@@ -132,6 +147,13 @@ public class RobotHardware {
 
         indexer1 = hardwareMap.get(CRServo.class, "indexer1");
         indexer1.setPower(0); // stop initially
+
+        AnalogInput indexerEncoder = hardwareMap.get(AnalogInput.class, "indexerEncoder");
+        AnalogInput indexerEncoder1 = hardwareMap.get(AnalogInput.class, "indexerEncoder1");
+
+        indexerAxon = new RTPAxon(indexer, indexerEncoder);
+        indexerAxon1 = new RTPAxon(indexer1, indexerEncoder1);
+
 
         // To drive forward, most robots need the motor on one side to be reversed,
         // because the axles point in opposite directions.

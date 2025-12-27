@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
+import org.firstinspires.ftc.teamcode.RTPAxon;
+
 import org.firstinspires.ftc.robotcore.external.JavaUtil;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 
@@ -22,6 +24,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
+import org.firstinspires.ftc.teamcode.GamepadPair;
+import com.qualcomm.robotcore.hardware.Gamepad;
 
 /*
  * This OpMode illustrates how to program your robot to drive field relative.  This means
@@ -41,6 +45,12 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 // @Disabled
 public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     final private RobotHardware robot = new RobotHardware();
+
+    GamepadPair gamepads;
+
+
+
+
     // Kicker auto-cycle state
     boolean kickerCycling = false;
     long kickerTimer = 0;
@@ -116,6 +126,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     @Override
     public void init() {
+
+        gamepads = new GamepadPair(gamepad1, gamepad2);
+
         robot.init(hardwareMap);
 
         // Initialize color sensor
@@ -161,8 +174,22 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     // Place actual instructions here
     @Override
     public void loop() {
+        robot.indexerAxon.update();
+        robot.indexerAxon1.update();
+
+        telemetry.addData("Indexer Angle", robot.indexerAxon.getCurrentAngle());
+        telemetry.addData("Indexer Total Rotation", robot.indexerAxon.getTotalRotation());
+        telemetry.addData("Indexer Target Rotation", robot.indexerAxon.getTargetRotation());
+
+        telemetry.addData("Indexer Angle", robot.indexerAxon1.getCurrentAngle());
+        telemetry.addData("Indexer Total Rotation", robot.indexerAxon1.getTotalRotation());
+        telemetry.addData("Indexer Target Rotation", robot.indexerAxon1.getTargetRotation());
+
+
+        gamepads.copyStates();
 
         // Limelight3A
+
         LLStatus status = robot.limelight.getStatus();
        // telemetry.addData("Name", status.getName());
         //telemetry.addData("LL", "Temp: " + JavaUtil.formatNumber(status.getTemp(), 1) + "C, CPU: "
