@@ -239,10 +239,10 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         if (feederState == 1) {
             // Forward
-            robot.feedingRotation.setPower(-0.75);
+            robot.feedingRotation.setPower(-0.5);
         } else if (feederState == -1) {
             // Backward
-            robot.feedingRotation.setPower(0.75);
+            robot.feedingRotation.setPower(0.5);
         } else {
             // Off
             robot.feedingRotation.setPower(0);
