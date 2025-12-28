@@ -114,7 +114,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     // Indexer slot tracking
     static final int NUM_SLOTS = 3;
-    BallColor[] indexerSlots = { BallColor. NONE, BallColor.NONE, BallColor.NONE };
+    BallColor[] indexerSlots = { BallColor.NONE, BallColor.NONE, BallColor.NONE };
     int indexerAt = 0;  // Which slot is at shoot position (0 = shoot pos)
     static final double ANGLE_PER_SLOT = 120.0; // degrees to rotate per slot
 
@@ -255,10 +255,10 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
             // Limelight (keep your existing code)
             LLStatus status = robot.limelight.getStatus();
-            LLResult result = robot.limelight. getLatestResult();
+            LLResult result = robot.limelight.getLatestResult();
             if (result != null) {
                 for (LLResultTypes.FiducialResult fiducialResult : result.getFiducialResults()) {
-                    telemetry.addData("Fiducial", "ID: " + fiducialResult. getFiducialId());
+                    telemetry.addData("Fiducial", "ID: " + fiducialResult.getFiducialId());
                 }
             }
 
@@ -267,7 +267,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             BallColor current1 = detectColor1();
             telemetry.addData("Current Ball Sensor1", current1);
 
-            if (current1 == BallColor.GREEN || current1 == BallColor. PURPLE) {
+            if (current1 == BallColor.GREEN || current1 == BallColor.PURPLE) {
                 gamepad2.rumble(1, 1, 300);
             }
 
@@ -288,7 +288,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             updateKicker();
 
             // Telemetry
-            telemetry. addData("Indexer At", indexerAt);
+            telemetry.addData("Indexer At", indexerAt);
             telemetry.addData("Slots", indexerSlots[0] + " | " + indexerSlots[1] + " | " + indexerSlots[2]);
             telemetry.update();
 
@@ -327,9 +327,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     void updateShooterLed() {
         BallColor color = indexerSlots[indexerAt];
         if (color == BallColor.GREEN) {
-            gamepads. setLed(2, 0.0, 1.0, 0.0);  // Green LED
+            gamepads.setLed(2, 0.0, 1.0, 0.0);  // Green LED
         } else if (color == BallColor.PURPLE) {
-            gamepads. setLed(2, 0.6, 0.0, 1.0);  // Purple LED
+            gamepads.setLed(2, 0.6, 0.0, 1.0);  // Purple LED
         } else {
             gamepads.setLed(2, 0.0, 0.0, 0.0);  // Off
         }
@@ -367,7 +367,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         if (targetIdx < 0 || targetIdx >= NUM_SLOTS) return;
 
         int delta = (targetIdx - indexerAt + NUM_SLOTS) % NUM_SLOTS;
-        double newTarget = robot.indexerAxon. getTotalRotation() + (delta * ANGLE_PER_SLOT);
+        double newTarget = robot.indexerAxon.getTotalRotation() + (delta * ANGLE_PER_SLOT);
 
         robot.indexerAxon.setTargetRotation(newTarget);
         robot.indexerAxon1.setTargetRotation(newTarget);
@@ -386,7 +386,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         LLResult result = robot.limelight.getLatestResult();
         if (result == null) return 0.5;
 
-        for (LLResultTypes. FiducialResult tag : result.getFiducialResults()) {
+        for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
             if (tag.getFiducialId() == 24) {  // Goal tag
                 double ty = tag.getTargetYDegrees();
 
