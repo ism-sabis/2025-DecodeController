@@ -112,6 +112,17 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     int feederState = 0; // -1 = backward, 0 = off, 1 = forward
 
+    // Indexer slot tracking
+    static final int NUM_SLOTS = 3;
+    BallColor[] indexerSlots = { BallColor. NONE, BallColor.NONE, BallColor.NONE };
+    int indexerAt = 0;  // Which slot is at shoot position (0 = shoot pos)
+    static final double ANGLE_PER_SLOT = 120.0; // degrees to rotate per slot
+
+    // Intake management
+    boolean intakeActive = false;
+    long intakeStartTime = 0;
+    static final long INTAKE_SPIN_TIME = 2000; // 2 seconds to intake one ball
+
 
 
 
@@ -174,370 +185,112 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     // Place actual instructions here
     @Override
     public void loop() {
-        robot.indexerAxon.update();
-        robot.indexerAxon1.update();
 
-        telemetry.addData("Indexer Angle", robot.indexerAxon.getCurrentAngle());
-        telemetry.addData("Indexer Total Rotation", robot.indexerAxon.getTotalRotation());
-        telemetry.addData("Indexer Target Rotation", robot.indexerAxon.getTargetRotation());
+            robot.indexerAxon.update();
+            robot.indexerAxon1.update();
 
-        telemetry.addData("Indexer Angle", robot.indexerAxon1.getCurrentAngle());
-        telemetry.addData("Indexer Total Rotation", robot.indexerAxon1.getTotalRotation());
-        telemetry.addData("Indexer Target Rotation", robot.indexerAxon1.getTargetRotation());
+            gamepads.copyStates();
 
+            // Update shooter color and LED
+            updateShooterPosColor();
+            updateShooterLed();
 
-        gamepads.copyStates();
-
-        // Limelight3A
-
-        LLStatus status = robot.limelight.getStatus();
-       // telemetry.addData("Name", status.getName());
-        //telemetry.addData("LL", "Temp: " + JavaUtil.formatNumber(status.getTemp(), 1) + "C, CPU: "
-            //    + JavaUtil.formatNumber(status.getCpu(), 1) + "%, FPS: " + Math.round(status.getFps()));
-        //telemetry.addData("Pipeline",
-           //     "Index: " + status.getPipelineIndex() + ", Type: " + status.getPipelineType());
-        LLResult result = robot.limelight.getLatestResult();
-        if (result != null) {
-            // Access general information.
-            Pose3D botpose = result.getBotpose();
-            double captureLatency = result.getCaptureLatency();
-            double targetingLatency = result.getTargetingLatency();
-            //telemetry.addData("PythonOutput", JavaUtil.makeTextFromList(result.getPythonOutput(), ","));
-            //telemetry.addData("tx", result.getTx());
-            //telemetry.addData("txnc", result.getTxNC());
-            //telemetry.addData("ty", result.getTy());
-            //telemetry.addData("tync", result.getTyNC());
-            //telemetry.addData("Botpose", botpose.toString());
-            //telemetry.addData("LL Latency", captureLatency + targetingLatency);
-            // Access fiducial results.
-            for (LLResultTypes.FiducialResult fiducialResult : result.getFiducialResults()) {
-                telemetry.addData("Fiducial",
-                        "ID: " + fiducialResult.getFiducialId() + ", Family: " + fiducialResult.getFamily()
-                                + ", X: " + JavaUtil.formatNumber(fiducialResult.getTargetXDegrees(), 2) + ", Y: "
-                                + JavaUtil.formatNumber(fiducialResult.getTargetYDegrees(), 2));
-                // Access color results.
-                for (LLResultTypes.ColorResult colorResult : result.getColorResults()) {
-                    telemetry.addData("Color", "X: " + JavaUtil.formatNumber(colorResult.getTargetXDegrees(), 2)
-                            + ", Y: " + JavaUtil.formatNumber(colorResult.getTargetYDegrees(), 2));
+            // Handle intake auto-stop
+            if (intakeActive) {
+                long elapsed = System.currentTimeMillis() - intakeStartTime;
+                if (elapsed > INTAKE_SPIN_TIME) {
+                    stopIntake();
+                    macroReindexIdentifyColors();
                 }
             }
-        } else {
-            telemetry.addData("Limelight", "No data available");
-        }
 
-        /*
-        // ----- Separate AprilTag detection for MOTIF -----
-        if (!aprilOrderSet) {
-            LLResult tagResult = robot.limelight.getLatestResult();
-            if (tagResult != null) {
-                List<LLResultTypes.FiducialResult> tags = tagResult.getFiducialResults();
-                if (!tags.isEmpty()) {
-                    int detectedTagId = tags.get(0).getFiducialId();
+            // ========== 3-LAYER GAMEPAD CONTROL ==========
+            boolean ltHeld = gamepad2.left_trigger > 0.4;
+            boolean rtHeld = gamepad2.right_trigger > 0.4;
 
-                    // Store the order for this match
-                    readAprilTagAndStoreOrder(detectedTagId);
-                    aprilOrderSet = true; // lock order
-
-                    // Telemetry: show the scanned order
-                    telemetry.addData("AprilTag ID", detectedTagId);
-                    telemetry.addData("AprilOrder",
-                            "0: " + aprilOrder[0] + ", 1: " + aprilOrder[1] + ", 2: " + aprilOrder[2]);
-                    telemetry.update();
+            // LAYER 3: MANUAL (RIGHT TRIGGER HELD)
+            if (rtHeld) {
+                handleManualControls();
+            }
+            // LAYER 2: ADVANCED MACROS (LEFT TRIGGER HELD)
+            else if (ltHeld) {
+                if (gamepads.isPressed(2, "cross")) {
+                    macroIntakeOneBall();
+                }
+                if (gamepads.isPressed(2, "circle")) {
+                    // Auto intake fill
+                    while (findFirstEmptySlot() != -1) {
+                        macroIntakeOneBall();
+                        try { Thread.sleep(3000); } catch (InterruptedException e) { }
+                    }
+                }
+                if (gamepads.isPressed(2, "square")) {
+                    macroReindexIdentifyColors();
+                }
+                if (gamepads.isPressed(2, "triangle")) {
+                    // Eject closest ball
+                    rotateIndexerTo((indexerAt + 1) % NUM_SLOTS);
                 }
             }
-        }
-
-         */
-
-        displayAprilTagOrder(); // call this each loop or after you want to read the tag
-
-
-        //telemetry.update();
-
-        //BallColor current = detectColor();
-
-        BallColor current1 = detectColor1();
-        telemetry.addData("Current Ball Sensor1", current1); // shows NONE, GREEN, or PURPLE
-
-        // Vibrate if green or purple is detected
-        if (current1 == BallColor.GREEN || current1 == BallColor.PURPLE) {
-            gamepad2.rumble(1, 1, 300); // strong, weak, duration in ms
-        }
-
-        if (feederState == 1) {
-            // Forward
-            robot.feedingRotation.setPower(-1);
-        } else if (feederState == -1) {
-            // Backward
-            robot.feedingRotation.setPower(1);
-        } else {
-            // Off
-            robot.feedingRotation.setPower(0);
-        }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        NormalizedRGBA colors = colorSensor.getNormalizedColors();
-        NormalizedRGBA colors1 = colorSensor1.getNormalizedColors();
-
-        int red = (int) (colors.red * 255);
-        int green = (int) (colors.green * 255);
-        int blue = (int) (colors.blue * 255);
-        int alpha = (int) (colors.alpha * 255);
-
-        //telemetry.addData("Red", red);
-        //telemetry.addData("Green", green);
-        //telemetry.addData("Blue", blue);
-        //telemetry.addData("Alpha", alpha);
-        //telemetry.update();
-        ;
-
-        // Convert to HSV
-        Color.colorToHSV(colors1.toColor(), hsvValues);
-
-        //telemetry.addData("Current Ball", current); // shows NONE, GREEN, or PURPLE
-        telemetry.addData("Fin Colors",
-                "0: " + finColors[0] + " 1: " + finColors[1] + " 2: " + finColors[2]);
-
-        // Show distance if supported
-        if (colorSensor instanceof DistanceSensor) {
-            double dist = ((DistanceSensor) colorSensor).getDistance(DistanceUnit.CM);
-            //telemetry.addData("Distance (cm)", "%.2f", dist);
-        }
-        // Show distance if supported
-        if (colorSensor1 instanceof DistanceSensor) {
-            double dist = ((DistanceSensor) colorSensor1).getDistance(DistanceUnit.CM);
-            //telemetry.addData("Distance (cm)", "%.2f", dist);
-        }
-
-        //telemetry.addLine("Press A to reset Yaw");
-        //telemetry.addLine("Hold left bumper to drive in robot relative");
-        //telemetry.addLine("The left joystick sets the robot direction");
-       // telemetry.addLine("Moving the right joystick left and right turns the robot");
-
-        double yawDeg = robot.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
-       // telemetry.addData("Yaw (deg)", yawDeg);
-
-
-        // ===== TELEMETRY FOR DEBUGGING =====
-        //telemetry.addLine("===== DRIVER-RELATIVE DEBUG =====");
-        //telemetry.addData("driverYawOffset (deg)", Math.toDegrees(driverYawOffset));
-        //telemetry.addData("robotYaw (deg)", Math.toDegrees(robotYaw));
-        //telemetry.addData("joystickAngle (deg)", Math.toDegrees(Math.atan2(forward, right)));
-        //telemetry.addData("theta rotated (deg)", Math.toDegrees(theta));
-        //telemetry.addData("newForward", newForward);
-        //telemetry.addData("newRight", newRight);
-
-
-
-        // If you press the A button, then you reset the Yaw to be zero from the way
-        // the robot is currently pointing
-        if (gamepad1.triangle) {
-            robot.imu.resetYaw();
-        }
-        /*
-        // If you press the left bumper, you get a drive from the point of view of the
-        // robot
-        // (much like driving an RC vehicle)
-        if (gamepad1.left_bumper) {
-            drive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
-        } else {
-            driveFieldRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
-        }
-
-         */
-
-        // Current button states
-        boolean dpadRightNow = gamepad2.dpad_right;
-        boolean dpadLeftNow  = gamepad2.dpad_left;
-
-// Increase gain on right D-pad press (rising edge)
-        //if (dpadRightNow && !dpadRightPrev) {
-       //     colorGain += 0.05f;
-       // }
-
-// Decrease gain on left D-pad press (rising edge)
-        //if (dpadLeftNow && !dpadLeftPrev && colorGain > 0.1f) {
-        //    colorGain -= 0.05f;
-        //}
-
-// Apply gain to the color sensor
-        colorSensor.setGain(colorGain);
-        colorSensor1.setGain(colorGain);
-
-// Save previous states for rising edge detection
-        dpadRightPrev = dpadRightNow;
-        dpadLeftPrev  = dpadLeftNow;
-
-// Telemetry
-        //telemetry.addData("Color Sensor Gain", colorGain);
-
-
-
-        // Rising edge detection for square button
-        boolean squareNow = gamepad1.square;
-        if (squareNow && !squarePrev) {
-            driverYawOffset += Math.PI / 2;
-            driverYawOffset = driverYawOffset % (2 * Math.PI);
-
-            // Immediately recalc motor powers using last joystick
-            applyDriverOffset(driverYawOffset);
-        }
-        squarePrev = squareNow;
-
-        // Rising edge detection variables
-        boolean aPrev = false;
-        boolean bPrev = false;
-        boolean yPrev = false;
-        boolean xPrev2 = false; // separate from Gamepad1 X
-
-
-            // --- Gamepad2 button actions ---
-            // A button → shoot one ball
-            if (gamepad2.triangle && !aPrev) {
-                shootOneBall();
+            // LAYER 1: BASIC MACROS (NO TRIGGER)
+            else {
+                if (gamepads.isPressed(2, "cross")) {
+                    macroIntakeOneBall();
+                }
+                if (gamepads.isPressed(2, "circle")) {
+                    macroShootOneBall(BallColor.GREEN);
+                }
+                if (gamepads.isPressed(2, "square")) {
+                    macroShootOneBall(BallColor.PURPLE);
+                }
+                if (gamepads.isPressed(2, "triangle")) {
+                    macroShootAllBalls();
+                }
+                if (gamepads.isPressed(2, "dpad_up")) {
+                    macroShootInPattern();
+                }
             }
-            aPrev = gamepad2.triangle;
 
-            // B button → macro simple shoot
-            if (gamepad2.square && !bPrev) {
-                macroSimpleShoot();
+            // ========== REST OF YOUR EXISTING CODE ==========
+
+            // Limelight (keep your existing code)
+            LLStatus status = robot.limelight.getStatus();
+            LLResult result = robot.limelight. getLatestResult();
+            if (result != null) {
+                for (LLResultTypes.FiducialResult fiducialResult : result.getFiducialResults()) {
+                    telemetry.addData("Fiducial", "ID: " + fiducialResult. getFiducialId());
+                }
             }
-            bPrev = gamepad2.square;
 
-            // Y button → macro randomized shoot
-            if (gamepad2.x && !yPrev) {
-                macroRandomizedShoot();
+            displayAprilTagOrder();
+
+            BallColor current1 = detectColor1();
+            telemetry.addData("Current Ball Sensor1", current1);
+
+            if (current1 == BallColor.GREEN || current1 == BallColor. PURPLE) {
+                gamepad2.rumble(1, 1, 300);
             }
-            yPrev = gamepad2.x;
 
-            // X button → rotate to RED (example)
-            if (gamepad2.circle && !xPrev2) {
-                rotateToColor(BallColor.GREEN); // or add logic to choose color dynamically
+            // Drive
+            if (gamepad1.left_bumper) {
+                driveDriverRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x, driverYawOffset);
+            } else {
+                drive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
             }
-            xPrev2 = gamepad2.circle;
 
-        // Inside your TeleOp loop or as a separate function
-        if (gamepad2.left_trigger > 0.4) {
-            // -----------------------
-            // LAYER 2: Single-shot shooter
-            // -----------------------
-            if (gamepad2.triangle && !lsButtonPreviouslyPressed) {
-                lsButtonPreviouslyPressed = true; // rising edge detection
-                shootOneBallAlways();             // new function
-            }
-            else if (!gamepad2.triangle) {
-                lsButtonPreviouslyPressed = false; // reset for next press
-            }
-        }
+            // Turret
+            updateTurretControl();
 
+            // Lift
+            lift();
 
+            // Kicker (keep existing logic, or manual in layer 3 will override)
+            updateKicker();
 
-
-
-
-        // Set driver orientation (angle between driver forward and field forward)
-// Example: driver on south side facing north = 180 degrees
-
-
-        if (gamepad1.left_bumper) {
-            driveDriverRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x, driverYawOffset);
-        } else {
-
-            drive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x); // robot-relative
-        }
-
-
-
-        // Heading lock logic
-        if (gamepad1.left_bumper) {
-            if (!headingLocked) {
-                // Store the current IMU yaw once
-                lockedHeading = robot.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
-                headingLocked = true;
-            }
-        } else {
-            headingLocked = false; // release heading lock
-        }
-
-
-
-        robot.launcher.setPower(gamepad2.right_trigger);
-
-        GenevaStatus genevaStatus = getGenevaStatus(robot.feedingRotation);
-
-        updateFinColor();
-
-        // Kicker
-        // Kicker auto-cycle logic (tap to fire)
-        if (!kickerCycling && gamepad2.x) {
-            // Start the cycle
-            kickerCycling = true;
-            safeKick();
-            kickerTimer = System.currentTimeMillis();
-        }
-
-        updateKicker();
-
-        /*
-         * if (status.inGap) {
-         * robot.kicker.setPosition(0.8 - gamepad2.left_trigger * 0.3);
-         * } else {
-         * robot.kicker.setPosition(0.8);
-         * }
-         */
-
-        lift();
-
-        feeding();
-
-        updateTurretControl();
-
-
-
-
-
-//        LLResult limelightResult = robot.limelight.getLatestResult();
-        // TODO: Fix Limelight code
-        // if (limelightResult != null) {
-        // double tx = limelightResult.getTx();
-        // double ty = limelightResult.getTy();
-
-        // final double targetHeight = 65;
-        // final double mountAngle = 90;
-
-        // // 1. Rotate turret
-        // double turretPower = (Math.abs(tx) < 1.0) ? 0 : (0.01 * tx);
-        // robot.turretSpinner.setPower(turretPower);
-
-        // // 2. Calculate distance & launcher speed
-        // double distance = (targetHeight - robot.limelightHeight) /
-        // Math.tan(Math.toRadians(ty + mountAngle));
-        // double launchAngle = Math.toRadians(45); // or your tuned angle
-        // double velocity = Math.sqrt(9.81 * distance * distance /
-        // (2 * (targetHeight - robot.limelightHeight - distance *
-        // Math.tan(launchAngle))
-        // * Math.pow(Math.cos(launchAngle), 2)));
-
-        // double launcherTicksPerSec = velocity / (2 * Math.PI *
-        // robot.launcherWheelRadius) * robot.motorTicksPerRev * robot.gearRatio;
-        // robot.launcher.setVelocity(launcherTicksPerSec);
-        // }
+            // Telemetry
+            telemetry. addData("Indexer At", indexerAt);
+            telemetry.addData("Slots", indexerSlots[0] + " | " + indexerSlots[1] + " | " + indexerSlots[2]);
+            telemetry.update();
 
     }
 
@@ -559,6 +312,246 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         // Finally, call the drive method with robot relative forward and right amounts
         drive(newForward, newRight, rotate);
+    }
+
+
+    // ============================================
+// INDEXER & BALL TRACKING HELPERS
+// ============================================
+
+    void updateShooterPosColor() {
+        BallColor detected = detectColor1();
+        indexerSlots[indexerAt] = detected;
+    }
+
+    void updateShooterLed() {
+        BallColor color = indexerSlots[indexerAt];
+        if (color == BallColor.GREEN) {
+            gamepads. setLed(2, 0.0, 1.0, 0.0);  // Green LED
+        } else if (color == BallColor.PURPLE) {
+            gamepads. setLed(2, 0.6, 0.0, 1.0);  // Purple LED
+        } else {
+            gamepads.setLed(2, 0.0, 0.0, 0.0);  // Off
+        }
+    }
+
+    int findNearestSlotWithColor(BallColor target) {
+        int bestDist = NUM_SLOTS;
+        int bestIdx = -1;
+        for (int i = 0; i < NUM_SLOTS; i++) {
+            if (indexerSlots[i] == target) {
+                // Calculate shortest rotational distance
+                int forward = (i - indexerAt + NUM_SLOTS) % NUM_SLOTS;
+                int backward = (indexerAt - i + NUM_SLOTS) % NUM_SLOTS;
+                int d = Math.min(forward, backward);
+
+                if (d < bestDist) {
+                    bestDist = d;
+                    bestIdx = i;
+                }
+            }
+        }
+        return bestIdx;
+    }
+
+    int findFirstEmptySlot() {
+        for (int i = 0; i < NUM_SLOTS; i++) {
+            if (indexerSlots[i] == BallColor.NONE) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    void rotateIndexerTo(int targetIdx) {
+        if (targetIdx < 0 || targetIdx >= NUM_SLOTS) return;
+
+        int delta = (targetIdx - indexerAt + NUM_SLOTS) % NUM_SLOTS;
+        double newTarget = robot.indexerAxon. getTotalRotation() + (delta * ANGLE_PER_SLOT);
+
+        robot.indexerAxon.setTargetRotation(newTarget);
+        robot.indexerAxon1.setTargetRotation(newTarget);
+        indexerAt = targetIdx;
+    }
+
+    boolean isIndexerAtTarget(double tolerance) {
+        return robot.indexerAxon.isAtTarget(tolerance) && robot.indexerAxon1.isAtTarget(tolerance);
+    }
+
+// ============================================
+// LAUNCHER POWER CALCULATION (DISTANCE + VOLTAGE)
+// ============================================
+
+    double calculateLauncherPower() {
+        LLResult result = robot.limelight.getLatestResult();
+        if (result == null) return 0.5;
+
+        for (LLResultTypes. FiducialResult tag : result.getFiducialResults()) {
+            if (tag.getFiducialId() == 24) {  // Goal tag
+                double ty = tag.getTargetYDegrees();
+
+                // Estimate distance based on angle
+                double estimatedDistance = 72.0 / Math.tan(Math.toRadians(ty + 45));
+
+                // Get battery voltage
+                double voltage = robot.voltageSensor.getVoltage();
+                double nominalVoltage = 13.0;
+
+                // Power scales with distance and voltage compensation
+                double basePower = 0.3 + (estimatedDistance / 200.0);
+                double voltageFactor = nominalVoltage / voltage;
+                double finalPower = Math.min(1.0, basePower * voltageFactor);
+
+                telemetry.addData("Launcher Distance", estimatedDistance);
+                telemetry.addData("Battery Voltage", voltage);
+                telemetry.addData("Launcher Power", finalPower);
+
+                return finalPower;
+            }
+        }
+        return 0.5;
+    }
+
+    void spinLauncherToSetPower() {
+        double power = calculateLauncherPower();
+        robot.launcher.setPower(power);
+    }
+
+// ============================================
+// MACRO FUNCTIONS
+// ============================================
+
+    void macroIntakeOneBall() {
+        int emptySlot = findFirstEmptySlot();
+        if (emptySlot == -1) {
+            gamepads.blipRumble(2, 2);  // Vibrate:  full
+            telemetry.addLine("INTAKE:  Indexer full!");
+            return;
+        }
+
+        rotateIndexerTo(emptySlot);
+
+        // Wait for indexer
+        long startWait = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startWait < 1500 && ! isIndexerAtTarget(5)) {
+            robot.indexerAxon.update();
+            robot.indexerAxon1.update();
+        }
+
+        // Start intake
+        robot.indexer.setPower(1.0);
+        robot.indexer1.setPower(1.0);
+        intakeActive = true;
+        intakeStartTime = System.currentTimeMillis();
+    }
+
+    void stopIntake() {
+        robot.indexer.setPower(0);
+        robot.indexer1.setPower(0);
+        intakeActive = false;
+    }
+
+    void macroShootOneBall(BallColor color) {
+        int idx = findNearestSlotWithColor(color);
+        if (idx == -1) {
+            gamepads.blipRumble(2, 3);  // Vibrate: not found
+            telemetry.addLine("SHOOT: " + color + " not found!");
+            return;
+        }
+
+        rotateIndexerTo(idx);
+
+        // Wait for rotation
+        long startWait = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startWait < 1500 && !isIndexerAtTarget(5)) {
+            robot.indexerAxon.update();
+            robot.indexerAxon1.update();
+        }
+
+        // Shoot
+        spinLauncherToSetPower();
+        try { Thread.sleep(750); } catch (InterruptedException e) { }
+        safeKick();
+        try { Thread.sleep(500); } catch (InterruptedException e) { }
+        robot.kicker.setPosition(KICKER_DOWN);
+
+        indexerSlots[indexerAt] = BallColor.NONE;
+    }
+
+    void macroShootAllBalls() {
+        for (int count = 0; count < NUM_SLOTS; count++) {
+            BallColor c = indexerSlots[indexerAt];
+            if (c != BallColor.NONE) {
+                spinLauncherToSetPower();
+                try { Thread.sleep(500); } catch (InterruptedException e) { }
+                safeKick();
+                try { Thread.sleep(300); } catch (InterruptedException e) { }
+                robot.kicker.setPosition(KICKER_DOWN);
+                indexerSlots[indexerAt] = BallColor.NONE;
+            }
+            if (count < NUM_SLOTS - 1) {
+                rotateIndexerTo((indexerAt + 1) % NUM_SLOTS);
+                try { Thread.sleep(800); } catch (InterruptedException e) { }
+            }
+        }
+        gamepads.blipRumble(2, 2);  // Done!
+    }
+
+    void macroShootInPattern() {
+        for (int i = 0; i < NUM_SLOTS; i++) {
+            BallColor toShoot = aprilOrder[i];
+            if (toShoot == BallColor.NONE) continue;
+            macroShootOneBall(toShoot);
+            try { Thread.sleep(300); } catch (InterruptedException e) { }
+        }
+        gamepads.blipRumble(2, 2);
+    }
+
+    void macroReindexIdentifyColors() {
+        for (int spin = 0; spin < NUM_SLOTS; spin++) {
+            updateShooterPosColor();
+            rotateIndexerTo((indexerAt + 1) % NUM_SLOTS);
+            try { Thread.sleep(600); } catch (InterruptedException e) { }
+        }
+    }
+
+// ============================================
+// MANUAL CONTROLS (LAYER 3 - RIGHT TRIGGER)
+// ============================================
+
+    void handleManualControls() {
+        if (gamepad2.right_trigger < 0.4) return;
+
+        // Manual indexer rotation
+        if (gamepads.isPressed(2, "cross")) {
+            rotateIndexerTo((indexerAt - 1 + NUM_SLOTS) % NUM_SLOTS);
+        }
+        if (gamepads.isPressed(2, "circle")) {
+            rotateIndexerTo((indexerAt + 1) % NUM_SLOTS);
+        }
+
+        // Manual intake
+        if (gamepad2.square) {
+            robot.indexer.setPower(1.0);
+            robot.indexer1.setPower(1.0);
+        } else if (gamepad2.triangle) {
+            robot.indexer.setPower(-1.0);
+            robot.indexer1.setPower(-1.0);
+        } else {
+            robot.indexer.setPower(0);
+            robot.indexer1.setPower(0);
+        }
+
+        // Manual launcher
+        robot.launcher.setPower(gamepad2.right_stick_y);
+
+        // Manual kicker
+        if (gamepad2.dpad_left) {
+            robot.kicker.setPosition(0.55);
+        }
+        if (gamepad2.dpad_right) {
+            robot.kicker.setPosition(KICKER_DOWN);
+        }
     }
 
     private void driveDriverRelative(double forward, double right, double rotate, double driverYawOffset) {

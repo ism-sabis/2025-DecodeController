@@ -134,7 +134,7 @@ public class RobotHardware {
         rearRight = hardwareMap.get(DcMotor.class, "rearRight");
         imu = hardwareMap.get(IMU.class, "imu");
 
-        voltageSensor = hardwareMap.voltageSensor. iterator().next(); 
+        voltageSensor = hardwareMap.voltageSensor. iterator().next();
 
         limelight = hardwareMap.get(Limelight3A.class, "Ethernet Device");
 
