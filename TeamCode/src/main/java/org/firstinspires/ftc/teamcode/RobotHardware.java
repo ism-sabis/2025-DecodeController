@@ -14,6 +14,7 @@ import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.Range;
 
 import com.qualcomm.hardware.limelightvision.LLResult;
@@ -61,6 +62,8 @@ public class RobotHardware {
 
     public RTPAxon indexerAxon;
     public RTPAxon indexerAxon1;
+
+    public VoltageSensor voltageSensor = null;
 
 
     public NormalizedColorSensor colorSensor = null;
@@ -130,6 +133,8 @@ public class RobotHardware {
         rearLeft = hardwareMap.get(DcMotor.class, "rearLeft");
         rearRight = hardwareMap.get(DcMotor.class, "rearRight");
         imu = hardwareMap.get(IMU.class, "imu");
+
+        voltageSensor = hardwareMap.voltageSensor. iterator().next(); 
 
         limelight = hardwareMap.get(Limelight3A.class, "Ethernet Device");
 
