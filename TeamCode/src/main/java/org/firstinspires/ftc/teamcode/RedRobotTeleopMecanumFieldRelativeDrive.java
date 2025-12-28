@@ -399,7 +399,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 double nominalVoltage = 13.0;
 
                 // Power scales with distance and voltage compensation
-                double basePower = 0.3 + (estimatedDistance / 200.0);
+                double basePower = 0.8 + (estimatedDistance / 200.0);
                 double voltageFactor = nominalVoltage / voltage;
                 double finalPower = Math.min(1.0, basePower * voltageFactor);
 
