@@ -118,10 +118,10 @@ public class RobotHardware {
      */
     public void init(HardwareMap hardwareMap) {
 
-        Gamepad gamepad1 = hardwareMap.get(Gamepad.class, "gamepad1");
-        Gamepad gamepad2 = hardwareMap.get(Gamepad.class, "gamepad2");
+        //Gamepad gamepad1 = hardwareMap.get(Gamepad.class, "gamepad1");
+        //Gamepad gamepad2 = hardwareMap.get(Gamepad.class, "gamepad2");
 
-        GamepadPair gamepadPair = new GamepadPair(gamepad1, gamepad2);
+        //GamepadPair gamepadPair = new GamepadPair(gamepad1, gamepad2);
 
         // Define and Initialize Motors (note: need to use reference to actual OpMode).
         leftLift = hardwareMap.get(DcMotor.class, "leftLift");
