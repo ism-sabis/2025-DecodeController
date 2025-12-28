@@ -371,6 +371,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         robot.indexerAxon.setTargetRotation(newTarget);
         robot.indexerAxon1.setTargetRotation(newTarget);
+        robot.feedingRotation.setPower(1.0);
         indexerAt = targetIdx;
     }
 
@@ -441,6 +442,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Start intake
         robot.indexer.setPower(1.0);
         robot.indexer1.setPower(1.0);
+        robot.feedingRotation.setPower(1.0);
         intakeActive = true;
         intakeStartTime = System.currentTimeMillis();
     }
@@ -448,6 +450,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     void stopIntake() {
         robot.indexer.setPower(0);
         robot.indexer1.setPower(0);
+        robot.feedingRotation.setPower(0);
         intakeActive = false;
     }
 
@@ -459,6 +462,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             return;
         }
 
+        robot.feedingRotation.setPower(1.0);
         rotateIndexerTo(idx);
 
         // Wait for rotation
@@ -474,11 +478,13 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         safeKick();
         try { Thread.sleep(500); } catch (InterruptedException e) { }
         robot.kicker.setPosition(KICKER_DOWN);
+        robot.feedingRotation.setPower(0);
 
         indexerSlots[indexerAt] = BallColor.NONE;
     }
 
     void macroShootAllBalls() {
+        robot.feedingRotation.setPower(1.0);
         for (int count = 0; count < NUM_SLOTS; count++) {
             BallColor c = indexerSlots[indexerAt];
             if (c != BallColor.NONE) {
@@ -494,6 +500,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 try { Thread.sleep(800); } catch (InterruptedException e) { }
             }
         }
+        robot.feedingRotation.setPower(0);
         gamepads.blipRumble(2, 2);  // Done!
     }
 
@@ -510,9 +517,11 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     void macroReindexIdentifyColors() {
         for (int spin = 0; spin < NUM_SLOTS; spin++) {
             updateShooterPosColor();
+            robot.feedingRotation.setPower(1.0);
             rotateIndexerTo((indexerAt + 1) % NUM_SLOTS);
             try { Thread.sleep(600); } catch (InterruptedException e) { }
         }
+        robot.feedingRotation.setPower(0);
     }
 
 // ============================================
@@ -524,9 +533,11 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         // Manual indexer rotation
         if (gamepads.isPressed(2, "cross")) {
+            robot.feedingRotation.setPower(1.0);
             rotateIndexerTo((indexerAt - 1 + NUM_SLOTS) % NUM_SLOTS);
         }
         if (gamepads.isPressed(2, "circle")) {
+            robot.feedingRotation.setPower(1.0);
             rotateIndexerTo((indexerAt + 1) % NUM_SLOTS);
         }
 
@@ -1091,9 +1102,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     public void turret() {
         if (gamepad2.left_bumper) {
-            robot.turretSpinner.setPower(1);
-        } else if (gamepad2.right_bumper) {
             robot.turretSpinner.setPower(-1);
+        } else if (gamepad2.right_bumper) {
+            robot.turretSpinner.setPower(1);
         } else {
             robot.turretSpinner.setPower(0);
         }
@@ -1105,13 +1116,13 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         //  MANUAL MODE (bumper override)
         // ----------------------------
         if (gamepad2.left_bumper) {
-            robot.turretSpinner.setPower(0.8);   // rotate left
+            robot.turretSpinner.setPower(-0.8);   // rotate left
             telemetry.addData("Turret Mode", "Manual Left");
             return;
         }
 
         if (gamepad2.right_bumper) {
-            robot.turretSpinner.setPower(-0.8);  // rotate right
+            robot.turretSpinner.setPower(0.8);  // rotate right
             telemetry.addData("Turret Mode", "Manual Right");
             return;
         }
