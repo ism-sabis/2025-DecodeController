@@ -479,6 +479,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         try { Thread.sleep(500); } catch (InterruptedException e) { }
         robot.kicker.setPosition(KICKER_DOWN);
         robot.feedingRotation.setPower(0);
+        robot.launcher.setPower(0);
 
         indexerSlots[indexerAt] = BallColor.NONE;
     }
@@ -501,6 +502,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             }
         }
         robot.feedingRotation.setPower(0);
+        robot.launcher.setPower(0);
         gamepads.blipRumble(2, 2);  // Done!
     }
 
