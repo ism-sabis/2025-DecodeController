@@ -519,7 +519,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     void macroReindexIdentifyColors() {
         for (int spin = 0; spin < NUM_SLOTS; spin++) {
             updateShooterPosColor();
-            robot.feedingRotation.setPower(1.0);
+            robot.feedingRotation.setPower(0.7);
             rotateIndexerTo((indexerAt + 1) % NUM_SLOTS);
             try { Thread.sleep(600); } catch (InterruptedException e) { }
         }
