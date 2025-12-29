@@ -385,7 +385,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     double calculateLauncherPower() {
         LLResult result = robot.limelight.getLatestResult();
-        if (result == null) return 0.5;
+        if (result == null) return 1;
 
         for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
             if (tag.getFiducialId() == 24) {  // Goal tag
@@ -410,7 +410,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 return finalPower;
             }
         }
-        return 0.5;
+        return 1;
     }
 
     void spinLauncherToSetPower() {
@@ -741,9 +741,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 // Adaptive CR servo control
                 // ------------------------
                 double deadband = 0.5;          // degrees, ignore tiny offsets
-                double maxPower = 0.15;          // max speed at close range
-                double minPower = 0.05;         // minimum speed to overcome friction
-                double kP = 0.05;               // proportional gain
+                double maxPower = 0.18;          // max speed at close range
+                double minPower = 0.06;         // minimum speed to overcome friction
+                double kP = 0.07;               // proportional gain
 
                 if (Math.abs(tx) < deadband) {
                     // close enough → stop
