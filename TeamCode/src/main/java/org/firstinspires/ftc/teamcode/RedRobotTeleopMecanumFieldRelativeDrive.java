@@ -742,8 +742,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 // ------------------------
                 double deadband = 0.2;          // degrees, ignore tiny offsets
                 double maxPower = 0.18;          // max speed at close range
-                double minPower = 0.06;         // minimum speed to overcome friction
-                double kP = 0.07;               // proportional gain
+                double minPower = 0.1;         // minimum speed to overcome friction
+                double kP = 0.085;               // proportional gain
 
                 if (Math.abs(tx) < deadband) {
                     // close enough → stop
