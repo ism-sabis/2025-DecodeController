@@ -740,8 +740,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 // ------------------------
                 // Adaptive CR servo control
                 // ------------------------
-                double deadband = 0.5;          // degrees, ignore tiny offsets
-                double maxPower = 0.18;          // max speed at close range
+                double deadband = 0.1;          // degrees, ignore tiny offsets
+                double maxPower = 0.25;          // max speed at close range
                 double minPower = 0.06;         // minimum speed to overcome friction
                 double kP = 0.1;               // proportional gain
 
