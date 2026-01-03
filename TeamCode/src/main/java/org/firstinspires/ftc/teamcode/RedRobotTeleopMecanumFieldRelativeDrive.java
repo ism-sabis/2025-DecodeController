@@ -383,7 +383,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 // LAUNCHER POWER CALCULATION (DISTANCE + VOLTAGE)
 // ============================================
 
-    double calculateLauncherPower() {
+  /*  double calculateLauncherPower() {
         LLResult result = robot.limelight.getLatestResult();
         if (result == null) return 1;
 
@@ -411,12 +411,65 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             }
         }
         return 1;
-    }
+    } */
 
     void spinLauncherToSetPower() {
         double power = calculateLauncherPower();
         robot.launcher.setPower(power);
     }
+
+    double calculateLauncherPower() {
+        LLResult result = robot.limelight.getLatestResult();
+        if (result == null) return 1;
+
+        for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+            if (tag.getFiducialId() != 24) continue;
+
+            double ty = Math.max(tag.getTargetYDegrees(), 2.0);
+
+            // Same-plane distance estimate (inches)
+            double distance =
+                    22.25 / Math.tan(Math.toRadians(ty + 0));
+
+            if (distance > 150) distance = 150;
+
+            // Manual distance → power table
+            double[][] table = {
+                    {18,  0.50},
+                    {24,  0.52},
+                    {30,  0.55},
+                    {36,  0.58},
+                    {42,  0.62},
+                    {48,  0.66},
+                    {60,  0.72},
+                    {75,  0.78},
+                    {90,  0.83},
+                    {110, 0.88},
+                    {130, 0.93},
+                    {150, 0.98}
+            };
+
+            // Linear interpolation
+            if (distance <= table[0][0]) return table[0][1];
+
+            for (int i = 0; i < table.length - 1; i++) {
+                double d1 = table[i][0];
+                double p1 = table[i][1];
+                double d2 = table[i + 1][0];
+                double p2 = table[i + 1][1];
+
+                if (distance <= d2) {
+                    double t = (distance - d1) / (d2 - d1);
+                    return p1 + t * (p2 - p1);
+                }
+            }
+
+            return table[table.length - 1][1];
+        }
+
+        return 1;
+    }
+
 
 // ============================================
 // MACRO FUNCTIONS
