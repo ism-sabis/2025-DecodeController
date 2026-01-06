@@ -18,6 +18,11 @@ import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.LLStatus;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+
+
+
+
 import java.util.List;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -262,8 +267,37 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             if (result != null) {
                 for (LLResultTypes.FiducialResult fiducialResult : result.getFiducialResults()) {
                     telemetry.addData("Fiducial", "ID: " + fiducialResult.getFiducialId());
+
+                    double targetOffsetAngle_Vertical = 0.0;
+
+                    targetOffsetAngle_Vertical = result.getTy();
+                    // how many degrees back is your limelight rotated from perfectly vertical?
+                    double limelightMountAngleDegrees = 0;
+
+                    // distance from the center of the Limelight lens to the floor
+                    double limelightLensHeightInches = 16.06;
+
+                    // distance from the target to the floor
+                    double goalHeightInches = 29.5;
+
+                    double angleToGoalDegrees = limelightMountAngleDegrees + targetOffsetAngle_Vertical;
+                    double angleToGoalRadians = angleToGoalDegrees * (3.14159 / 180.0);
+
+                    //calculate distance
+                    double distanceFromLimelightToGoalInches = (goalHeightInches - limelightLensHeightInches) / Math.tan(angleToGoalRadians);
+
+                    telemetry.addData("AprilTag Distance (in)", "%.2f", distanceFromLimelightToGoalInches);
+                    telemetry.addData("ty (deg)", "%.2f", targetOffsetAngle_Vertical);
+                    telemetry.addData("Angle (deg)", "%.2f", angleToGoalDegrees);
                 }
             }
+
+
+
+
+
+
+
 
             displayAprilTagOrder();
 
