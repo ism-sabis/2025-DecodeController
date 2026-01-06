@@ -172,6 +172,8 @@ public class RobotHardware {
         frontRight.setDirection(DcMotor.Direction.FORWARD);
         turretSpinner.setDirection(CRServo.Direction.FORWARD);
         feedingRotation.setDirection(DcMotor.Direction.FORWARD);
+        indexer.setDirection(DcMotor.Direction.REVERSE);
+        indexer1.setDirection(DcMotor.Direction.REVERSE);
 
         // If there are encoders connected, switch to RUN_USING_ENCODER mode for greater
         // accuracy

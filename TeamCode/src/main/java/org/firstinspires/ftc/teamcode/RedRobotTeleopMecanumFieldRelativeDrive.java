@@ -191,6 +191,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
             gamepads.copyStates();
 
+        // Set the default debounce time for all buttons
+        gamepads.setDebounceTime(250);  // 250ms debounce time
+
             // Update shooter color and LED
             updateShooterPosColor();
             updateShooterLed();

@@ -344,16 +344,17 @@ public class RTPAxon {
                 integralSum
         );
     }
-/*
+
     // TeleOp test class for manual tuning and testing
     @TeleOp(name = "Cont. Rotation Axon Test", group = "test")
     public static class CRAxonTest extends LinearOpMode {
 
         @Override
         public void runOpMode() throws InterruptedException {
-            telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-            CRServo crservo = hardwareMap.crservo.get("rightHorizSlide");
-            AnalogInput encoder = hardwareMap.get(AnalogInput.class, "rightHorizSlideEncoder");
+            //telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+            CRServo crservo = hardwareMap.crservo.get("indexer");
+            CRServo crservo1 = hardwareMap.crservo.get("indexer1");
+            AnalogInput encoder = hardwareMap.get(AnalogInput.class, "indexerEncoder1");
             GamepadPair gamepads = new GamepadPair(gamepad1, gamepad2);
             RTPAxon servo = new RTPAxon(crservo, encoder);
 
@@ -388,12 +389,12 @@ public class RTPAxon {
                     servo.setKI(Math.max(0, servo.getKI() - 0.0001));
                 }
 
-                if (gamepads.isPressed(-1, "touchpad")) {
-                    servo.setKP(0.015);
-                    servo.setKI(0.0005);
-                    servo.setKD(0.0025);
-                    servo.resetPID();
-                }
+                //if (gamepads.isPressed(-1, "touchpad")) {
+                //    servo.setKP(0.015);
+                //    servo.setKI(0.0005);
+                 //   servo.setKD(0.0025);
+                 //   servo.resetPID();
+                //}
 
                 telemetry.addData("Starting angle", servo.STARTPOS);
                 telemetry.addLine(servo.log());
@@ -401,5 +402,5 @@ public class RTPAxon {
                 telemetry.update();
             }
         }
-    } */
+    }
 }
