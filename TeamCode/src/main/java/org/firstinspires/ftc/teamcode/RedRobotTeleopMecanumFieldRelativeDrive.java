@@ -113,6 +113,10 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     private boolean aprilOrderSet = false;
 
+    double distanceHypotenuse = 0;
+
+    double distance = 0;
+
 
 
     int feederState = 0; // -1 = backward, 0 = off, 1 = forward
@@ -272,10 +276,12 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
                     targetOffsetAngle_Vertical = result.getTy();
                     // how many degrees back is your limelight rotated from perfectly vertical?
-                    double limelightMountAngleDegrees = 0;
+                    double limelightMountAngleDegrees = 0.1;
 
                     // distance from the center of the Limelight lens to the floor
                     double limelightLensHeightInches = 16.06;
+
+
 
                     // distance from the target to the floor
                     double goalHeightInches = 29.5;
@@ -284,9 +290,12 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                     double angleToGoalRadians = angleToGoalDegrees * (3.14159 / 180.0);
 
                     //calculate distance
-                    double distanceFromLimelightToGoalInches = (goalHeightInches - limelightLensHeightInches) / Math.tan(angleToGoalRadians);
+                    double distanceHypotenuse = (goalHeightInches - limelightLensHeightInches) / Math.sin(angleToGoalRadians);
 
-                    telemetry.addData("AprilTag Distance (in)", "%.2f", distanceFromLimelightToGoalInches);
+                    double distance = (goalHeightInches - limelightLensHeightInches) / Math.tan(angleToGoalRadians);
+
+                    telemetry.addData("AprilTag distanceHypotenuse (in)", "%.2f", distanceHypotenuse);
+                    telemetry.addData("AprilTag distance (in)", "%.2f", distance);
                     telemetry.addData("ty (deg)", "%.2f", targetOffsetAngle_Vertical);
                     telemetry.addData("Angle (deg)", "%.2f", angleToGoalDegrees);
                 }
@@ -462,11 +471,11 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
             if (tag.getFiducialId() != 24) continue;
 
-            double ty = Math.max(tag.getTargetYDegrees(), 2.0);
+            //double ty = Math.max(tag.getTargetYDegrees(), 2.0);
 
             // Same-plane distance estimate (inches)
-            double distance =
-                    22.25 / Math.tan(Math.toRadians(ty + 0));
+            //double distance =
+                    //22.25 / Math.tan(Math.toRadians(ty + 0));
 
             if (distance > 150) distance = 150;
 
@@ -830,20 +839,29 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 // ------------------------
                 // Adaptive CR servo control
                 // ------------------------
-                double deadband = 0.2;          // degrees, ignore tiny offsets
-                double maxPower = 0.18;          // max speed at close range
-                double minPower = 0.1;         // minimum speed to overcome friction
-                double kP = 0.085;               // proportional gain
+                double deadband = 1.0;        // increase to ignore small jitters
+                double maxPower = 0.17;
+                double minPower = 0.1;       // lower minPower to avoid overshoot
+                double kP = 0.04;            // slightly lower proportional gain
 
                 if (Math.abs(tx) < deadband) {
                     // close enough → stop
                     robot.turretSpinner.setPower(0);
                 } else {
                     // scale proportional to error, clamp to min/max
-                    double scaledPower = Math.min(maxPower, Math.max(minPower, Math.abs(kP * tx)));
+                    double scaledPower = Math.abs(kP * tx);
+
+                    // only apply minPower if scaledPower is too small
+                    if (scaledPower < minPower) {
+                        scaledPower = minPower;
+                    } else if (scaledPower > maxPower) {
+                        scaledPower = maxPower;
+                    }
+
                     // apply direction
                     robot.turretSpinner.setPower(Math.signum(tx) * scaledPower);
                 }
+
 
                 telemetry.addData("Turret Tracking", "Aiming at Tag 24");
                 telemetry.addData("tx", tx);
