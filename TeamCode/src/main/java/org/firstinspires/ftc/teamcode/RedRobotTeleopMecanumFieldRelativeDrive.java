@@ -732,7 +732,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         if (targetFin == -1) {
             telemetry.addLine("ERROR: Desired color not found in any fin!");
-            telemetry.update();
+            //telemetry.update();
             return;
         }
 
@@ -1316,7 +1316,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                     telemetry.addData("AprilTag ID", detectedTagId);
                     telemetry.addData("AprilOrder",
                             "0: " + aprilOrder[0] + ", 1: " + aprilOrder[1] + ", 2: " + aprilOrder[2]);
-                    telemetry.update(); // make sure it actually shows
+                    //telemetry.update(); // make sure it actually shows
                 }
             }
         }
