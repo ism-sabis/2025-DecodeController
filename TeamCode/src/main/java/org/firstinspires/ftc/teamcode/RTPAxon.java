@@ -390,29 +390,29 @@ public class RTPAxon {
 
                 if (gamepads.isPressed(-1, "triangle")) {
                     servo.setKP(servo.getKP() + 0.001);
-                    servo1.setKP(servo.getKP() + 0.001);
+                    servo1.setKP(servo1.getKP() + 0.001);
                 }
                 if (gamepads.isPressed(-1, "square")) {
                     servo.setKP(Math.max(0, servo.getKP() - 0.001));
-                    servo1.setKP(Math.max(0, servo.getKP() - 0.001));
+                    servo1.setKP(Math.max(0, servo1.getKP() - 0.001));
                 }
 
                 if (gamepads.isPressed(-1, "dpad_left")) {
                     servo.setKD(servo.getKD() + 0.001);
-                    servo1.setKD(servo.getKD() + 0.001);
+                    servo1.setKD(servo1.getKD() + 0.001);
                 }
                 if (gamepads.isPressed(-1, "dpad_right")) {
                     servo.setKD(Math.max(0, servo.getKD() - 0.001));
-                    servo1.setKD(Math.max(0, servo.getKD() - 0.001));
+                    servo1.setKD(Math.max(0, servo1.getKD() - 0.001));
                 }
 
                 if (gamepads.isPressed(-1, "right_bumper")) {
                     servo.setKI(servo.getKI() + 0.0001);
-                    servo1.setKI(servo.getKI() + 0.0001);
+                    servo1.setKI(servo1.getKI() + 0.0001);
                 }
                 if (gamepads.isPressed(-1, "left_bumper")) {
                     servo.setKI(Math.max(0, servo.getKI() - 0.0001));
-                    servo1.setKI(Math.max(0, servo.getKI() - 0.0001));
+                    servo1.setKI(Math.max(0, servo1.getKI() - 0.0001));
                 }
 
                 //if (gamepads.isPressed(-1, "touchpad")) {
