@@ -119,6 +119,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     double distanceNew = 0;
 
+    double testingLauncherPower = 0;
+
 
 
     int feederState = 0; // -1 = backward, 0 = off, 1 = forward
@@ -265,6 +267,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 }
             }
 
+        telemetry.addData("launcherPower", "%.2f", testingLauncherPower);
+
             // ========== REST OF YOUR EXISTING CODE ==========
 
             // Limelight (keep your existing code)
@@ -336,7 +340,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             updateTurretControl();
 
             // Lift
-            lift();
+            //lift();
 
             // Kicker (keep existing logic, or manual in layer 3 will override)
             updateKicker();
@@ -605,6 +609,24 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         indexerSlots[indexerAt] = BallColor.NONE;
     }
 
+    void testingShootOneBall() {
+
+
+
+
+
+
+        // Shoot
+        robot.launcher.setPower(testingLauncherPower);
+        try { Thread.sleep(5000); } catch (InterruptedException e) { }
+        safeKick();
+        try { Thread.sleep(500); } catch (InterruptedException e) { }
+        robot.kicker.setPosition(KICKER_DOWN);
+
+        robot.launcher.setPower(0);
+
+    }
+
     void macroShootAllBalls() {
         robot.feedingRotation.setPower(1.0);
         for (int count = 0; count < NUM_SLOTS; count++) {
@@ -686,7 +708,19 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         if (gamepad2.dpad_right) {
             robot.kicker.setPosition(KICKER_DOWN);
         }
+
+
+        if (gamepad2.dpad_up) {
+            testingLauncherPower = (testingLauncherPower+0.01);
+        }
+        if (gamepad2.dpad_down) {
+            testingLauncherPower = (testingLauncherPower-0.01);
+        }
+        if (gamepad2.right_stick_button) {
+            testingShootOneBall();
+        }
     }
+
 
     private void driveDriverRelative(double forward, double right, double rotate, double driverYawOffset) {
         // Store the last joystick values
@@ -955,7 +989,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // change to your real spin-up time
 
         // Fire
-        safeKick();
+        robot.kicker.setPosition(KICKER_UP);
         try {
             Thread.sleep(500);
         } catch (InterruptedException e) {
