@@ -106,6 +106,9 @@ public class RTPAxon {
 
         maxPower = 0.25;
         cliffs = 0;
+
+
+
     }
     // endregion
 
@@ -230,7 +233,7 @@ public class RTPAxon {
     // Get current angle from encoder (in degrees)
     public double getCurrentAngle() {
         if (servoEncoder == null) return 0;
-        return (servoEncoder.getVoltage() / 3.3) * (direction.equals(Direction.REVERSE) ? -360 : 360);
+        return (servoEncoder.getVoltage() / 3.3) * (direction.equals(Direction.REVERSE) ? 360 : -360);
     }
 
     // Check if servo is at target (default tolerance)
@@ -321,6 +324,9 @@ public class RTPAxon {
         } else {
             setPower(0);
         }
+
+
+
     }
 
     // Log current state for telemetry/debug
@@ -354,39 +360,50 @@ public class RTPAxon {
             //telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
             CRServo crservo = hardwareMap.crservo.get("indexer");
             CRServo crservo1 = hardwareMap.crservo.get("indexer1");
-            AnalogInput encoder = hardwareMap.get(AnalogInput.class, "indexerEncoder1");
+            AnalogInput encoder = hardwareMap.get(AnalogInput.class, "indexerEncoder");
+            AnalogInput encoder1 = hardwareMap.get(AnalogInput.class, "indexerEncoder1");
             GamepadPair gamepads = new GamepadPair(gamepad1, gamepad2);
             RTPAxon servo = new RTPAxon(crservo, encoder);
+            RTPAxon servo1 = new RTPAxon(crservo1, encoder1);
 
             waitForStart();
 
             while (!isStopRequested()) {
                 gamepads.copyStates();
                 servo.update();
+                servo1.update();
+
 
                 // Manual controls for target and PID tuning
                 if (gamepads.isPressed(-1, "dpad_up")) {
-                    servo.changeTargetRotation(15);
+                    servo.changeTargetRotation(60);
+                    servo1.changeTargetRotation(60);
                 }
                 if (gamepads.isPressed(-1, "dpad_down")) {
-                    servo.changeTargetRotation(-15);
+                    servo.changeTargetRotation(-60);
+                    servo1.changeTargetRotation(-60);
                 }
                 if (gamepads.isPressed(-1, "cross")) {
                     servo.setTargetRotation(0);
+                    servo1.setTargetRotation(0);
                 }
 
                 if (gamepads.isPressed(-1, "triangle")) {
                     servo.setKP(servo.getKP() + 0.001);
+                    servo1.setKP(servo.getKP() + 0.001);
                 }
                 if (gamepads.isPressed(-1, "square")) {
                     servo.setKP(Math.max(0, servo.getKP() - 0.001));
+                    servo1.setKP(Math.max(0, servo.getKP() - 0.001));
                 }
 
                 if (gamepads.isPressed(-1, "right_bumper")) {
                     servo.setKI(servo.getKI() + 0.0001);
+                    servo1.setKI(servo.getKI() + 0.0001);
                 }
                 if (gamepads.isPressed(-1, "left_bumper")) {
                     servo.setKI(Math.max(0, servo.getKI() - 0.0001));
+                    servo1.setKI(Math.max(0, servo.getKI() - 0.0001));
                 }
 
                 //if (gamepads.isPressed(-1, "touchpad")) {

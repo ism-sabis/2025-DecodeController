@@ -276,10 +276,12 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
                     targetOffsetAngle_Vertical = result.getTy();
                     // how many degrees back is your limelight rotated from perfectly vertical?
-                    double limelightMountAngleDegrees = 0.1;
+                    double limelightMountAngleDegrees = 0;
 
                     // distance from the center of the Limelight lens to the floor
                     double limelightLensHeightInches = 16.06;
+
+
 
 
 
@@ -298,6 +300,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                     telemetry.addData("AprilTag distance (in)", "%.2f", distance);
                     telemetry.addData("ty (deg)", "%.2f", targetOffsetAngle_Vertical);
                     telemetry.addData("Angle (deg)", "%.2f", angleToGoalDegrees);
+                    double area = result.getTa();
+                    telemetry.addData("area", "%.2f", area);
                 }
             }
 
@@ -461,7 +465,10 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     void spinLauncherToSetPower() {
         double power = calculateLauncherPower();
-        robot.launcher.setPower(power);
+
+
+            robot.launcher.setPower(power);
+
     }
 
     double calculateLauncherPower() {
@@ -473,11 +480,16 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
             //double ty = Math.max(tag.getTargetYDegrees(), 2.0);
 
+            double area = result.getTa();
+            //telemetry.addData("area", "%.2f", area);
+
+
+
             // Same-plane distance estimate (inches)
             //double distance =
                     //22.25 / Math.tan(Math.toRadians(ty + 0));
 
-            if (distance > 150) distance = 150;
+            if (area > 150) area = 150;
 
             // Manual distance → power table
             double[][] table = {
@@ -496,7 +508,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             };
 
             // Linear interpolation
-            if (distance <= table[0][0]) return table[0][1];
+            if (area <= table[0][0]) return table[0][1];
 
             for (int i = 0; i < table.length - 1; i++) {
                 double d1 = table[i][0];
@@ -504,8 +516,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 double d2 = table[i + 1][0];
                 double p2 = table[i + 1][1];
 
-                if (distance <= d2) {
-                    double t = (distance - d1) / (d2 - d1);
+                if (area <= d2) {
+                    double t = (area - d1) / (d2 - d1);
                     return p1 + t * (p2 - p1);
                 }
             }
