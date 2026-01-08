@@ -425,6 +425,9 @@ public class RTPAxon {
                 telemetry.addData("Starting angle", servo.STARTPOS);
                 telemetry.addLine(servo.log());
                 telemetry.addData("NTRY", servo.ntry);
+                telemetry.addData("Starting angle1", servo1.STARTPOS);
+                telemetry.addLine(servo1.log());
+                telemetry.addData("NTRY1", servo1.ntry);
                 telemetry.update();
             }
         }
