@@ -303,11 +303,11 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
                     double distance = (goalHeightInches - limelightLensHeightInches) / Math.tan(angleToGoalRadians);
 
-                    telemetry.addData("AprilTag distanceHypotenuse (in)", "%.2f", distanceHypotenuse);
-                    telemetry.addData("AprilTag distance (in)", "%.2f", distance);
+                    //telemetry.addData("AprilTag distanceHypotenuse (in)", "%.2f", distanceHypotenuse);
+                    //telemetry.addData("AprilTag distance (in)", "%.2f", distance);
                     telemetry.addData("AprilTag distance new (in)", "%.2f", distanceNew);
-                    telemetry.addData("ty (deg)", "%.2f", targetOffsetAngle_Vertical);
-                    telemetry.addData("Angle (deg)", "%.2f", angleToGoalDegrees);
+                    //telemetry.addData("ty (deg)", "%.2f", targetOffsetAngle_Vertical);
+                    //telemetry.addData("Angle (deg)", "%.2f", angleToGoalDegrees);
                     double area = result.getTa();
                     telemetry.addData("area", "%.2f", area);
                 }
@@ -323,7 +323,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             displayAprilTagOrder();
 
             BallColor current1 = detectColor1();
-            telemetry.addData("Current Ball Sensor1", current1);
+            //telemetry.addData("Current Ball Sensor1", current1);
 
             if (current1 == BallColor.GREEN || current1 == BallColor.PURPLE) {
                 gamepad2.rumble(1, 1, 300);
@@ -927,7 +927,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
                 telemetry.addData("Turret Tracking", "Aiming at Tag 24");
                 telemetry.addData("tx", tx);
-                telemetry.addData("Power", robot.turretSpinner.getPower());
+                //telemetry.addData("Power", robot.turretSpinner.getPower());
                 return;
             }
         }
