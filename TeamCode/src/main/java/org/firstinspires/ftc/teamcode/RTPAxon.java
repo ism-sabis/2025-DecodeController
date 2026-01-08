@@ -95,8 +95,8 @@ public class RTPAxon {
         homeAngle = previousAngle;
 
         // Default PID coefficients
-        kP = 0.018;
-        kI = 0.001;
+        kP = 0.017;
+        kI = 0.002;
         kD = 0.000;
         integralSum = 0.0;
         lastError = 0.0;
@@ -122,6 +122,12 @@ public class RTPAxon {
         this.power = Math.max(-maxPower, Math.min(maxPower, power));
         servo.setPower(this.power * (direction == Direction.REVERSE ? -1 : 1));
     }
+
+    public void setRawPower(double power) {
+        this.power = Math.max(-maxPower, Math.min(maxPower, power));
+        servo.setPower(this.power * (direction == Direction.REVERSE ? -1 : 1));
+    }
+
 
     // Get current power
     public double getPower() {
@@ -365,13 +371,19 @@ public class RTPAxon {
             GamepadPair gamepads = new GamepadPair(gamepad1, gamepad2);
             RTPAxon servo = new RTPAxon(crservo, encoder);
             RTPAxon servo1 = new RTPAxon(crservo1, encoder1);
+            servo1.setRtp(false);
+
 
             waitForStart();
 
             while (!isStopRequested()) {
                 gamepads.copyStates();
                 servo.update();
-                servo1.update();
+                double followerScale = 0.5;
+
+                servo1.setRawPower(servo.getPower() * followerScale);
+
+                //servo1.update();
 
 
                 // Manual controls for target and PID tuning

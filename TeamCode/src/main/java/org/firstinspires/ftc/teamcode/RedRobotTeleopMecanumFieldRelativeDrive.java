@@ -7,6 +7,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.AnalogInput;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
@@ -136,6 +138,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     long intakeStartTime = 0;
     static final long INTAKE_SPIN_TIME = 2000; // 2 seconds to intake one ball
 
+    private RTPAxon servo;
+    private RTPAxon servo1;
 
 
 
@@ -162,6 +166,14 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Set initial gain
         colorSensor.setGain(colorGain);
         colorSensor1.setGain(colorGain);
+
+        CRServo crservo = hardwareMap.crservo.get("indexer");
+        CRServo crservo1 = hardwareMap.crservo.get("indexer1");
+        AnalogInput encoder = hardwareMap.get(AnalogInput.class, "indexerEncoder");
+        AnalogInput encoder1 = hardwareMap.get(AnalogInput.class, "indexerEncoder1");
+        servo = new RTPAxon(crservo, encoder);
+        servo1 = new RTPAxon(crservo1, encoder1);
+        servo1.setRtp(false);
 
 
 
@@ -190,6 +202,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         robot.kicker.setPosition(KICKER_DOWN);
 
+
+
     }
 
 
@@ -199,10 +213,12 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     @Override
     public void loop() {
 
-            robot.indexerAxon.update();
-            robot.indexerAxon1.update();
+        servo.update();
+        double followerScale = 0.5;
 
-            gamepads.copyStates();
+        servo1.setRawPower(servo.getPower() * followerScale);
+
+        gamepads.copyStates();
 
         // Set the default debounce time for all buttons
         gamepads.setDebounceTime(250);  // 250ms debounce time
@@ -425,16 +441,16 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         if (targetIdx < 0 || targetIdx >= NUM_SLOTS) return;
 
         int delta = (targetIdx - indexerAt + NUM_SLOTS) % NUM_SLOTS;
-        double newTarget = robot.indexerAxon.getTotalRotation() + (delta * ANGLE_PER_SLOT);
+        double newTarget = servo.getTotalRotation() + (delta * ANGLE_PER_SLOT);
 
-        robot.indexerAxon.setTargetRotation(newTarget);
-        robot.indexerAxon1.setTargetRotation(newTarget);
+        servo.setTargetRotation(newTarget);
+        servo1.setTargetRotation(newTarget);
         robot.feedingRotation.setPower(1.0);
         indexerAt = targetIdx;
     }
 
     boolean isIndexerAtTarget(double tolerance) {
-        return robot.indexerAxon.isAtTarget(tolerance) && robot.indexerAxon1.isAtTarget(tolerance);
+        return servo.isAtTarget(tolerance) && servo1.isAtTarget(tolerance);
     }
 
 // ============================================
@@ -566,8 +582,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Wait for indexer
         long startWait = System.currentTimeMillis();
         while (System.currentTimeMillis() - startWait < 1500 && ! isIndexerAtTarget(5)) {
-            robot.indexerAxon.update();
-            robot.indexerAxon1.update();
+            servo.update();
+            servo1.update();
         }
 
         // Start intake
@@ -599,8 +615,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Wait for rotation
         long startWait = System.currentTimeMillis();
         while (System.currentTimeMillis() - startWait < 1500 && !isIndexerAtTarget(5)) {
-            robot.indexerAxon.update();
-            robot.indexerAxon1.update();
+            servo.update();
+            servo1.update();
         }
 
         // Shoot
