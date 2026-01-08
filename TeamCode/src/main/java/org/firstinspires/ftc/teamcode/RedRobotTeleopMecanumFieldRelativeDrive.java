@@ -497,8 +497,12 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             double area = result.getTa();
             //telemetry.addData("area", "%.2f", area);
 
+            double launcherPower = 0;
+
+            launcherPower=(0.00303584*distanceNew)+0.586525;
 
 
+            /*
             // Same-plane distance estimate (inches)
             //double distance =
                     //22.25 / Math.tan(Math.toRadians(ty + 0));
@@ -536,7 +540,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 }
             }
 
-            return table[table.length - 1][1];
+            return table[table.length - 1][1]; */
+
+            return launcherPower;
         }
 
         return 1;
