@@ -33,6 +33,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 import org.firstinspires.ftc.teamcode.GamepadPair;
 import com.qualcomm.robotcore.hardware.Gamepad;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 /*
  * This OpMode illustrates how to program your robot to drive field relative.  This means
@@ -121,7 +122,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     double distanceNew = 0;
 
-    double testingLauncherPower = 0;
+    double testingLauncherPower = 0.5;
 
 
 
@@ -140,6 +141,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     private RTPAxon servo;
     private RTPAxon servo1;
+
+    ElapsedTime waitTimer = new ElapsedTime();
+
 
 
 
@@ -232,7 +236,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 long elapsed = System.currentTimeMillis() - intakeStartTime;
                 if (elapsed > INTAKE_SPIN_TIME) {
                     stopIntake();
-                    macroReindexIdentifyColors();
+                    //macroReindexIdentifyColors();
                 }
             }
 
@@ -438,7 +442,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     }
 
     void rotateIndexerTo(int targetIdx) {
-        if (targetIdx < 0 || targetIdx >= NUM_SLOTS) return;
+        /*if (targetIdx < 0 || targetIdx >= NUM_SLOTS) return;
 
         int delta = (targetIdx - indexerAt + NUM_SLOTS) % NUM_SLOTS;
         double newTarget = servo.getTotalRotation() + (delta * ANGLE_PER_SLOT);
@@ -446,6 +450,18 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         servo.setTargetRotation(newTarget);
         servo1.setTargetRotation(newTarget);
         robot.feedingRotation.setPower(1.0);
+        indexerAt = targetIdx;*/
+        // Compute forward delta (0,1,2)
+        int delta = (targetIdx - indexerAt + NUM_SLOTS) % NUM_SLOTS;
+
+        // Convert to degrees
+        double degreesToMove = delta * ANGLE_PER_SLOT;
+
+        // Command servo to move relative
+        servo.changeTargetRotation(degreesToMove);
+        servo1.changeTargetRotation(degreesToMove);
+
+        // Update current slot
         indexerAt = targetIdx;
     }
 
@@ -587,11 +603,11 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
 
         // Start intake
-        robot.indexer.setPower(1.0);
-        robot.indexer1.setPower(1.0);
-        robot.feedingRotation.setPower(1.0);
-        intakeActive = true;
-        intakeStartTime = System.currentTimeMillis();
+        //robot.indexer.setPower(1.0);
+        //robot.indexer1.setPower(1.0);
+        //robot.feedingRotation.setPower(1.0);
+        //intakeActive = true;
+        //intakeStartTime = System.currentTimeMillis();
     }
 
     void stopIntake() {
@@ -620,15 +636,43 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
 
         // Shoot
-        spinLauncherToSetPower();
-        try { Thread.sleep(750); } catch (InterruptedException e) { }
+        /*spinLauncherToSetPower();
+        try { Thread.sleep(10000); } catch (InterruptedException e) { }
         safeKick();
         try { Thread.sleep(500); } catch (InterruptedException e) { }
         robot.kicker.setPosition(KICKER_DOWN);
+        robot.launcher.setPower(0); */
+        shoot();
+
         robot.feedingRotation.setPower(0);
-        robot.launcher.setPower(0);
 
         indexerSlots[indexerAt] = BallColor.NONE;
+    }
+
+    void shoot() {
+        spinLauncherToSetPower();
+        waitTimer.reset();
+        if (waitTimer.seconds() >= calculateSpinUpTime()) {
+            kickCycle();
+            robot.launcher.setPower(0);
+
+        }
+
+
+    }
+
+    double calculateSpinUpTime() {
+        double SpinUpTime = 0;
+        SpinUpTime = 5;
+        return SpinUpTime;
+    }
+
+    void kickCycle() {
+        safeKick();
+        waitTimer.reset();
+        if (waitTimer.seconds() >= 0.5) {
+            robot.kicker.setPosition(KICKER_DOWN);
+        }
     }
 
     void testingShootOneBall() {
@@ -640,7 +684,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         // Shoot
         robot.launcher.setPower(testingLauncherPower);
-        try { Thread.sleep(5000); } catch (InterruptedException e) { }
+        try { Thread.sleep(10000); } catch (InterruptedException e) { }
         safeKick();
         try { Thread.sleep(500); } catch (InterruptedException e) { }
         robot.kicker.setPosition(KICKER_DOWN);
@@ -654,11 +698,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         for (int count = 0; count < NUM_SLOTS; count++) {
             BallColor c = indexerSlots[indexerAt];
             if (c != BallColor.NONE) {
-                spinLauncherToSetPower();
-                try { Thread.sleep(500); } catch (InterruptedException e) { }
-                safeKick();
-                try { Thread.sleep(300); } catch (InterruptedException e) { }
-                robot.kicker.setPosition(KICKER_DOWN);
+                shoot();
                 indexerSlots[indexerAt] = BallColor.NONE;
             }
             if (count < NUM_SLOTS - 1) {
@@ -667,7 +707,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             }
         }
         robot.feedingRotation.setPower(0);
-        robot.launcher.setPower(0);
         gamepads.blipRumble(2, 2);  // Done!
     }
 
@@ -702,22 +741,27 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         if (gamepads.isPressed(2, "cross")) {
             robot.feedingRotation.setPower(1.0);
             rotateIndexerTo((indexerAt - 1 + NUM_SLOTS) % NUM_SLOTS);
+            robot.feedingRotation.setPower(0);
         }
         if (gamepads.isPressed(2, "circle")) {
             robot.feedingRotation.setPower(1.0);
             rotateIndexerTo((indexerAt + 1) % NUM_SLOTS);
+            robot.feedingRotation.setPower(0);
         }
 
         // Manual intake
         if (gamepad2.square) {
-            robot.indexer.setPower(1.0);
-            robot.indexer1.setPower(1.0);
+            //robot.indexer.setPower(1.0);
+            //robot.indexer1.setPower(1.0);
+            robot.feedingRotation.setPower(1);
         } else if (gamepad2.triangle) {
-            robot.indexer.setPower(-1.0);
-            robot.indexer1.setPower(-1.0);
+            //robot.indexer.setPower(-1.0);
+            //robot.indexer1.setPower(-1.0);
+            robot.feedingRotation.setPower(-1);
         } else {
-            robot.indexer.setPower(0);
-            robot.indexer1.setPower(0);
+            //robot.indexer.setPower(0);
+            //robot.indexer1.setPower(0);
+            robot.feedingRotation.setPower(0);
         }
 
         // Manual launcher
