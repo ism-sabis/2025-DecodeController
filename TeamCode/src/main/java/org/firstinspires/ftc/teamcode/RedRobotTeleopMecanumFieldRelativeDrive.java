@@ -505,10 +505,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     void spinLauncherToSetPower() {
         double power = calculateLauncherPower();
-
-
-            robot.launcher.setPower(power);
-
+        robot.launcher.setPower(power);
+        waitTimer.reset();
+        while (waitTimer.seconds() >= calculateSpinUpTime());
     }
 
     public double getDistanceFromTag(double ta) {
@@ -638,6 +637,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Shoot
         /*spinLauncherToSetPower();
         try { Thread.sleep(10000); } catch (InterruptedException e) { }
+
         safeKick();
         try { Thread.sleep(500); } catch (InterruptedException e) { }
         robot.kicker.setPosition(KICKER_DOWN);
@@ -651,14 +651,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     void shoot() {
         spinLauncherToSetPower();
-        waitTimer.reset();
-        if (waitTimer.seconds() >= calculateSpinUpTime()) {
             kickCycle();
             robot.launcher.setPower(0);
-
-        }
-
-
     }
 
     double calculateSpinUpTime() {
@@ -784,6 +778,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
         if (gamepad2.right_stick_button) {
             testingShootOneBall();
+        }
+        if (gamepad2.left_stick_button) {
+            shoot();
         }
     }
 
