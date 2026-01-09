@@ -5,4 +5,3 @@ public enum BallColor {
     PURPLE,
     NONE
 }
-

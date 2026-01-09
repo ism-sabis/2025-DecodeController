@@ -65,7 +65,6 @@ public class RobotHardware {
 
     public VoltageSensor voltageSensor = null;
 
-
     public NormalizedColorSensor colorSensor = null;
     public NormalizedColorSensor colorSensor1 = null;
 
@@ -118,10 +117,10 @@ public class RobotHardware {
      */
     public void init(HardwareMap hardwareMap) {
 
-        //Gamepad gamepad1 = hardwareMap.get(Gamepad.class, "gamepad1");
-        //Gamepad gamepad2 = hardwareMap.get(Gamepad.class, "gamepad2");
+        // Gamepad gamepad1 = hardwareMap.get(Gamepad.class, "gamepad1");
+        // Gamepad gamepad2 = hardwareMap.get(Gamepad.class, "gamepad2");
 
-        //GamepadPair gamepadPair = new GamepadPair(gamepad1, gamepad2);
+        // GamepadPair gamepadPair = new GamepadPair(gamepad1, gamepad2);
 
         // Define and Initialize Motors (note: need to use reference to actual OpMode).
         leftLift = hardwareMap.get(DcMotor.class, "leftLift");
@@ -159,7 +158,6 @@ public class RobotHardware {
         indexerAxon = new RTPAxon(indexer, indexerEncoder);
         indexerAxon1 = new RTPAxon(indexer1, indexerEncoder1);
 
-
         // To drive forward, most robots need the motor on one side to be reversed,
         // because the axles point in opposite directions.
         // Pushing the left stick forward MUST make robot go forward. So adjust these
@@ -186,13 +184,13 @@ public class RobotHardware {
         rearRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         feedingRotation.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        //leftLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        //rightLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        //frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        //frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        //rearLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        //rearRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        //feedingRotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        // leftLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        // rightLift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        // frontLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        // frontRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        // rearLeft.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        // rearRight.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        // feedingRotation.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         // ZeroPowerBehavior
         frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);

@@ -19,7 +19,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 
 import java.util.List;
 
-
 /*
  * This OpMode illustrates how to program your robot to drive field relative.  This means
  * that the robot drives the direction you push the joystick regardless of the current orientation
@@ -44,7 +43,7 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     // Kicker positions
     static final double KICKER_DOWN = 0.725;
-    static final double KICKER_UP =0.5; // adjust if needed
+    static final double KICKER_UP = 0.5; // adjust if needed
 
     // Timing
     static final long KICK_TIME = 500; // milliseconds for kick
@@ -78,7 +77,7 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     };
 
     double driverYawOffset = 0; // initial offset in radians
-    boolean squarePrev = false;   // to detect rising edge of square button
+    boolean squarePrev = false; // to detect rising edge of square button
 
     double lastForward = 0;
     double lastRight = 0;
@@ -88,20 +87,11 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     boolean dpadRightPrev = false;
     boolean dpadLeftPrev = false;
 
-
     boolean lsButtonPreviouslyPressed = false;
 
     long intakeColorIgnoreUntil = 0;
 
     private boolean aprilOrderSet = false;
-
-
-
-
-
-
-
-
 
     @Override
     public void init() {
@@ -114,8 +104,6 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Set initial gain
         colorSensor.setGain(colorGain);
         colorSensor1.setGain(colorGain);
-
-
 
         telemetry.addData("ColorSensor", "Initialized");
         telemetry.addData("ColorSensor1", "Initialized");
@@ -134,17 +122,13 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         telemetry.setMsTransmissionInterval(11);
         telemetry.addData(">", "Robot Ready.  Press Play.");
-        //telemetry.update();
-
-
+        // telemetry.update();
 
         double driverYawOffset = Math.PI; // adjust to your driver position
 
         robot.kicker.setPosition(KICKER_DOWN);
 
     }
-
-
 
     // Call functions here
     // Place actual instructions here
@@ -153,24 +137,28 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         // Limelight3A
         LLStatus status = robot.limelight.getStatus();
-       // telemetry.addData("Name", status.getName());
-        //telemetry.addData("LL", "Temp: " + JavaUtil.formatNumber(status.getTemp(), 1) + "C, CPU: "
-            //    + JavaUtil.formatNumber(status.getCpu(), 1) + "%, FPS: " + Math.round(status.getFps()));
-        //telemetry.addData("Pipeline",
-           //     "Index: " + status.getPipelineIndex() + ", Type: " + status.getPipelineType());
+        // telemetry.addData("Name", status.getName());
+        // telemetry.addData("LL", "Temp: " + JavaUtil.formatNumber(status.getTemp(), 1)
+        // + "C, CPU: "
+        // + JavaUtil.formatNumber(status.getCpu(), 1) + "%, FPS: " +
+        // Math.round(status.getFps()));
+        // telemetry.addData("Pipeline",
+        // "Index: " + status.getPipelineIndex() + ", Type: " +
+        // status.getPipelineType());
         LLResult result = robot.limelight.getLatestResult();
         if (result != null) {
             // Access general information.
             Pose3D botpose = result.getBotpose();
             double captureLatency = result.getCaptureLatency();
             double targetingLatency = result.getTargetingLatency();
-            //telemetry.addData("PythonOutput", JavaUtil.makeTextFromList(result.getPythonOutput(), ","));
-            //telemetry.addData("tx", result.getTx());
-            //telemetry.addData("txnc", result.getTxNC());
-            //telemetry.addData("ty", result.getTy());
-            //telemetry.addData("tync", result.getTyNC());
-            //telemetry.addData("Botpose", botpose.toString());
-            //telemetry.addData("LL Latency", captureLatency + targetingLatency);
+            // telemetry.addData("PythonOutput",
+            // JavaUtil.makeTextFromList(result.getPythonOutput(), ","));
+            // telemetry.addData("tx", result.getTx());
+            // telemetry.addData("txnc", result.getTxNC());
+            // telemetry.addData("ty", result.getTy());
+            // telemetry.addData("tync", result.getTyNC());
+            // telemetry.addData("Botpose", botpose.toString());
+            // telemetry.addData("LL Latency", captureLatency + targetingLatency);
             // Access fiducial results.
             for (LLResultTypes.FiducialResult fiducialResult : result.getFiducialResults()) {
                 telemetry.addData("Fiducial",
@@ -208,9 +196,9 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             }
         }
 
-        //telemetry.update();
+        // telemetry.update();
 
-        //BallColor current = detectColor();
+        // BallColor current = detectColor();
 
         BallColor current1 = detectColor1();
         telemetry.addData("Current Ball Sensor1", current1); // shows NONE, GREEN, or PURPLE
@@ -220,16 +208,6 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             gamepad2.rumble(1, 1, 300); // strong, weak, duration in ms
         }
 
-
-
-
-
-
-
-
-
-
-
         NormalizedRGBA colors = colorSensor.getNormalizedColors();
         NormalizedRGBA colors1 = colorSensor1.getNormalizedColors();
 
@@ -238,50 +216,49 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         int blue = (int) (colors.blue * 255);
         int alpha = (int) (colors.alpha * 255);
 
-        //telemetry.addData("Red", red);
-        //telemetry.addData("Green", green);
-        //telemetry.addData("Blue", blue);
-        //telemetry.addData("Alpha", alpha);
-        //telemetry.update();
+        // telemetry.addData("Red", red);
+        // telemetry.addData("Green", green);
+        // telemetry.addData("Blue", blue);
+        // telemetry.addData("Alpha", alpha);
+        // telemetry.update();
         ;
 
         // Convert to HSV
         Color.colorToHSV(colors1.toColor(), hsvValues);
 
-        //telemetry.addData("Current Ball", current); // shows NONE, GREEN, or PURPLE
+        // telemetry.addData("Current Ball", current); // shows NONE, GREEN, or PURPLE
         telemetry.addData("Fin Colors",
                 "0: " + finColors[0] + " 1: " + finColors[1] + " 2: " + finColors[2]);
 
         // Show distance if supported
         if (colorSensor instanceof DistanceSensor) {
             double dist = ((DistanceSensor) colorSensor).getDistance(DistanceUnit.CM);
-            //telemetry.addData("Distance (cm)", "%.2f", dist);
+            // telemetry.addData("Distance (cm)", "%.2f", dist);
         }
         // Show distance if supported
         if (colorSensor1 instanceof DistanceSensor) {
             double dist = ((DistanceSensor) colorSensor1).getDistance(DistanceUnit.CM);
-            //telemetry.addData("Distance (cm)", "%.2f", dist);
+            // telemetry.addData("Distance (cm)", "%.2f", dist);
         }
 
-        //telemetry.addLine("Press A to reset Yaw");
-        //telemetry.addLine("Hold left bumper to drive in robot relative");
-        //telemetry.addLine("The left joystick sets the robot direction");
-       // telemetry.addLine("Moving the right joystick left and right turns the robot");
+        // telemetry.addLine("Press A to reset Yaw");
+        // telemetry.addLine("Hold left bumper to drive in robot relative");
+        // telemetry.addLine("The left joystick sets the robot direction");
+        // telemetry.addLine("Moving the right joystick left and right turns the
+        // robot");
 
         double yawDeg = robot.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
-       // telemetry.addData("Yaw (deg)", yawDeg);
-
+        // telemetry.addData("Yaw (deg)", yawDeg);
 
         // ===== TELEMETRY FOR DEBUGGING =====
-        //telemetry.addLine("===== DRIVER-RELATIVE DEBUG =====");
-        //telemetry.addData("driverYawOffset (deg)", Math.toDegrees(driverYawOffset));
-        //telemetry.addData("robotYaw (deg)", Math.toDegrees(robotYaw));
-        //telemetry.addData("joystickAngle (deg)", Math.toDegrees(Math.atan2(forward, right)));
-        //telemetry.addData("theta rotated (deg)", Math.toDegrees(theta));
-        //telemetry.addData("newForward", newForward);
-        //telemetry.addData("newRight", newRight);
-
-
+        // telemetry.addLine("===== DRIVER-RELATIVE DEBUG =====");
+        // telemetry.addData("driverYawOffset (deg)", Math.toDegrees(driverYawOffset));
+        // telemetry.addData("robotYaw (deg)", Math.toDegrees(robotYaw));
+        // telemetry.addData("joystickAngle (deg)", Math.toDegrees(Math.atan2(forward,
+        // right)));
+        // telemetry.addData("theta rotated (deg)", Math.toDegrees(theta));
+        // telemetry.addData("newForward", newForward);
+        // telemetry.addData("newRight", newRight);
 
         // If you press the A button, then you reset the Yaw to be zero from the way
         // the robot is currently pointing
@@ -289,43 +266,43 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             robot.imu.resetYaw();
         }
         /*
-        // If you press the left bumper, you get a drive from the point of view of the
-        // robot
-        // (much like driving an RC vehicle)
-        if (gamepad1.left_bumper) {
-            drive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
-        } else {
-            driveFieldRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
-        }
-
+         * // If you press the left bumper, you get a drive from the point of view of
+         * the
+         * // robot
+         * // (much like driving an RC vehicle)
+         * if (gamepad1.left_bumper) {
+         * drive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
+         * } else {
+         * driveFieldRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x,
+         * gamepad1.right_stick_x);
+         * }
+         * 
          */
 
         // Current button states
         boolean dpadRightNow = gamepad2.dpad_right;
-        boolean dpadLeftNow  = gamepad2.dpad_left;
+        boolean dpadLeftNow = gamepad2.dpad_left;
 
-// Increase gain on right D-pad press (rising edge)
-        //if (dpadRightNow && !dpadRightPrev) {
-       //     colorGain += 0.05f;
-       // }
+        // Increase gain on right D-pad press (rising edge)
+        // if (dpadRightNow && !dpadRightPrev) {
+        // colorGain += 0.05f;
+        // }
 
-// Decrease gain on left D-pad press (rising edge)
-        //if (dpadLeftNow && !dpadLeftPrev && colorGain > 0.1f) {
-        //    colorGain -= 0.05f;
-        //}
+        // Decrease gain on left D-pad press (rising edge)
+        // if (dpadLeftNow && !dpadLeftPrev && colorGain > 0.1f) {
+        // colorGain -= 0.05f;
+        // }
 
-// Apply gain to the color sensor
+        // Apply gain to the color sensor
         colorSensor.setGain(colorGain);
         colorSensor1.setGain(colorGain);
 
-// Save previous states for rising edge detection
+        // Save previous states for rising edge detection
         dpadRightPrev = dpadRightNow;
-        dpadLeftPrev  = dpadLeftNow;
+        dpadLeftPrev = dpadLeftNow;
 
-// Telemetry
-        //telemetry.addData("Color Sensor Gain", colorGain);
-
-
+        // Telemetry
+        // telemetry.addData("Color Sensor Gain", colorGain);
 
         // Rising edge detection for square button
         boolean squareNow = gamepad1.square;
@@ -344,31 +321,30 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         boolean yPrev = false;
         boolean xPrev2 = false; // separate from Gamepad1 X
 
+        // --- Gamepad2 button actions ---
+        // A button → shoot one ball
+        if (gamepad2.triangle && !aPrev) {
+            shootOneBall();
+        }
+        aPrev = gamepad2.triangle;
 
-            // --- Gamepad2 button actions ---
-            // A button → shoot one ball
-            if (gamepad2.triangle && !aPrev) {
-                shootOneBall();
-            }
-            aPrev = gamepad2.triangle;
+        // B button → macro simple shoot
+        if (gamepad2.square && !bPrev) {
+            macroSimpleShoot();
+        }
+        bPrev = gamepad2.square;
 
-            // B button → macro simple shoot
-            if (gamepad2.square && !bPrev) {
-                macroSimpleShoot();
-            }
-            bPrev = gamepad2.square;
+        // Y button → macro randomized shoot
+        if (gamepad2.x && !yPrev) {
+            macroRandomizedShoot();
+        }
+        yPrev = gamepad2.x;
 
-            // Y button → macro randomized shoot
-            if (gamepad2.x && !yPrev) {
-                macroRandomizedShoot();
-            }
-            yPrev = gamepad2.x;
-
-            // X button → rotate to RED (example)
-            if (gamepad2.circle && !xPrev2) {
-                rotateToColor(BallColor.GREEN); // or add logic to choose color dynamically
-            }
-            xPrev2 = gamepad2.circle;
+        // X button → rotate to RED (example)
+        if (gamepad2.circle && !xPrev2) {
+            rotateToColor(BallColor.GREEN); // or add logic to choose color dynamically
+        }
+        xPrev2 = gamepad2.circle;
 
         // Inside your TeleOp loop or as a separate function
         if (gamepad2.left_trigger > 0.4) {
@@ -377,21 +353,14 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             // -----------------------
             if (gamepad2.triangle && !lsButtonPreviouslyPressed) {
                 lsButtonPreviouslyPressed = true; // rising edge detection
-                shootOneBallAlways();             // new function
-            }
-            else if (!gamepad2.triangle) {
+                shootOneBallAlways(); // new function
+            } else if (!gamepad2.triangle) {
                 lsButtonPreviouslyPressed = false; // reset for next press
             }
         }
 
-
-
-
-
-
         // Set driver orientation (angle between driver forward and field forward)
-// Example: driver on south side facing north = 180 degrees
-
+        // Example: driver on south side facing north = 180 degrees
 
         if (gamepad1.left_bumper) {
             driveDriverRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x, driverYawOffset);
@@ -399,8 +368,6 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
             drive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x); // robot-relative
         }
-
-
 
         // Heading lock logic
         if (gamepad1.left_bumper) {
@@ -412,8 +379,6 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         } else {
             headingLocked = false; // release heading lock
         }
-
-
 
         robot.launcher.setPower(gamepad2.right_trigger);
 
@@ -446,11 +411,7 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         updateTurretControl();
 
-
-
-
-
-//        LLResult limelightResult = robot.limelight.getLatestResult();
+        // LLResult limelightResult = robot.limelight.getLatestResult();
         // TODO: Fix Limelight code
         // if (limelightResult != null) {
         // double tx = limelightResult.getTx();
@@ -516,7 +477,7 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         // Convert back to robot-relative Cartesian
         double newForward = r * Math.sin(theta);
-        double newRight   = r * Math.cos(theta);
+        double newRight = r * Math.cos(theta);
 
         // Send to mecanum drive
         drive(newForward, newRight, rotate);
@@ -555,11 +516,6 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             Thread.currentThread().interrupt();
         }
     }
-
-
-
-
-
 
     public void rotateToColor(BallColor desired) {
 
@@ -610,52 +566,52 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         robot.feedingRotation.setPower(1.0);
 
         // Wait until done (non-blocking alternative inside loop if you prefer)
-        //while (opModeIsActive() && robot.feedingRotation.isBusy()) {
+        // while (opModeIsActive() && robot.feedingRotation.isBusy()) {
         // optional safety timeout
-        //}
+        // }
 
         robot.feedingRotation.setPower(0);
         robot.feedingRotation.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
-/*
-    public void aimTurretAtRedGoal() {
-        LLResult result = robot.limelight.getLatestResult();
-
-        if (result == null) {
-            robot.turretSpinner.setPower(0);
-            return;
-        }
-
-        for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
-            if (tag.getFiducialId() == 24) { // Red Alliance goal
-                double tx = tag.getTargetXDegrees();
-
-                // Higher sensitivity (tune if necessary)
-                double kP = 0.05; // bigger than 0.01 → faster response
-                double turretPower = -kP * tx; // negative to move toward target
-
-
-
-                // Clamp max power to prevent overdrive
-                turretPower = Math.max(Math.min(turretPower, 1.0), -1.0);
-
-                // Optional deadzone for very small errors
-                if (Math.abs(tx) < 0.5) turretPower = 0;
-
-                robot.turretSpinner.setPower(turretPower);
-
-                telemetry.addData("Turret Tracking", "Aiming at Tag 24");
-                telemetry.addData("tx", tx);
-                telemetry.addData("Power", turretPower);
-                return;
-            }
-        }
-
-        // No target → stop
-        robot.turretSpinner.setPower(0);
-        telemetry.addData("Turret Tracking", "No target");
-    }
-*/
+    /*
+     * public void aimTurretAtRedGoal() {
+     * LLResult result = robot.limelight.getLatestResult();
+     * 
+     * if (result == null) {
+     * robot.turretSpinner.setPower(0);
+     * return;
+     * }
+     * 
+     * for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+     * if (tag.getFiducialId() == 24) { // Red Alliance goal
+     * double tx = tag.getTargetXDegrees();
+     * 
+     * // Higher sensitivity (tune if necessary)
+     * double kP = 0.05; // bigger than 0.01 → faster response
+     * double turretPower = -kP * tx; // negative to move toward target
+     * 
+     * 
+     * 
+     * // Clamp max power to prevent overdrive
+     * turretPower = Math.max(Math.min(turretPower, 1.0), -1.0);
+     * 
+     * // Optional deadzone for very small errors
+     * if (Math.abs(tx) < 0.5) turretPower = 0;
+     * 
+     * robot.turretSpinner.setPower(turretPower);
+     * 
+     * telemetry.addData("Turret Tracking", "Aiming at Tag 24");
+     * telemetry.addData("tx", tx);
+     * telemetry.addData("Power", turretPower);
+     * return;
+     * }
+     * }
+     * 
+     * // No target → stop
+     * robot.turretSpinner.setPower(0);
+     * telemetry.addData("Turret Tracking", "No target");
+     * }
+     */
 
     public void aimTurretAtBlueGoal() {
         LLResult result = robot.limelight.getLatestResult();
@@ -673,10 +629,10 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 // ------------------------
                 // Adaptive CR servo control
                 // ------------------------
-                double deadband = 0.5;          // degrees, ignore tiny offsets
-                double maxPower = 0.15;          // max speed at close range
-                double minPower = 0.05;         // minimum speed to overcome friction
-                double kP = 0.05;               // proportional gain
+                double deadband = 0.5; // degrees, ignore tiny offsets
+                double maxPower = 0.15; // max speed at close range
+                double minPower = 0.05; // minimum speed to overcome friction
+                double kP = 0.05; // proportional gain
 
                 if (Math.abs(tx) < deadband) {
                     // close enough → stop
@@ -700,16 +656,12 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         telemetry.addData("Turret Tracking", "No target");
     }
 
-
-
-
-
-    private BallColor detectColor(){
+    private BallColor detectColor() {
         NormalizedRGBA colors = colorSensor.getNormalizedColors();
 
-        int r = (int)(colors.red * 255);
-        int g = (int)(colors.green * 255);
-        int b = (int)(colors.blue * 255);
+        int r = (int) (colors.red * 255);
+        int g = (int) (colors.green * 255);
+        int b = (int) (colors.blue * 255);
 
         // Moderate wide green: require green to be reasonably strong
         if (g > 70 && g > r - 5 && g > b - 5) {
@@ -723,12 +675,12 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
     }
 
-    private BallColor detectColor1(){
+    private BallColor detectColor1() {
         NormalizedRGBA colors1 = colorSensor1.getNormalizedColors();
 
-        int r = (int)(colors1.red * 255);
-        int g = (int)(colors1.green * 255);
-        int b = (int)(colors1.blue * 255);
+        int r = (int) (colors1.red * 255);
+        int g = (int) (colors1.green * 255);
+        int b = (int) (colors1.blue * 255);
 
         // Moderate wide green: require green to be reasonably strong
         if (g > 70 && g > r - 5 && g > b - 5) {
@@ -741,11 +693,6 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             return BallColor.NONE;
         }
     }
-
-
-
-
-
 
     public void shootOneBall() {
         // Spin flywheel up
@@ -783,7 +730,8 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             BallColor targetColor = aprilOrder[i];
 
             // Skip if no color assigned
-            if (targetColor == BallColor.NONE) continue;
+            if (targetColor == BallColor.NONE)
+                continue;
 
             // Rotate until the correct color is detected
             while (true) {
@@ -806,7 +754,6 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Ensure feeder stops at the end
         robot.feedingRotation.setPower(0);
     }
-
 
     public void macroSimpleShoot() {
         // Number of balls to shoot
@@ -835,7 +782,6 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         robot.feedingRotation.setPower(0);
     }
 
-
     public void readAprilTagAndStoreOrder(int tagId) {
         switch (tagId) {
             case 21:
@@ -858,7 +804,6 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
     }
 
-
     // Call this every loop
     private void updateFinColor() {
         // Read ONLY from the new color sensor
@@ -871,12 +816,7 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Update only that fin
         finColors[finIndex] = detected;
 
-
     }
-
-
-
-
 
     // Thanks to FTC16072 for sharing this code!!
     public void drive(double forward, double right, double rotate) {
@@ -932,7 +872,6 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
     }
 
-
     public void feeding() {
         BallColor current1 = detectColor1();
         boolean kickerDown = robot.kicker.getPosition() >= 0.725;
@@ -948,8 +887,7 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             // Manual kicker (bypass)
             if (gamepad2.dpad_left) {
                 robot.kicker.setPosition(0.55);
-            }
-            else if (gamepad2.dpad_right) {
+            } else if (gamepad2.dpad_right) {
                 robot.kicker.setPosition(0.725);
             }
 
@@ -994,10 +932,6 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
     }
 
-
-
-
-
     public void turret() {
         if (gamepad2.left_bumper) {
             robot.turretSpinner.setPower(1);
@@ -1011,28 +945,25 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     public void updateTurretControl() {
 
         // ----------------------------
-        //  MANUAL MODE (bumper override)
+        // MANUAL MODE (bumper override)
         // ----------------------------
         if (gamepad2.left_bumper) {
-            robot.turretSpinner.setPower(0.8);   // rotate left
+            robot.turretSpinner.setPower(0.8); // rotate left
             telemetry.addData("Turret Mode", "Manual Left");
             return;
         }
 
         if (gamepad2.right_bumper) {
-            robot.turretSpinner.setPower(-0.8);  // rotate right
+            robot.turretSpinner.setPower(-0.8); // rotate right
             telemetry.addData("Turret Mode", "Manual Right");
             return;
         }
 
         // -----------------------------------
-        //  AUTO MODE (no bumpers → auto aim)
+        // AUTO MODE (no bumpers → auto aim)
         // -----------------------------------
-        aimTurretAtBlueGoal();   // calls the auto-aim code
+        aimTurretAtBlueGoal(); // calls the auto-aim code
     }
-
-
-
 
     /**
      * Returns the Geneva wheel position (0–5) and whether it is in a gap (true) or
@@ -1101,6 +1032,5 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             }
         }
     }
-
 
 }

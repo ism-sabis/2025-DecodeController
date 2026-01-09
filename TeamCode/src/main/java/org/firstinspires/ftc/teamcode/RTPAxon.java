@@ -36,7 +36,7 @@ public class RTPAxon {
     private double kD;
     private double integralSum;
     private double lastError;
-    private double maxIntegralSum; 
+    private double maxIntegralSum;
     private ElapsedTime pidTimer;
 
     // Initialization and debug fields
@@ -107,8 +107,6 @@ public class RTPAxon {
         maxPower = 0.25;
         cliffs = 0;
 
-
-
     }
     // endregion
 
@@ -127,7 +125,6 @@ public class RTPAxon {
         this.power = Math.max(-maxPower, Math.min(maxPower, power));
         servo.setPower(this.power * (direction == Direction.REVERSE ? -1 : 1));
     }
-
 
     // Get current power
     public double getPower() {
@@ -165,7 +162,7 @@ public class RTPAxon {
     // Set PID I coefficient and reset integral
     public void setKI(double kI) {
         this.kI = kI;
-        resetIntegral(); 
+        resetIntegral();
     }
 
     // Set PID D coefficient
@@ -174,7 +171,7 @@ public class RTPAxon {
     }
 
     // Set all PID coefficients
-    public void setPidCoeffs(double kP, double kI, double kD){
+    public void setPidCoeffs(double kP, double kI, double kD) {
         setKP(kP);
         setKI(kI);
         setKD(kD);
@@ -238,7 +235,8 @@ public class RTPAxon {
 
     // Get current angle from encoder (in degrees)
     public double getCurrentAngle() {
-        if (servoEncoder == null) return 0;
+        if (servoEncoder == null)
+            return 0;
         return (servoEncoder.getVoltage() / 3.3) * (direction.equals(Direction.REVERSE) ? 360 : -360);
     }
 
@@ -289,7 +287,8 @@ public class RTPAxon {
         totalRotation = currentAngle - homeAngle + cliffs * 360;
         previousAngle = currentAngle;
 
-        if (!rtp) return;
+        if (!rtp)
+            return;
 
         double dt = pidTimer.seconds();
         pidTimer.reset();
@@ -331,8 +330,6 @@ public class RTPAxon {
             setPower(0);
         }
 
-
-
     }
 
     // Log current state for telemetry/debug
@@ -353,8 +350,7 @@ public class RTPAxon {
                 power,
                 kP, kI, kD,
                 targetRotation - totalRotation,
-                integralSum
-        );
+                integralSum);
     }
 
     // TeleOp test class for manual tuning and testing
@@ -363,7 +359,8 @@ public class RTPAxon {
 
         @Override
         public void runOpMode() throws InterruptedException {
-            //telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+            // telemetry = new MultipleTelemetry(telemetry,
+            // FtcDashboard.getInstance().getTelemetry());
             CRServo crservo = hardwareMap.crservo.get("indexer");
             CRServo crservo1 = hardwareMap.crservo.get("indexer1");
             AnalogInput encoder = hardwareMap.get(AnalogInput.class, "indexerEncoder");
@@ -372,7 +369,6 @@ public class RTPAxon {
             RTPAxon servo = new RTPAxon(crservo, encoder);
             RTPAxon servo1 = new RTPAxon(crservo1, encoder1);
             servo1.setRtp(false);
-
 
             waitForStart();
 
@@ -383,8 +379,7 @@ public class RTPAxon {
 
                 servo1.setRawPower(servo.getPower() * followerScale);
 
-                //servo1.update();
-
+                // servo1.update();
 
                 // Manual controls for target and PID tuning
                 if (gamepads.isPressed(-1, "dpad_up")) {
@@ -427,12 +422,12 @@ public class RTPAxon {
                     servo1.setKI(Math.max(0, servo1.getKI() - 0.0001));
                 }
 
-                //if (gamepads.isPressed(-1, "touchpad")) {
-                //    servo.setKP(0.015);
-                //    servo.setKI(0.0005);
-                 //   servo.setKD(0.0025);
-                 //   servo.resetPID();
-                //}
+                // if (gamepads.isPressed(-1, "touchpad")) {
+                // servo.setKP(0.015);
+                // servo.setKI(0.0005);
+                // servo.setKD(0.0025);
+                // servo.resetPID();
+                // }
 
                 telemetry.addData("Starting angle", servo.STARTPOS);
                 telemetry.addLine(servo.log());

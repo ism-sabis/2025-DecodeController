@@ -22,9 +22,6 @@ import com.qualcomm.hardware.limelightvision.LLStatus;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
-
-
-
 import java.util.List;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -55,9 +52,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     final private RobotHardware robot = new RobotHardware();
 
     GamepadPair gamepads;
-
-
-
 
     // Kicker auto-cycle state
     boolean kickerCycling = false;
@@ -99,7 +93,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     };
 
     double driverYawOffset = 0; // initial offset in radians
-    boolean squarePrev = false;   // to detect rising edge of square button
+    boolean squarePrev = false; // to detect rising edge of square button
 
     double lastForward = 0;
     double lastRight = 0;
@@ -108,7 +102,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     float colorGain = 12.65f; // class-level
     boolean dpadRightPrev = false;
     boolean dpadLeftPrev = false;
-
 
     boolean lsButtonPreviouslyPressed = false;
 
@@ -124,14 +117,12 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     double testingLauncherPower = 0.5;
 
-
-
     int feederState = 0; // -1 = backward, 0 = off, 1 = forward
 
     // Indexer slot tracking
     static final int NUM_SLOTS = 3;
     BallColor[] indexerSlots = { BallColor.NONE, BallColor.NONE, BallColor.NONE };
-    int indexerAt = 0;  // Which slot is at shoot position (0 = shoot pos)
+    int indexerAt = 0; // Which slot is at shoot position (0 = shoot pos)
     static final double ANGLE_PER_SLOT = 120.0; // degrees to rotate per slot
 
     // Intake management
@@ -143,18 +134,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     private RTPAxon servo1;
 
     ElapsedTime waitTimer = new ElapsedTime();
-
-
-
-
-
-
-
-
-
-
-
-
 
     @Override
     public void init() {
@@ -179,8 +158,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         servo1 = new RTPAxon(crservo1, encoder1);
         servo1.setRtp(false);
 
-
-
         telemetry.addData("ColorSensor", "Initialized");
         telemetry.addData("ColorSensor1", "Initialized");
 
@@ -198,19 +175,13 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         telemetry.setMsTransmissionInterval(11);
         telemetry.addData(">", "Robot Ready.  Press Play.");
-        //telemetry.update();
-
-
+        // telemetry.update();
 
         double driverYawOffset = Math.PI; // adjust to your driver position
 
         robot.kicker.setPosition(KICKER_DOWN);
 
-
-
     }
-
-
 
     // Call functions here
     // Place actual instructions here
@@ -225,150 +196,144 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         gamepads.copyStates();
 
         // Set the default debounce time for all buttons
-        gamepads.setDebounceTime(250);  // 250ms debounce time
+        gamepads.setDebounceTime(250); // 250ms debounce time
 
-            // Update shooter color and LED
-            updateShooterPosColor();
-            updateShooterLed();
+        // Update shooter color and LED
+        updateShooterPosColor();
+        updateShooterLed();
 
-            // Handle intake auto-stop
-            if (intakeActive) {
-                long elapsed = System.currentTimeMillis() - intakeStartTime;
-                if (elapsed > INTAKE_SPIN_TIME) {
-                    stopIntake();
-                    //macroReindexIdentifyColors();
-                }
+        // Handle intake auto-stop
+        if (intakeActive) {
+            long elapsed = System.currentTimeMillis() - intakeStartTime;
+            if (elapsed > INTAKE_SPIN_TIME) {
+                stopIntake();
+                // macroReindexIdentifyColors();
             }
+        }
 
-            // ========== 3-LAYER GAMEPAD CONTROL ==========
-            boolean ltHeld = gamepad2.left_trigger > 0.4;
-            boolean rtHeld = gamepad2.right_trigger > 0.4;
+        // ========== 3-LAYER GAMEPAD CONTROL ==========
+        boolean ltHeld = gamepad2.left_trigger > 0.4;
+        boolean rtHeld = gamepad2.right_trigger > 0.4;
 
-            // LAYER 3: MANUAL (RIGHT TRIGGER HELD)
-            if (rtHeld) {
-                handleManualControls();
+        // LAYER 3: MANUAL (RIGHT TRIGGER HELD)
+        if (rtHeld) {
+            handleManualControls();
+        }
+        // LAYER 2: ADVANCED MACROS (LEFT TRIGGER HELD)
+        else if (ltHeld) {
+            if (gamepads.isPressed(2, "cross")) {
+                macroIntakeOneBall();
             }
-            // LAYER 2: ADVANCED MACROS (LEFT TRIGGER HELD)
-            else if (ltHeld) {
-                if (gamepads.isPressed(2, "cross")) {
+            if (gamepads.isPressed(2, "circle")) {
+                // Auto intake fill
+                while (findFirstEmptySlot() != -1) {
                     macroIntakeOneBall();
-                }
-                if (gamepads.isPressed(2, "circle")) {
-                    // Auto intake fill
-                    while (findFirstEmptySlot() != -1) {
-                        macroIntakeOneBall();
-                        try { Thread.sleep(3000); } catch (InterruptedException e) { }
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException e) {
                     }
                 }
-                if (gamepads.isPressed(2, "square")) {
-                    macroReindexIdentifyColors();
-                }
-                if (gamepads.isPressed(2, "triangle")) {
-                    // Eject closest ball
-                    rotateIndexerTo((indexerAt + 1) % NUM_SLOTS);
-                }
             }
-            // LAYER 1: BASIC MACROS (NO TRIGGER)
-            else {
-                if (gamepads.isPressed(2, "cross")) {
-                    macroIntakeOneBall();
-                }
-                if (gamepads.isPressed(2, "circle")) {
-                    macroShootOneBall(BallColor.GREEN);
-                }
-                if (gamepads.isPressed(2, "square")) {
-                    macroShootOneBall(BallColor.PURPLE);
-                }
-                if (gamepads.isPressed(2, "triangle")) {
-                    macroShootAllBalls();
-                }
-                if (gamepads.isPressed(2, "dpad_up")) {
-                    macroShootInPattern();
-                }
+            if (gamepads.isPressed(2, "square")) {
+                macroReindexIdentifyColors();
             }
+            if (gamepads.isPressed(2, "triangle")) {
+                // Eject closest ball
+                rotateIndexerTo((indexerAt + 1) % NUM_SLOTS);
+            }
+        }
+        // LAYER 1: BASIC MACROS (NO TRIGGER)
+        else {
+            if (gamepads.isPressed(2, "cross")) {
+                macroIntakeOneBall();
+            }
+            if (gamepads.isPressed(2, "circle")) {
+                macroShootOneBall(BallColor.GREEN);
+            }
+            if (gamepads.isPressed(2, "square")) {
+                macroShootOneBall(BallColor.PURPLE);
+            }
+            if (gamepads.isPressed(2, "triangle")) {
+                macroShootAllBalls();
+            }
+            if (gamepads.isPressed(2, "dpad_up")) {
+                macroShootInPattern();
+            }
+        }
 
         telemetry.addData("launcherPower", "%.2f", testingLauncherPower);
 
-            // ========== REST OF YOUR EXISTING CODE ==========
+        // ========== REST OF YOUR EXISTING CODE ==========
 
-            // Limelight (keep your existing code)
-            LLStatus status = robot.limelight.getStatus();
-            LLResult result = robot.limelight.getLatestResult();
-            if (result != null) {
-                for (LLResultTypes.FiducialResult fiducialResult : result.getFiducialResults()) {
-                    telemetry.addData("Fiducial", "ID: " + fiducialResult.getFiducialId());
-                    distanceNew = getDistanceFromTag(result.getTa());
+        // Limelight (keep your existing code)
+        LLStatus status = robot.limelight.getStatus();
+        LLResult result = robot.limelight.getLatestResult();
+        if (result != null) {
+            for (LLResultTypes.FiducialResult fiducialResult : result.getFiducialResults()) {
+                telemetry.addData("Fiducial", "ID: " + fiducialResult.getFiducialId());
+                distanceNew = getDistanceFromTag(result.getTa());
 
-                    double targetOffsetAngle_Vertical = 0.0;
+                double targetOffsetAngle_Vertical = 0.0;
 
-                    targetOffsetAngle_Vertical = result.getTy();
-                    // how many degrees back is your limelight rotated from perfectly vertical?
-                    double limelightMountAngleDegrees = 0;
+                targetOffsetAngle_Vertical = result.getTy();
+                // how many degrees back is your limelight rotated from perfectly vertical?
+                double limelightMountAngleDegrees = 0;
 
-                    // distance from the center of the Limelight lens to the floor
-                    double limelightLensHeightInches = 16.06;
+                // distance from the center of the Limelight lens to the floor
+                double limelightLensHeightInches = 16.06;
 
+                // distance from the target to the floor
+                double goalHeightInches = 29.5;
 
+                double angleToGoalDegrees = limelightMountAngleDegrees + targetOffsetAngle_Vertical;
+                double angleToGoalRadians = angleToGoalDegrees * (3.14159 / 180.0);
 
+                // calculate distance
+                double distanceHypotenuse = (goalHeightInches - limelightLensHeightInches)
+                        / Math.sin(angleToGoalRadians);
 
+                double distance = (goalHeightInches - limelightLensHeightInches) / Math.tan(angleToGoalRadians);
 
-                    // distance from the target to the floor
-                    double goalHeightInches = 29.5;
-
-                    double angleToGoalDegrees = limelightMountAngleDegrees + targetOffsetAngle_Vertical;
-                    double angleToGoalRadians = angleToGoalDegrees * (3.14159 / 180.0);
-
-                    //calculate distance
-                    double distanceHypotenuse = (goalHeightInches - limelightLensHeightInches) / Math.sin(angleToGoalRadians);
-
-                    double distance = (goalHeightInches - limelightLensHeightInches) / Math.tan(angleToGoalRadians);
-
-                    //telemetry.addData("AprilTag distanceHypotenuse (in)", "%.2f", distanceHypotenuse);
-                    //telemetry.addData("AprilTag distance (in)", "%.2f", distance);
-                    telemetry.addData("AprilTag distance new (in)", "%.2f", distanceNew);
-                    //telemetry.addData("ty (deg)", "%.2f", targetOffsetAngle_Vertical);
-                    //telemetry.addData("Angle (deg)", "%.2f", angleToGoalDegrees);
-                    double area = result.getTa();
-                    telemetry.addData("area", "%.2f", area);
-                }
+                // telemetry.addData("AprilTag distanceHypotenuse (in)", "%.2f",
+                // distanceHypotenuse);
+                // telemetry.addData("AprilTag distance (in)", "%.2f", distance);
+                telemetry.addData("AprilTag distance new (in)", "%.2f", distanceNew);
+                // telemetry.addData("ty (deg)", "%.2f", targetOffsetAngle_Vertical);
+                // telemetry.addData("Angle (deg)", "%.2f", angleToGoalDegrees);
+                double area = result.getTa();
+                telemetry.addData("area", "%.2f", area);
             }
+        }
 
+        displayAprilTagOrder();
 
+        BallColor current1 = detectColor1();
+        // telemetry.addData("Current Ball Sensor1", current1);
 
+        if (current1 == BallColor.GREEN || current1 == BallColor.PURPLE) {
+            gamepad2.rumble(1, 1, 300);
+        }
 
+        // Drive
+        if (gamepad1.left_bumper) {
+            driveDriverRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x, driverYawOffset);
+        } else {
+            drive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
+        }
 
+        // Turret
+        updateTurretControl();
 
+        // Lift
+        // lift();
 
+        // Kicker (keep existing logic, or manual in layer 3 will override)
+        updateKicker();
 
-            displayAprilTagOrder();
-
-            BallColor current1 = detectColor1();
-            //telemetry.addData("Current Ball Sensor1", current1);
-
-            if (current1 == BallColor.GREEN || current1 == BallColor.PURPLE) {
-                gamepad2.rumble(1, 1, 300);
-            }
-
-            // Drive
-            if (gamepad1.left_bumper) {
-                driveDriverRelative(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x, driverYawOffset);
-            } else {
-                drive(-gamepad1.left_stick_y, gamepad1.left_stick_x, gamepad1.right_stick_x);
-            }
-
-            // Turret
-            updateTurretControl();
-
-            // Lift
-            //lift();
-
-            // Kicker (keep existing logic, or manual in layer 3 will override)
-            updateKicker();
-
-            // Telemetry
-            telemetry.addData("Indexer At", indexerAt);
-            telemetry.addData("Slots", indexerSlots[0] + " | " + indexerSlots[1] + " | " + indexerSlots[2]);
-            telemetry.update();
+        // Telemetry
+        telemetry.addData("Indexer At", indexerAt);
+        telemetry.addData("Slots", indexerSlots[0] + " | " + indexerSlots[1] + " | " + indexerSlots[2]);
+        telemetry.update();
 
     }
 
@@ -392,10 +357,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         drive(newForward, newRight, rotate);
     }
 
-
     // ============================================
-// INDEXER & BALL TRACKING HELPERS
-// ============================================
+    // INDEXER & BALL TRACKING HELPERS
+    // ============================================
 
     void updateShooterPosColor() {
         BallColor detected = detectColor1();
@@ -405,11 +369,11 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     void updateShooterLed() {
         BallColor color = indexerSlots[indexerAt];
         if (color == BallColor.GREEN) {
-            gamepads.setLed(2, 0.0, 1.0, 0.0);  // Green LED
+            gamepads.setLed(2, 0.0, 1.0, 0.0); // Green LED
         } else if (color == BallColor.PURPLE) {
-            gamepads.setLed(2, 0.6, 0.0, 1.0);  // Purple LED
+            gamepads.setLed(2, 0.6, 0.0, 1.0); // Purple LED
         } else {
-            gamepads.setLed(2, 0.0, 0.0, 0.0);  // Off
+            gamepads.setLed(2, 0.0, 0.0, 0.0); // Off
         }
     }
 
@@ -442,15 +406,17 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     }
 
     void rotateIndexerTo(int targetIdx) {
-        /*if (targetIdx < 0 || targetIdx >= NUM_SLOTS) return;
-
-        int delta = (targetIdx - indexerAt + NUM_SLOTS) % NUM_SLOTS;
-        double newTarget = servo.getTotalRotation() + (delta * ANGLE_PER_SLOT);
-
-        servo.setTargetRotation(newTarget);
-        servo1.setTargetRotation(newTarget);
-        robot.feedingRotation.setPower(1.0);
-        indexerAt = targetIdx;*/
+        /*
+         * if (targetIdx < 0 || targetIdx >= NUM_SLOTS) return;
+         * 
+         * int delta = (targetIdx - indexerAt + NUM_SLOTS) % NUM_SLOTS;
+         * double newTarget = servo.getTotalRotation() + (delta * ANGLE_PER_SLOT);
+         * 
+         * servo.setTargetRotation(newTarget);
+         * servo1.setTargetRotation(newTarget);
+         * robot.feedingRotation.setPower(1.0);
+         * indexerAt = targetIdx;
+         */
         // Compute forward delta (0,1,2)
         int delta = (targetIdx - indexerAt + NUM_SLOTS) % NUM_SLOTS;
 
@@ -469,45 +435,48 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         return servo.isAtTarget(tolerance) && servo1.isAtTarget(tolerance);
     }
 
-// ============================================
-// LAUNCHER POWER CALCULATION (DISTANCE + VOLTAGE)
-// ============================================
+    // ============================================
+    // LAUNCHER POWER CALCULATION (DISTANCE + VOLTAGE)
+    // ============================================
 
-  /*  double calculateLauncherPower() {
-        LLResult result = robot.limelight.getLatestResult();
-        if (result == null) return 1;
-
-        for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
-            if (tag.getFiducialId() == 24) {  // Goal tag
-                double ty = tag.getTargetYDegrees();
-
-                // Estimate distance based on angle
-                double estimatedDistance = 72.0 / Math.tan(Math.toRadians(ty + 45));
-
-                // Get battery voltage
-                double voltage = robot.voltageSensor.getVoltage();
-                double nominalVoltage = 13.0;
-
-                // Power scales with distance and voltage compensation
-                double basePower = 0.8 + (estimatedDistance / 200.0);
-                double voltageFactor = nominalVoltage / voltage;
-                double finalPower = Math.min(1.0, basePower * voltageFactor);
-
-                telemetry.addData("Launcher Distance", estimatedDistance);
-                telemetry.addData("Battery Voltage", voltage);
-                telemetry.addData("Launcher Power", finalPower);
-
-                return finalPower;
-            }
-        }
-        return 1;
-    } */
+    /*
+     * double calculateLauncherPower() {
+     * LLResult result = robot.limelight.getLatestResult();
+     * if (result == null) return 1;
+     * 
+     * for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+     * if (tag.getFiducialId() == 24) { // Goal tag
+     * double ty = tag.getTargetYDegrees();
+     * 
+     * // Estimate distance based on angle
+     * double estimatedDistance = 72.0 / Math.tan(Math.toRadians(ty + 45));
+     * 
+     * // Get battery voltage
+     * double voltage = robot.voltageSensor.getVoltage();
+     * double nominalVoltage = 13.0;
+     * 
+     * // Power scales with distance and voltage compensation
+     * double basePower = 0.8 + (estimatedDistance / 200.0);
+     * double voltageFactor = nominalVoltage / voltage;
+     * double finalPower = Math.min(1.0, basePower * voltageFactor);
+     * 
+     * telemetry.addData("Launcher Distance", estimatedDistance);
+     * telemetry.addData("Battery Voltage", voltage);
+     * telemetry.addData("Launcher Power", finalPower);
+     * 
+     * return finalPower;
+     * }
+     * }
+     * return 1;
+     * }
+     */
 
     void spinLauncherToSetPower() {
         double power = calculateLauncherPower();
         robot.launcher.setPower(power);
         waitTimer.reset();
-        while (waitTimer.seconds() >= calculateSpinUpTime());
+        while (waitTimer.seconds() >= calculateSpinUpTime())
+            ;
     }
 
     public double getDistanceFromTag(double ta) {
@@ -518,60 +487,62 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     double calculateLauncherPower() {
         LLResult result = robot.limelight.getLatestResult();
-        if (result == null) return 1;
+        if (result == null)
+            return 1;
 
         for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
-            if (tag.getFiducialId() != 24) continue;
+            if (tag.getFiducialId() != 24)
+                continue;
 
-            //double ty = Math.max(tag.getTargetYDegrees(), 2.0);
+            // double ty = Math.max(tag.getTargetYDegrees(), 2.0);
 
             double area = result.getTa();
-            //telemetry.addData("area", "%.2f", area);
+            // telemetry.addData("area", "%.2f", area);
 
             double launcherPower = 0;
 
-            launcherPower=(0.00303584*distanceNew)+0.586525;
-
+            launcherPower = (0.00303584 * distanceNew) + 0.586525;
 
             /*
-            // Same-plane distance estimate (inches)
-            //double distance =
-                    //22.25 / Math.tan(Math.toRadians(ty + 0));
-
-            if (distanceNew > 150) distanceNew = 150;
-
-            // Manual distance → power table
-            double[][] table = {
-                    {18,  0.50},
-                    {24,  0.52},
-                    {30,  0.55},
-                    {36,  0.58},
-                    {42,  0.62},
-                    {48,  0.66},
-                    {60,  0.72},
-                    {75,  0.78},
-                    {90,  0.83},
-                    {110, 0.88},
-                    {130, 0.93},
-                    {150, 0.98}
-            };
-
-            // Linear interpolation
-            if (distanceNew <= table[0][0]) return table[0][1];
-
-            for (int i = 0; i < table.length - 1; i++) {
-                double d1 = table[i][0];
-                double p1 = table[i][1];
-                double d2 = table[i + 1][0];
-                double p2 = table[i + 1][1];
-
-                if (area <= d2) {
-                    double t = (area - d1) / (d2 - d1);
-                    return p1 + t * (p2 - p1);
-                }
-            }
-
-            return table[table.length - 1][1]; */
+             * // Same-plane distance estimate (inches)
+             * //double distance =
+             * //22.25 / Math.tan(Math.toRadians(ty + 0));
+             * 
+             * if (distanceNew > 150) distanceNew = 150;
+             * 
+             * // Manual distance → power table
+             * double[][] table = {
+             * {18, 0.50},
+             * {24, 0.52},
+             * {30, 0.55},
+             * {36, 0.58},
+             * {42, 0.62},
+             * {48, 0.66},
+             * {60, 0.72},
+             * {75, 0.78},
+             * {90, 0.83},
+             * {110, 0.88},
+             * {130, 0.93},
+             * {150, 0.98}
+             * };
+             * 
+             * // Linear interpolation
+             * if (distanceNew <= table[0][0]) return table[0][1];
+             * 
+             * for (int i = 0; i < table.length - 1; i++) {
+             * double d1 = table[i][0];
+             * double p1 = table[i][1];
+             * double d2 = table[i + 1][0];
+             * double p2 = table[i + 1][1];
+             * 
+             * if (area <= d2) {
+             * double t = (area - d1) / (d2 - d1);
+             * return p1 + t * (p2 - p1);
+             * }
+             * }
+             * 
+             * return table[table.length - 1][1];
+             */
 
             return launcherPower;
         }
@@ -579,15 +550,14 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         return 1;
     }
 
-
-// ============================================
-// MACRO FUNCTIONS
-// ============================================
+    // ============================================
+    // MACRO FUNCTIONS
+    // ============================================
 
     void macroIntakeOneBall() {
         int emptySlot = findFirstEmptySlot();
         if (emptySlot == -1) {
-            gamepads.blipRumble(2, 2);  // Vibrate:  full
+            gamepads.blipRumble(2, 2); // Vibrate: full
             telemetry.addLine("INTAKE:  Indexer full!");
             return;
         }
@@ -596,17 +566,17 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         // Wait for indexer
         long startWait = System.currentTimeMillis();
-        while (System.currentTimeMillis() - startWait < 1500 && ! isIndexerAtTarget(5)) {
+        while (System.currentTimeMillis() - startWait < 1500 && !isIndexerAtTarget(5)) {
             servo.update();
             servo1.update();
         }
 
         // Start intake
-        //robot.indexer.setPower(1.0);
-        //robot.indexer1.setPower(1.0);
-        //robot.feedingRotation.setPower(1.0);
-        //intakeActive = true;
-        //intakeStartTime = System.currentTimeMillis();
+        // robot.indexer.setPower(1.0);
+        // robot.indexer1.setPower(1.0);
+        // robot.feedingRotation.setPower(1.0);
+        // intakeActive = true;
+        // intakeStartTime = System.currentTimeMillis();
     }
 
     void stopIntake() {
@@ -619,7 +589,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     void macroShootOneBall(BallColor color) {
         int idx = findNearestSlotWithColor(color);
         if (idx == -1) {
-            gamepads.blipRumble(2, 3);  // Vibrate: not found
+            gamepads.blipRumble(2, 3); // Vibrate: not found
             telemetry.addLine("SHOOT: " + color + " not found!");
             return;
         }
@@ -635,13 +605,15 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
 
         // Shoot
-        /*spinLauncherToSetPower();
-        try { Thread.sleep(10000); } catch (InterruptedException e) { }
-
-        safeKick();
-        try { Thread.sleep(500); } catch (InterruptedException e) { }
-        robot.kicker.setPosition(KICKER_DOWN);
-        robot.launcher.setPower(0); */
+        /*
+         * spinLauncherToSetPower();
+         * try { Thread.sleep(10000); } catch (InterruptedException e) { }
+         * 
+         * safeKick();
+         * try { Thread.sleep(500); } catch (InterruptedException e) { }
+         * robot.kicker.setPosition(KICKER_DOWN);
+         * robot.launcher.setPower(0);
+         */
         shoot();
 
         robot.feedingRotation.setPower(0);
@@ -651,8 +623,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     void shoot() {
         spinLauncherToSetPower();
-            kickCycle();
-            robot.launcher.setPower(0);
+        kickCycle();
+        robot.launcher.setPower(0);
     }
 
     double calculateSpinUpTime() {
@@ -671,16 +643,17 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     void testingShootOneBall() {
 
-
-
-
-
-
         // Shoot
         robot.launcher.setPower(testingLauncherPower);
-        try { Thread.sleep(10000); } catch (InterruptedException e) { }
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+        }
         safeKick();
-        try { Thread.sleep(500); } catch (InterruptedException e) { }
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+        }
         robot.kicker.setPosition(KICKER_DOWN);
 
         robot.launcher.setPower(0);
@@ -697,19 +670,26 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             }
             if (count < NUM_SLOTS - 1) {
                 rotateIndexerTo((indexerAt + 1) % NUM_SLOTS);
-                try { Thread.sleep(800); } catch (InterruptedException e) { }
+                try {
+                    Thread.sleep(800);
+                } catch (InterruptedException e) {
+                }
             }
         }
         robot.feedingRotation.setPower(0);
-        gamepads.blipRumble(2, 2);  // Done!
+        gamepads.blipRumble(2, 2); // Done!
     }
 
     void macroShootInPattern() {
         for (int i = 0; i < NUM_SLOTS; i++) {
             BallColor toShoot = aprilOrder[i];
-            if (toShoot == BallColor.NONE) continue;
+            if (toShoot == BallColor.NONE)
+                continue;
             macroShootOneBall(toShoot);
-            try { Thread.sleep(300); } catch (InterruptedException e) { }
+            try {
+                Thread.sleep(300);
+            } catch (InterruptedException e) {
+            }
         }
         gamepads.blipRumble(2, 2);
     }
@@ -719,17 +699,21 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             updateShooterPosColor();
             robot.feedingRotation.setPower(0.7);
             rotateIndexerTo((indexerAt + 1) % NUM_SLOTS);
-            try { Thread.sleep(600); } catch (InterruptedException e) { }
+            try {
+                Thread.sleep(600);
+            } catch (InterruptedException e) {
+            }
         }
         robot.feedingRotation.setPower(0);
     }
 
-// ============================================
-// MANUAL CONTROLS (LAYER 3 - RIGHT TRIGGER)
-// ============================================
+    // ============================================
+    // MANUAL CONTROLS (LAYER 3 - RIGHT TRIGGER)
+    // ============================================
 
     void handleManualControls() {
-        if (gamepad2.right_trigger < 0.4) return;
+        if (gamepad2.right_trigger < 0.4)
+            return;
 
         // Manual indexer rotation
         if (gamepads.isPressed(2, "cross")) {
@@ -745,16 +729,16 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         // Manual intake
         if (gamepad2.square) {
-            //robot.indexer.setPower(1.0);
-            //robot.indexer1.setPower(1.0);
+            // robot.indexer.setPower(1.0);
+            // robot.indexer1.setPower(1.0);
             robot.feedingRotation.setPower(1);
         } else if (gamepad2.triangle) {
-            //robot.indexer.setPower(-1.0);
-            //robot.indexer1.setPower(-1.0);
+            // robot.indexer.setPower(-1.0);
+            // robot.indexer1.setPower(-1.0);
             robot.feedingRotation.setPower(-1);
         } else {
-            //robot.indexer.setPower(0);
-            //robot.indexer1.setPower(0);
+            // robot.indexer.setPower(0);
+            // robot.indexer1.setPower(0);
             robot.feedingRotation.setPower(0);
         }
 
@@ -769,12 +753,11 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             robot.kicker.setPosition(KICKER_DOWN);
         }
 
-
         if (gamepad2.dpad_up) {
-            testingLauncherPower = (testingLauncherPower+0.01);
+            testingLauncherPower = (testingLauncherPower + 0.01);
         }
         if (gamepad2.dpad_down) {
-            testingLauncherPower = (testingLauncherPower-0.01);
+            testingLauncherPower = (testingLauncherPower - 0.01);
         }
         if (gamepad2.right_stick_button) {
             testingShootOneBall();
@@ -783,7 +766,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             shoot();
         }
     }
-
 
     private void driveDriverRelative(double forward, double right, double rotate, double driverYawOffset) {
         // Store the last joystick values
@@ -802,7 +784,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         // Convert back to robot-relative Cartesian
         double newForward = r * Math.sin(theta);
-        double newRight   = r * Math.cos(theta);
+        double newRight = r * Math.cos(theta);
 
         // Send to mecanum drive
         drive(newForward, newRight, rotate);
@@ -842,11 +824,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
     }
 
-
-
-
-
-
     public void rotateToColor(BallColor desired) {
 
         // 1. Find which fin has the desired color
@@ -860,7 +837,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         if (targetFin == -1) {
             telemetry.addLine("ERROR: Desired color not found in any fin!");
-            //telemetry.update();
+            // telemetry.update();
             return;
         }
 
@@ -891,56 +868,56 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         double targetTicks = robot.feedingRotation.getCurrentPosition() + direction * TICKS_PER_FIN;
 
         // 5. Rotate until you reach the target
-        //robot.feedingRotation.setTargetPosition((int) targetTicks);
-        //robot.feedingRotation.setPower(1.0);
+        // robot.feedingRotation.setTargetPosition((int) targetTicks);
+        // robot.feedingRotation.setPower(1.0);
 
         // Wait until done (non-blocking alternative inside loop if you prefer)
-        //while (opModeIsActive() && robot.feedingRotation.isBusy()) {
+        // while (opModeIsActive() && robot.feedingRotation.isBusy()) {
         // optional safety timeout
-        //}
+        // }
 
-        //robot.feedingRotation.setPower(0);
+        // robot.feedingRotation.setPower(0);
 
     }
-/*
-    public void aimTurretAtRedGoal() {
-        LLResult result = robot.limelight.getLatestResult();
-
-        if (result == null) {
-            robot.turretSpinner.setPower(0);
-            return;
-        }
-
-        for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
-            if (tag.getFiducialId() == 24) { // Red Alliance goal
-                double tx = tag.getTargetXDegrees();
-
-                // Higher sensitivity (tune if necessary)
-                double kP = 0.05; // bigger than 0.01 → faster response
-                double turretPower = -kP * tx; // negative to move toward target
-
-
-
-                // Clamp max power to prevent overdrive
-                turretPower = Math.max(Math.min(turretPower, 1.0), -1.0);
-
-                // Optional deadzone for very small errors
-                if (Math.abs(tx) < 0.5) turretPower = 0;
-
-                robot.turretSpinner.setPower(turretPower);
-
-                telemetry.addData("Turret Tracking", "Aiming at Tag 24");
-                telemetry.addData("tx", tx);
-                telemetry.addData("Power", turretPower);
-                return;
-            }
-        }
-
-        // No target → stop
-        robot.turretSpinner.setPower(0);
-        telemetry.addData("Turret Tracking", "No target");
-    }
-*/
+    /*
+     * public void aimTurretAtRedGoal() {
+     * LLResult result = robot.limelight.getLatestResult();
+     * 
+     * if (result == null) {
+     * robot.turretSpinner.setPower(0);
+     * return;
+     * }
+     * 
+     * for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+     * if (tag.getFiducialId() == 24) { // Red Alliance goal
+     * double tx = tag.getTargetXDegrees();
+     * 
+     * // Higher sensitivity (tune if necessary)
+     * double kP = 0.05; // bigger than 0.01 → faster response
+     * double turretPower = -kP * tx; // negative to move toward target
+     * 
+     * 
+     * 
+     * // Clamp max power to prevent overdrive
+     * turretPower = Math.max(Math.min(turretPower, 1.0), -1.0);
+     * 
+     * // Optional deadzone for very small errors
+     * if (Math.abs(tx) < 0.5) turretPower = 0;
+     * 
+     * robot.turretSpinner.setPower(turretPower);
+     * 
+     * telemetry.addData("Turret Tracking", "Aiming at Tag 24");
+     * telemetry.addData("tx", tx);
+     * telemetry.addData("Power", turretPower);
+     * return;
+     * }
+     * }
+     * 
+     * // No target → stop
+     * robot.turretSpinner.setPower(0);
+     * telemetry.addData("Turret Tracking", "No target");
+     * }
+     */
 
     public void aimTurretAtRedGoal() {
         LLResult result = robot.limelight.getLatestResult();
@@ -958,10 +935,10 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 // ------------------------
                 // Adaptive CR servo control
                 // ------------------------
-                double deadband = 1.0;        // increase to ignore small jitters
+                double deadband = 1.0; // increase to ignore small jitters
                 double maxPower = 0.17;
-                double minPower = 0.1;       // lower minPower to avoid overshoot
-                double kP = 0.04;            // slightly lower proportional gain
+                double minPower = 0.1; // lower minPower to avoid overshoot
+                double kP = 0.04; // slightly lower proportional gain
 
                 if (Math.abs(tx) < deadband) {
                     // close enough → stop
@@ -981,10 +958,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                     robot.turretSpinner.setPower(Math.signum(tx) * scaledPower);
                 }
 
-
                 telemetry.addData("Turret Tracking", "Aiming at Tag 24");
                 telemetry.addData("tx", tx);
-                //telemetry.addData("Power", robot.turretSpinner.getPower());
+                // telemetry.addData("Power", robot.turretSpinner.getPower());
                 return;
             }
         }
@@ -994,16 +970,12 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         telemetry.addData("Turret Tracking", "No target");
     }
 
-
-
-
-
-    private BallColor detectColor(){
+    private BallColor detectColor() {
         NormalizedRGBA colors = colorSensor.getNormalizedColors();
 
-        int r = (int)(colors.red * 255);
-        int g = (int)(colors.green * 255);
-        int b = (int)(colors.blue * 255);
+        int r = (int) (colors.red * 255);
+        int g = (int) (colors.green * 255);
+        int b = (int) (colors.blue * 255);
 
         // Moderate wide green: require green to be reasonably strong
         if (g > 70 && g > r - 5 && g > b - 5) {
@@ -1017,12 +989,12 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
     }
 
-    private BallColor detectColor1(){
+    private BallColor detectColor1() {
         NormalizedRGBA colors1 = colorSensor1.getNormalizedColors();
 
-        int r = (int)(colors1.red * 255);
-        int g = (int)(colors1.green * 255);
-        int b = (int)(colors1.blue * 255);
+        int r = (int) (colors1.red * 255);
+        int g = (int) (colors1.green * 255);
+        int b = (int) (colors1.blue * 255);
 
         // Moderate wide green: require green to be reasonably strong
         if (g > 70 && g > r - 5 && g > b - 5) {
@@ -1035,11 +1007,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             return BallColor.NONE;
         }
     }
-
-
-
-
-
 
     public void shootOneBall() {
         // Spin flywheel up
@@ -1068,7 +1035,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             BallColor targetColor = aprilOrder[i];
 
             // Skip if no color assigned
-            if (targetColor == BallColor.NONE) continue;
+            if (targetColor == BallColor.NONE)
+                continue;
 
             // Rotate until the correct color is detected
             while (true) {
@@ -1079,7 +1047,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                     robot.indexer.setPower(0);
                     robot.indexer1.setPower(0);
                     feederState = 0;
-
 
                     break; // exit while loop
                 } else {
@@ -1101,10 +1068,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         feederState = 0;
 
     }
-
-
-
-
 
     public void macroSimpleShoot() {
         // Number of balls to shoot
@@ -1142,7 +1105,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     }
 
-
     public void readAprilTagAndStoreOrder(int tagId) {
         switch (tagId) {
             case 21:
@@ -1165,7 +1127,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
     }
 
-
     // Call this every loop
     private void updateFinColor() {
         // Read ONLY from the new color sensor
@@ -1178,12 +1139,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Update only that fin
         finColors[finIndex] = detected;
 
-
     }
-
-
-
-
 
     // Thanks to FTC16072 for sharing this code!!
     public void drive(double forward, double right, double rotate) {
@@ -1239,7 +1195,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
     }
 
-
     public void feeding() {
         BallColor current1 = detectColor1();
         boolean kickerDown = robot.kicker.getPosition() >= 0.725;
@@ -1255,8 +1210,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             // Manual kicker (bypass)
             if (gamepad2.dpad_left) {
                 robot.kicker.setPosition(0.55);
-            }
-            else if (gamepad2.dpad_right) {
+            } else if (gamepad2.dpad_right) {
                 robot.kicker.setPosition(0.725);
             }
 
@@ -1308,7 +1262,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             intakeColorIgnoreUntil = System.currentTimeMillis() + 1000; // 1 sec ignore
             feederState = -1;
 
-
         }
 
         // -------------------------------------
@@ -1325,10 +1278,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
     }
 
-
-
-
-
     public void turret() {
         if (gamepad2.left_bumper) {
             robot.turretSpinner.setPower(-1);
@@ -1342,28 +1291,25 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     public void updateTurretControl() {
 
         // ----------------------------
-        //  MANUAL MODE (bumper override)
+        // MANUAL MODE (bumper override)
         // ----------------------------
         if (gamepad2.left_bumper) {
-            robot.turretSpinner.setPower(-0.8);   // rotate left
+            robot.turretSpinner.setPower(-0.8); // rotate left
             telemetry.addData("Turret Mode", "Manual Left");
             return;
         }
 
         if (gamepad2.right_bumper) {
-            robot.turretSpinner.setPower(0.8);  // rotate right
+            robot.turretSpinner.setPower(0.8); // rotate right
             telemetry.addData("Turret Mode", "Manual Right");
             return;
         }
 
         // -----------------------------------
-        //  AUTO MODE (no bumpers → auto aim)
+        // AUTO MODE (no bumpers → auto aim)
         // -----------------------------------
-        aimTurretAtRedGoal();   // calls the auto-aim code
+        aimTurretAtRedGoal(); // calls the auto-aim code
     }
-
-
-
 
     /**
      * Returns the Geneva wheel position (0–5) and whether it is in a gap (true) or
@@ -1433,7 +1379,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
     }
 
-
     // ----- Function to detect AprilTag and display MOTIF order -----
     private void displayAprilTagOrder() {
         // Only run if we haven’t set the order yet
@@ -1453,11 +1398,10 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                     telemetry.addData("AprilTag ID", detectedTagId);
                     telemetry.addData("AprilOrder",
                             "0: " + aprilOrder[0] + ", 1: " + aprilOrder[1] + ", 2: " + aprilOrder[2]);
-                    //telemetry.update(); // make sure it actually shows
+                    // telemetry.update(); // make sure it actually shows
                 }
             }
         }
     }
-
 
 }

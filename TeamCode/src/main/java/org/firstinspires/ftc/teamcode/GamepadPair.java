@@ -5,8 +5,6 @@ import java.util.Objects;
 import java.util.HashMap;
 import java.util.Map;
 
-
-
 public class GamepadPair {
     private final Gamepad gamepad1;
     private final Gamepad gamepad2;
@@ -123,19 +121,32 @@ public class GamepadPair {
 
     private boolean getButtonState(Gamepad gamepad, Button button) {
         switch (button) {
-            case A: return gamepad.a;
-            case B: return gamepad.b;
-            case X: return gamepad.x;
-            case Y: return gamepad.y;
-            case DPAD_UP: return gamepad.dpad_up;
-            case DPAD_DOWN: return gamepad.dpad_down;
-            case DPAD_LEFT: return gamepad.dpad_left;
-            case DPAD_RIGHT: return gamepad.dpad_right;
-            case LEFT_BUMPER: return gamepad.left_bumper;
-            case RIGHT_BUMPER: return gamepad.right_bumper;
-            case LEFT_STICK_BUTTON: return gamepad.left_stick_button;
-            case RIGHT_STICK_BUTTON: return gamepad.right_stick_button;
-            default: throw new IllegalArgumentException("Unhandled button type: " + button);
+            case A:
+                return gamepad.a;
+            case B:
+                return gamepad.b;
+            case X:
+                return gamepad.x;
+            case Y:
+                return gamepad.y;
+            case DPAD_UP:
+                return gamepad.dpad_up;
+            case DPAD_DOWN:
+                return gamepad.dpad_down;
+            case DPAD_LEFT:
+                return gamepad.dpad_left;
+            case DPAD_RIGHT:
+                return gamepad.dpad_right;
+            case LEFT_BUMPER:
+                return gamepad.left_bumper;
+            case RIGHT_BUMPER:
+                return gamepad.right_bumper;
+            case LEFT_STICK_BUTTON:
+                return gamepad.left_stick_button;
+            case RIGHT_STICK_BUTTON:
+                return gamepad.right_stick_button;
+            default:
+                throw new IllegalArgumentException("Unhandled button type: " + button);
         }
     }
 
@@ -152,9 +163,12 @@ public class GamepadPair {
             isButtonPressed = (getButtonState(gamepad1, button) && !getButtonState(previousGamepad1, button)) ||
                     (getButtonState(gamepad2, button) && !getButtonState(previousGamepad2, button));
 
-            if(getButtonState(gamepad1, button)) gamepadNum = 1;
-            else if(getButtonState(gamepad2, button)) gamepadNum = 2;
-            else return false;
+            if (getButtonState(gamepad1, button))
+                gamepadNum = 1;
+            else if (getButtonState(gamepad2, button))
+                gamepadNum = 2;
+            else
+                return false;
         }
 
         return isButtonPressed && isDebounced(buttonStr, gamepadNum);
@@ -163,7 +177,6 @@ public class GamepadPair {
     public boolean isPressed(String buttonStr) {
         return isPressed(1, buttonStr) || isPressed(2, buttonStr);
     }
-
 
     public boolean isHeld(int gamepadNum, String buttonStr) {
 
@@ -176,7 +189,7 @@ public class GamepadPair {
                 getButtonState(gamepad2, button);
     }
 
-    public boolean isHeld(String buttonStr){
+    public boolean isHeld(String buttonStr) {
         Button button = Button.fromString(buttonStr);
         return getButtonState(gamepad1, button) ||
                 getButtonState(gamepad2, button);
@@ -210,9 +223,12 @@ public class GamepadPair {
 
         Gamepad currentGamepad = getGamepad(gamepadNum);
         switch (trigger) {
-            case "left_trigger": return currentGamepad.left_trigger;
-            case "right_trigger": return currentGamepad.right_trigger;
-            default: throw new IllegalArgumentException("Unknown trigger: " + trigger);
+            case "left_trigger":
+                return currentGamepad.left_trigger;
+            case "right_trigger":
+                return currentGamepad.right_trigger;
+            default:
+                throw new IllegalArgumentException("Unknown trigger: " + trigger);
         }
     }
 
@@ -230,7 +246,7 @@ public class GamepadPair {
         }
     }
 
-    public void blipRumble(int blips){
+    public void blipRumble(int blips) {
         gamepad1.rumbleBlips(blips);
         gamepad2.rumbleBlips(blips);
     }
@@ -243,7 +259,7 @@ public class GamepadPair {
         }
     }
 
-    public void rumble(int milliseconds){
+    public void rumble(int milliseconds) {
         gamepad1.rumble(milliseconds);
         gamepad2.rumble(milliseconds);
     }
@@ -256,7 +272,7 @@ public class GamepadPair {
         }
     }
 
-    public void rumble(Gamepad.RumbleEffect effect){
+    public void rumble(Gamepad.RumbleEffect effect) {
         gamepad1.runRumbleEffect(effect);
         gamepad2.runRumbleEffect(effect);
     }
