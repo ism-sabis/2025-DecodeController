@@ -14,6 +14,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
+
 import android.graphics.Color;
 
 import com.qualcomm.hardware.limelightvision.LLResult;
@@ -29,6 +30,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 import org.firstinspires.ftc.teamcode.GamepadPair;
+
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -121,7 +123,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     // Indexer slot tracking
     static final int NUM_SLOTS = 3;
-    BallColor[] indexerSlots = { BallColor.NONE, BallColor.NONE, BallColor.NONE };
+    BallColor[] indexerSlots = {BallColor.NONE, BallColor.NONE, BallColor.NONE};
     int indexerAt = 0; // Which slot is at shoot position (0 = shoot pos)
     static final double ANGLE_PER_SLOT = 120.0; // degrees to rotate per slot
 
@@ -408,10 +410,10 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     void rotateIndexerTo(int targetIdx) {
         /*
          * if (targetIdx < 0 || targetIdx >= NUM_SLOTS) return;
-         * 
+         *
          * int delta = (targetIdx - indexerAt + NUM_SLOTS) % NUM_SLOTS;
          * double newTarget = servo.getTotalRotation() + (delta * ANGLE_PER_SLOT);
-         * 
+         *
          * servo.setTargetRotation(newTarget);
          * servo1.setTargetRotation(newTarget);
          * robot.feedingRotation.setPower(1.0);
@@ -443,27 +445,27 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
      * double calculateLauncherPower() {
      * LLResult result = robot.limelight.getLatestResult();
      * if (result == null) return 1;
-     * 
+     *
      * for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
      * if (tag.getFiducialId() == 24) { // Goal tag
      * double ty = tag.getTargetYDegrees();
-     * 
+     *
      * // Estimate distance based on angle
      * double estimatedDistance = 72.0 / Math.tan(Math.toRadians(ty + 45));
-     * 
+     *
      * // Get battery voltage
      * double voltage = robot.voltageSensor.getVoltage();
      * double nominalVoltage = 13.0;
-     * 
+     *
      * // Power scales with distance and voltage compensation
      * double basePower = 0.8 + (estimatedDistance / 200.0);
      * double voltageFactor = nominalVoltage / voltage;
      * double finalPower = Math.min(1.0, basePower * voltageFactor);
-     * 
+     *
      * telemetry.addData("Launcher Distance", estimatedDistance);
      * telemetry.addData("Battery Voltage", voltage);
      * telemetry.addData("Launcher Power", finalPower);
-     * 
+     *
      * return finalPower;
      * }
      * }
@@ -507,9 +509,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
              * // Same-plane distance estimate (inches)
              * //double distance =
              * //22.25 / Math.tan(Math.toRadians(ty + 0));
-             * 
+             *
              * if (distanceNew > 150) distanceNew = 150;
-             * 
+             *
              * // Manual distance → power table
              * double[][] table = {
              * {18, 0.50},
@@ -525,22 +527,22 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
              * {130, 0.93},
              * {150, 0.98}
              * };
-             * 
+             *
              * // Linear interpolation
              * if (distanceNew <= table[0][0]) return table[0][1];
-             * 
+             *
              * for (int i = 0; i < table.length - 1; i++) {
              * double d1 = table[i][0];
              * double p1 = table[i][1];
              * double d2 = table[i + 1][0];
              * double p2 = table[i + 1][1];
-             * 
+             *
              * if (area <= d2) {
              * double t = (area - d1) / (d2 - d1);
              * return p1 + t * (p2 - p1);
              * }
              * }
-             * 
+             *
              * return table[table.length - 1][1];
              */
 
@@ -608,7 +610,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         /*
          * spinLauncherToSetPower();
          * try { Thread.sleep(10000); } catch (InterruptedException e) { }
-         * 
+         *
          * safeKick();
          * try { Thread.sleep(500); } catch (InterruptedException e) { }
          * robot.kicker.setPosition(KICKER_DOWN);
@@ -882,37 +884,37 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     /*
      * public void aimTurretAtRedGoal() {
      * LLResult result = robot.limelight.getLatestResult();
-     * 
+     *
      * if (result == null) {
      * robot.turretSpinner.setPower(0);
      * return;
      * }
-     * 
+     *
      * for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
      * if (tag.getFiducialId() == 24) { // Red Alliance goal
      * double tx = tag.getTargetXDegrees();
-     * 
+     *
      * // Higher sensitivity (tune if necessary)
      * double kP = 0.05; // bigger than 0.01 → faster response
      * double turretPower = -kP * tx; // negative to move toward target
-     * 
-     * 
-     * 
+     *
+     *
+     *
      * // Clamp max power to prevent overdrive
      * turretPower = Math.max(Math.min(turretPower, 1.0), -1.0);
-     * 
+     *
      * // Optional deadzone for very small errors
      * if (Math.abs(tx) < 0.5) turretPower = 0;
-     * 
+     *
      * robot.turretSpinner.setPower(turretPower);
-     * 
+     *
      * telemetry.addData("Turret Tracking", "Aiming at Tag 24");
      * telemetry.addData("tx", tx);
      * telemetry.addData("Power", turretPower);
      * return;
      * }
      * }
-     * 
+     *
      * // No target → stop
      * robot.turretSpinner.setPower(0);
      * telemetry.addData("Turret Tracking", "No target");
