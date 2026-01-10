@@ -297,8 +297,20 @@ public class RTPAxon {
         if (dt < 0.001 || dt > 1.0) {
             return;
         }
+        // Low-pass filter parameter
+        double alpha = 0.1;        // Smoothing factor (0.05-0.2 typical)
+
+        double v = alpha * (totalRotation - filteredPosition);
+        double filteredPosition += v
 
         double error = targetRotation - totalRotation;
+
+        // Deadzone for output
+        final double DEADZONE = 0.5;
+
+        if (Math.abs(error) < DEADZONE) {
+            error = 0;  // deadzone here
+        }
 
         // PID integral calculation with clamping
         integralSum += error * dt;
@@ -321,8 +333,8 @@ public class RTPAxon {
 
         double output = pTerm + iTerm + dTerm;
 
-        // Deadzone for output
-        final double DEADZONE = 0.5;
+
+
         if (Math.abs(error) > DEADZONE) {
             double power = Math.min(maxPower, Math.abs(output)) * Math.signum(output);
             setPower(power);
