@@ -194,7 +194,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     @Override
     public void loop() {
 
-        servo.update();
+        if (!robot.launcher.isBusy()) {
+            servo.update();
+        }
         double followerScale = 0.5;
 
         servo1.setRawPower(servo.getPower() * followerScale);
@@ -340,6 +342,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
 
         // Telemetry
+        telemetry.addData("spinUpTime", calculateSpinUpTime());
+        telemetry.addData("launcherPower",calculateLauncherPower());
+        telemetry.addData("RPM", calculateRPM());
         telemetry.addData("Indexer At", indexerAt);
         telemetry.addData("Slots", indexerSlots[0] + " | " + indexerSlots[1] + " | " + indexerSlots[2]);
         telemetry.addData("launcherState", launcherState.toString());
@@ -481,7 +486,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
      */
 
     public double getDistanceFromTag(double ta) {
-        double scale = 5481.0208;
         distanceNew = 72.34359 * Math.pow(ta, -0.479834);
         return distanceNew;
     }
@@ -504,51 +508,22 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
             launcherPower = (0.00303584 * distanceNew) + 0.586525;
 
-            /*
-             * // Same-plane distance estimate (inches)
-             * //double distance =
-             * //22.25 / Math.tan(Math.toRadians(ty + 0));
-             *
-             * if (distanceNew > 150) distanceNew = 150;
-             *
-             * // Manual distance → power table
-             * double[][] table = {
-             * {18, 0.50},
-             * {24, 0.52},
-             * {30, 0.55},
-             * {36, 0.58},
-             * {42, 0.62},
-             * {48, 0.66},
-             * {60, 0.72},
-             * {75, 0.78},
-             * {90, 0.83},
-             * {110, 0.88},
-             * {130, 0.93},
-             * {150, 0.98}
-             * };
-             *
-             * // Linear interpolation
-             * if (distanceNew <= table[0][0]) return table[0][1];
-             *
-             * for (int i = 0; i < table.length - 1; i++) {
-             * double d1 = table[i][0];
-             * double p1 = table[i][1];
-             * double d2 = table[i + 1][0];
-             * double p2 = table[i + 1][1];
-             *
-             * if (area <= d2) {
-             * double t = (area - d1) / (d2 - d1);
-             * return p1 + t * (p2 - p1);
-             * }
-             * }
-             *
-             * return table[table.length - 1][1];
-             */
-
             return launcherPower;
         }
 
         return 1;
+    }
+
+    double calculateRPM(){
+        double launcherRPM = 0;
+        launcherRPM = 6000 * calculateLauncherPower();
+        return launcherRPM;
+    }
+
+    double calculateSpinUpTime(){
+        double spinUpTime = 0;
+        spinUpTime = 0.00000275688 * Math.pow(calculateRPM(), 1.54859);
+        return spinUpTime;
     }
 
     // ============================================
@@ -626,7 +601,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             robot.launcher.setPower(power);
             waitTimer.reset();
             launcherState = LauncherState.SPINNING;
-        } else if (launcherState == LauncherState.SPINNING && waitTimer.seconds() >= 5) {
+        } else if (launcherState == LauncherState.SPINNING && waitTimer.seconds() >= calculateSpinUpTime()) {
             //safeKick();
             robot.kicker.setPosition(KICKER_UP);
             waitTimer.reset();
@@ -637,9 +612,15 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
         else if (launcherState == LauncherState.UNKICKING) {
             robot.launcher.setPower(0);
+            // Treat current position as the new "correct" position
+            double currentPos = servo.getTotalRotation();
+            servo.setTargetRotation(currentPos);
+            servo.resetPID();
             launcherState = LauncherState.IDLE;
         }
     }
+
+
     void testingShootOneBall() {
         // Shoot
         robot.launcher.setPower(testingLauncherPower);
