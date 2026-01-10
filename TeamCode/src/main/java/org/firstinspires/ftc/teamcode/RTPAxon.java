@@ -278,19 +278,13 @@ public class RTPAxon {
         double currentAngle = getCurrentAngle();
         double angleDifference = currentAngle - previousAngle;
 
-        // Max expected angular change per update (prevents false cliff detection)
-        final double MAX_DELTA = 120;  // servo can't move this fast in one update
-        
-        // Handle wraparound at 0/360 degrees - only if within physical limits
-        if (angleDifference > 180 && angleDifference < (360 - MAX_DELTA)) {
+        // Handle wraparound at 0/360 degrees
+        if (angleDifference > 180) {
             angleDifference -= 360;
             cliffs--;
-        } else if (angleDifference < -180 && angleDifference > -(360 - MAX_DELTA)) {
+        } else if (angleDifference < -180) {
             angleDifference += 360;
             cliffs++;
-        } else if (Math.abs(angleDifference) > MAX_DELTA) {
-            // Likely encoder glitch - ignore this update
-            return;
         }
 
         // Update total rotation with wraparound correction
