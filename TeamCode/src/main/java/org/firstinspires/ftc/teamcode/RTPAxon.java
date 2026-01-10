@@ -25,6 +25,8 @@ public class RTPAxon {
     private Direction direction;
     // Last measured angle
     private double previousAngle;
+    // Last measured angular velocity
+    private double lastVelocity = 0;
     // Accumulated rotation in degrees
     private double totalRotation;
     // Filtered total rotation (low-pass filtered)
@@ -233,6 +235,9 @@ public class RTPAxon {
     // Set target rotation and reset PID
     public void setTargetRotation(double target) {
         targetRotation = target;
+        // Recalibrate cliff counter to current position to prevent offset accumulation
+        homeAngle = getCurrentAngle();
+        cliffs = 0;
         resetPID();
     }
 
@@ -277,8 +282,12 @@ public class RTPAxon {
     public synchronized void update() {
         double currentAngle = getCurrentAngle();
         double angleDifference = currentAngle - previousAngle;
+        
+        // Store velocity for next iteration
+        lastVelocity = angleDifference;
 
         // Handle wraparound at 0/360 degrees
+        // Only count as wraparound if the jump is large AND consistent with velocity direction
         if (angleDifference > 180) {
             angleDifference -= 360;
             cliffs--;
