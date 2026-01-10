@@ -27,6 +27,8 @@ public class RTPAxon {
     private double previousAngle;
     // Accumulated rotation in degrees
     private double totalRotation;
+    // Filtered total rotation (low-pass filtered)
+    private double filteredTotalRotation;
     // Target rotation in degrees
     private double targetRotation;
 
@@ -92,6 +94,7 @@ public class RTPAxon {
         } while (Math.abs(previousAngle) < 0.2 && (ntry < 50));
 
         totalRotation = 0;
+        filteredTotalRotation = 0;
         homeAngle = previousAngle;
 
         // Default PID coefficients
@@ -247,12 +250,13 @@ public class RTPAxon {
 
     // Check if servo is at target (custom tolerance)
     public boolean isAtTarget(double tolerance) {
-        return Math.abs(targetRotation - totalRotation) < tolerance;
+        return Math.abs(targetRotation - filteredTotalRotation) < tolerance;
     }
 
     // Force reset total rotation and PID state
     public void forceResetTotalRotation() {
         totalRotation = 0;
+        filteredTotalRotation = 0;
         previousAngle = getCurrentAngle();
         resetPID();
     }
@@ -297,13 +301,13 @@ public class RTPAxon {
         if (dt < 0.001 || dt > 1.0) {
             return;
         }
-        // Low-pass filter parameter
-        double alpha = 0.1;        // Smoothing factor (0.05-0.2 typical)
 
-        double v = alpha * (totalRotation - filteredPosition);
-        double filteredPosition += v
+        // Low-pass filter to smooth totalRotation
+        double alpha = 0.1;  // Smoothing factor (0.05-0.2 typical, lower = more smoothing)
+        filteredTotalRotation += alpha * (totalRotation - filteredTotalRotation);
 
-        double error = targetRotation - totalRotation;
+        // Use filtered position for PID calculation
+        double error = targetRotation - filteredTotalRotation;
 
         // Deadzone for output
         final double DEADZONE = 0.5;
