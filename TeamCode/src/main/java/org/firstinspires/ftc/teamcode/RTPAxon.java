@@ -40,11 +40,6 @@ public class RTPAxon {
     private double lastError;
     private double maxIntegralSum;
     private ElapsedTime pidTimer;
-    
-    // Minimum power threshold to overcome friction
-    private double minPower = 0.08;
-    // Asymmetric power bias for reverse direction
-    private double reversePowerBias = 1.15;
 
     // Initialization and debug fields
     public double STARTPOS;
@@ -219,26 +214,6 @@ public class RTPAxon {
     public double getMaxIntegralSum() {
         return maxIntegralSum;
     }
-    
-    // Set minimum power threshold
-    public void setMinPower(double minPower) {
-        this.minPower = minPower;
-    }
-    
-    // Get minimum power threshold
-    public double getMinPower() {
-        return minPower;
-    }
-    
-    // Set reverse power bias multiplier
-    public void setReversePowerBias(double bias) {
-        this.reversePowerBias = bias;
-    }
-    
-    // Get reverse power bias multiplier
-    public double getReversePowerBias() {
-        return reversePowerBias;
-    }
 
     // Get total rotation since initialization
     public double getTotalRotation() {
@@ -362,21 +337,10 @@ public class RTPAxon {
 
         double output = pTerm + iTerm + dTerm;
 
+
+
         if (Math.abs(error) > DEADZONE) {
-            double power = Math.abs(output);
-            
-            // Apply minimum power threshold to overcome static friction
-            if (power < minPower && power > 0.001) {
-                power = minPower;
-            }
-            
-            // Apply asymmetric power adjustment for reverse direction
-            if (output < 0) {
-                power *= reversePowerBias;
-            }
-            
-            // Clamp to max power and apply sign
-            power = Math.min(maxPower, power) * Math.signum(output);
+            double power = Math.min(maxPower, Math.abs(output)) * Math.signum(output);
             setPower(power);
         } else {
             setPower(0);
