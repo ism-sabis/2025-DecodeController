@@ -31,6 +31,10 @@ public class RTPAxon {
     private double filteredTotalRotation;
     // Target rotation in degrees
     private double targetRotation;
+    // Last change direction (positive or negative)
+    private double lastChangeDirection = 0;
+    // Compensation offset when switching directions
+    private double directionChangeCompensation = 0;
 
     // PID controller coefficients and state
     private double kP;
@@ -224,10 +228,30 @@ public class RTPAxon {
     public double getTargetRotation() {
         return targetRotation;
     }
+    
+    // Set compensation offset for direction changes
+    public void setDirectionChangeCompensation(double compensation) {
+        this.directionChangeCompensation = compensation;
+    }
+    
+    // Get compensation offset
+    public double getDirectionChangeCompensation() {
+        return directionChangeCompensation;
+    }
 
     // Increment target rotation by a value
     public void changeTargetRotation(double change) {
-        targetRotation += change;
+        // Detect direction change
+        boolean directionChanged = (lastChangeDirection * change < 0) && (lastChangeDirection != 0);
+        
+        // Apply compensation if direction changed
+        if (directionChanged) {
+            targetRotation += change + (Math.signum(change) * directionChangeCompensation);
+        } else {
+            targetRotation += change;
+        }
+        
+        lastChangeDirection = change;
     }
 
     // Set target rotation and reset PID
