@@ -303,14 +303,14 @@ public class RTPAxon {
         }
 
         // Low-pass filter to smooth totalRotation
-        double alpha = 0.1;  // Smoothing factor (0.05-0.2 typical, lower = more smoothing)
+        double alpha = 0.05;  // Smoothing factor (0.05-0.2 typical, lower = more smoothing)
         filteredTotalRotation += alpha * (totalRotation - filteredTotalRotation);
 
         // Use filtered position for PID calculation
-        double error = targetRotation - filteredTotalRotation;
+        double error = targetRotation - totalRotation;
 
         // Deadzone for output
-        final double DEADZONE = 1;
+        final double DEADZONE = 2;
 
         if (Math.abs(error) < DEADZONE) {
             error = 0;  // deadzone here
