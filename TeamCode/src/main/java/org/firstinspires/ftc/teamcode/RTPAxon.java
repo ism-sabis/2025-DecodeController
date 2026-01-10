@@ -310,7 +310,7 @@ public class RTPAxon {
         double error = targetRotation - filteredTotalRotation;
 
         // Deadzone for output
-        final double DEADZONE = 0.5;
+        final double DEADZONE = 1;
 
         if (Math.abs(error) < DEADZONE) {
             error = 0;  // deadzone here
