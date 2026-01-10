@@ -194,9 +194,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     @Override
     public void loop() {
 
-        if (!robot.launcher.isBusy()) {
-            servo.update();
-        }
+        servo.update();
         double followerScale = 0.5;
 
         servo1.setRawPower(servo.getPower() * followerScale);
@@ -577,7 +575,10 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         while (System.currentTimeMillis() - startWait < 1500 && !isIndexerAtTarget(5)) {
             servo.update();
         }
-
+        if (launcherState == LauncherState.IDLE) {
+            launcherState = LauncherState.STARTING;
+        }
+        shootLoop();
         // Shoot
         /*
          * spinLauncherToSetPower();
@@ -612,10 +613,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
         else if (launcherState == LauncherState.UNKICKING) {
             robot.launcher.setPower(0);
-            // Treat current position as the new "correct" position
-            double currentPos = servo.getTotalRotation();
-            servo.setTargetRotation(currentPos);
-            servo.resetPID();
             launcherState = LauncherState.IDLE;
         }
     }
