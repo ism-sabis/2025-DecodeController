@@ -408,7 +408,7 @@ public class RTPAxon {
             GamepadPair gamepads = new GamepadPair(gamepad1, gamepad2);
             RTPAxon servo = new RTPAxon(crservo, encoder);
             RTPAxon servo1 = new RTPAxon(crservo1, encoder1);
-            servo.setDirectionChangeCompensation(5);  // Start with 5 degrees
+            servo.setDirectionChangeCompensation(11);  // Start with 5 degrees
             servo1.setRtp(false);
 
             waitForStart();
