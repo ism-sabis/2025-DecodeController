@@ -124,8 +124,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     // Indexer slot tracking
     static final int NUM_SLOTS = 3;
     BallColor[] indexerSlots = {BallColor.NONE, BallColor.NONE, BallColor.NONE};
-    int indexerAt = 0; // Which slot is at shoot position (0 = shoot pos)
     static final double ANGLE_PER_SLOT = 120.0; // degrees to rotate per slot
+    // Derived from servo position: which slot is currently at shooting position
+    private int lastDetectedSlot = -1;
 
     // Intake management
     boolean intakeActive = false;
@@ -195,6 +196,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     public void loop() {
 
         servo.update();
+        servo.setDirectionChangeCompensation(11);  // Start with 5 degrees
         double followerScale = 0.5;
 
         servo1.setRawPower(servo.getPower() * followerScale);
@@ -245,7 +247,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             }
             if (gamepads.isPressed(2, "triangle")) {
                 // Eject closest ball
-                rotateIndexerTo((indexerAt + 1) % NUM_SLOTS);
+                int currentSlot = getSlotAtShootingPosition();
+                rotateIndexerTo((currentSlot + 1) % NUM_SLOTS);
             }
         }
         // LAYER 1: BASIC MACROS (NO TRIGGER)
@@ -340,10 +343,12 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
 
         // Telemetry
+        int shootingSlot = getSlotAtShootingPosition();
         telemetry.addData("spinUpTime", calculateSpinUpTime());
         telemetry.addData("launcherPower",calculateLauncherPower());
         telemetry.addData("RPM", calculateRPM());
-        telemetry.addData("Indexer At", indexerAt);
+        telemetry.addData("Servo Total Rotation", servo.getTotalRotation());
+        telemetry.addData("Slot at Shooting Pos", shootingSlot);
         telemetry.addData("Slots", indexerSlots[0] + " | " + indexerSlots[1] + " | " + indexerSlots[2]);
         telemetry.addData("launcherState", launcherState.toString());
         telemetry.update();
@@ -374,13 +379,19 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     // INDEXER & BALL TRACKING HELPERS
     // ============================================
 
+    /**
+     * Update color of ball at shooting position based on sensor1 reading.
+     * This maps the color sensor reading to the correct slot based on servo position.
+     */
     void updateShooterPosColor() {
         BallColor detected = detectColor1();
-        indexerSlots[indexerAt] = detected;
+        int shootingSlot = getSlotAtShootingPosition();
+        indexerSlots[shootingSlot] = detected;
     }
 
     void updateShooterLed() {
-        BallColor color = indexerSlots[indexerAt];
+        int shootingSlot = getSlotAtShootingPosition();
+        BallColor color = indexerSlots[shootingSlot];
         if (color == BallColor.GREEN) {
             gamepads.setLed(2, 0.0, 1.0, 0.0); // Green LED
         } else if (color == BallColor.PURPLE) {
@@ -390,14 +401,45 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
     }
 
+    /**
+     * Calculate which slot is currently at the shooting position based on servo rotation.
+     * Slot 0 is at 0°, Slot 1 is at 120°, Slot 2 is at 240°
+     * Shooting position is at 0° totalRotation
+     */
+    int getSlotAtShootingPosition() {
+        double totalRot = servo.getTotalRotation();
+        // Normalize to 0-360 range
+        double normalizedRot = ((totalRot % 360) + 360) % 360;
+        // Find nearest slot
+        int nearestSlot = Math.round((float) normalizedRot / 120.0f) % NUM_SLOTS;
+        return nearestSlot;
+    }
+
+    /**
+     * Check if we've reached a new slot position during indexing.
+     * Useful for detecting when a new ball enters the sensor during intake.
+     */
+    boolean hasReachedNewSlot() {
+        int currentSlot = getSlotAtShootingPosition();
+        if (lastDetectedSlot == -1) {
+            lastDetectedSlot = currentSlot;
+            return false;
+        }
+        if (currentSlot != lastDetectedSlot) {
+            lastDetectedSlot = currentSlot;
+            return true;
+        }
+        return false;
+    }
+
     int findNearestSlotWithColor(BallColor target) {
+        int currentSlot = getSlotAtShootingPosition();
         int bestDist = NUM_SLOTS;
         int bestIdx = -1;
         for (int i = 0; i < NUM_SLOTS; i++) {
             if (indexerSlots[i] == target) {
-                // Calculate shortest rotational distance
-                int forward = (i - indexerAt + NUM_SLOTS) % NUM_SLOTS;
-                int backward = (indexerAt - i + NUM_SLOTS) % NUM_SLOTS;
+                int forward = (i - currentSlot + NUM_SLOTS) % NUM_SLOTS;
+                int backward = (currentSlot - i + NUM_SLOTS) % NUM_SLOTS;
                 int d = Math.min(forward, backward);
 
                 if (d < bestDist) {
@@ -418,32 +460,34 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         return -1;
     }
 
+    /**
+     * Rotate indexer to bring targetIdx to the shooting position.
+     * Uses changeTargetRotation() for incremental movement.
+     */
     void rotateIndexerTo(int targetIdx) {
-        /*
-         * if (targetIdx < 0 || targetIdx >= NUM_SLOTS) return;
-         *
-         * int delta = (targetIdx - indexerAt + NUM_SLOTS) % NUM_SLOTS;
-         * double newTarget = servo.getTotalRotation() + (delta * ANGLE_PER_SLOT);
-         *
-         * servo.setTargetRotation(newTarget);
-         * servo1.setTargetRotation(newTarget);
-         * robot.feedingRotation.setPower(1.0);
-         * indexerAt = targetIdx;
-         */
-        // Compute forward delta (0,1,2)
-        int delta = (targetIdx - indexerAt + NUM_SLOTS) % NUM_SLOTS;
+        if (targetIdx < 0 || targetIdx >= NUM_SLOTS) return;
 
-        // Convert to degrees
-        double degreesToMove = delta * ANGLE_PER_SLOT;
+        int currentSlot = getSlotAtShootingPosition();
+        // Compute shortest path (forward or backward)
+        int forwardDelta = (targetIdx - currentSlot + NUM_SLOTS) % NUM_SLOTS;
+        int backwardDelta = (currentSlot - targetIdx + NUM_SLOTS) % NUM_SLOTS;
+
+        double degreesToMove;
+        if (forwardDelta <= backwardDelta) {
+            // Move forward
+            degreesToMove = forwardDelta * ANGLE_PER_SLOT;
+        } else {
+            // Move backward
+            degreesToMove = -backwardDelta * ANGLE_PER_SLOT;
+        }
 
         // Command servo to move relative
-//        servo.changeTargetRotation(degreesToMove);
-
-        // Update current slot
-        indexerAt = targetIdx;
+        servo.changeTargetRotation(degreesToMove);
+        servo1.changeTargetRotation(degreesToMove);
     }
 
     boolean isIndexerAtTarget(double tolerance) {
+        // Both servos should be at their target, with small tolerance
         return servo.isAtTarget(tolerance) && servo1.isAtTarget(tolerance);
     }
 
@@ -593,7 +637,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         robot.feedingRotation.setPower(0);
 
-        indexerSlots[indexerAt] = BallColor.NONE;
+        // Clear the slot that was at shooting position
+        int shootingSlot = getSlotAtShootingPosition();
+        indexerSlots[shootingSlot] = BallColor.NONE;
     }
 
     void shootLoop() {
@@ -639,13 +685,15 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     void macroShootAllBalls() {
         robot.feedingRotation.setPower(1.0);
         for (int count = 0; count < NUM_SLOTS; count++) {
-            BallColor c = indexerSlots[indexerAt];
+            int shootingSlot = getSlotAtShootingPosition();
+            BallColor c = indexerSlots[shootingSlot];
             if (c != BallColor.NONE) {
 //                shoot();
-                indexerSlots[indexerAt] = BallColor.NONE;
+                indexerSlots[shootingSlot] = BallColor.NONE;
             }
             if (count < NUM_SLOTS - 1) {
-                rotateIndexerTo((indexerAt + 1) % NUM_SLOTS);
+                int nextSlot = (shootingSlot + 1) % NUM_SLOTS;
+                rotateIndexerTo(nextSlot);
                 try {
                     Thread.sleep(800);
                 } catch (InterruptedException e) {
@@ -674,7 +722,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         for (int spin = 0; spin < NUM_SLOTS; spin++) {
             updateShooterPosColor();
             robot.feedingRotation.setPower(0.7);
-            rotateIndexerTo((indexerAt + 1) % NUM_SLOTS);
+            int currentSlot = getSlotAtShootingPosition();
+            rotateIndexerTo((currentSlot + 1) % NUM_SLOTS);
             try {
                 Thread.sleep(600);
             } catch (InterruptedException e) {
@@ -694,12 +743,14 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Manual indexer rotation
         if (gamepads.isPressed(2, "cross")) {
             robot.feedingRotation.setPower(1.0);
-            rotateIndexerTo((indexerAt - 1 + NUM_SLOTS) % NUM_SLOTS);
+            int currentSlot = getSlotAtShootingPosition();
+            rotateIndexerTo((currentSlot - 1 + NUM_SLOTS) % NUM_SLOTS);
             robot.feedingRotation.setPower(0);
         }
         if (gamepads.isPressed(2, "circle")) {
             robot.feedingRotation.setPower(1.0);
-            rotateIndexerTo((indexerAt + 1) % NUM_SLOTS);
+            int currentSlot = getSlotAtShootingPosition();
+            rotateIndexerTo((currentSlot + 1) % NUM_SLOTS);
             robot.feedingRotation.setPower(0);
         }
 
