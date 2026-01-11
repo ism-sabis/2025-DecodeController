@@ -214,8 +214,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         servo1.setRawPower(servo.getPower() * followerScale);
 
-        // Check if indexer reached target and clear flag to stop intake
-        if (indexerMoving && servo.isAtTarget(5)) {
+        // Check if indexer reached target OR servo power is near zero (coasting to stop)
+        if (indexerMoving && (servo.isAtTarget(40) || Math.abs(servo.getPower()) < 0.05)) {
             indexerMoving = false;
             robot.feedingRotation.setPower(0);
         }
