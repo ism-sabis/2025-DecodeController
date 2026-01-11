@@ -370,7 +370,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         telemetry.addData("spinUpTime", calculateSpinUpTime());
         telemetry.addData("launcherPower",calculateLauncherPower());
         telemetry.addData("RPM", calculateRPM());
-        telemetry.addData("Servo Total Rotation", servo.getTotalRotation());
+        telemetry.addData("Starting angle", servo.STARTPOS);
+        telemetry.addLine(servo.log());
+        telemetry.addData("NTRY", servo.ntry);
         telemetry.addData("Slot at Shooting Pos", shootingSlot);
         telemetry.addData("Slots", indexerSlots[0] + " | " + indexerSlots[1] + " | " + indexerSlots[2]);
         telemetry.addData("launcherState", launcherState.toString());
@@ -754,7 +756,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
     }
 
-    
+
     void testingShootOneBall() {
         // Nonblocking test shoot using launcher state machine
         if (launcherState == LauncherState.IDLE) {
