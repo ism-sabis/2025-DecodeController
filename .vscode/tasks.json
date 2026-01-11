@@ -7,7 +7,7 @@
             "command": "powershell",
             "args": [
                 "-Command",
-                "cd '${workspaceFolder}' ; ./gradlew.bat assembleDebug ; if ($?) { $device = adb devices | Select-String 'device$' | Select-Object -First 1 -ExpandProperty Line | ForEach-Object { $_.split()[0] } ; if ($device) { adb -s $device install -r ./TeamCode/build/outputs/apk/debug/TeamCode-debug.apk ; Write-Host 'Deploy complete! Device: '$device } else { Write-Host 'No device found!' } }"
+                "$env:Path += ';C:\\Users\\batma\\AppData\\Local\\Android\\Sdk\\platform-tools' ; cd '${workspaceFolder}' ; ./gradlew.bat assembleDebug ; if ($?) { $device = adb devices | Select-String 'device$' | Select-Object -First 1 -ExpandProperty Line | ForEach-Object { $_.split()[0] } ; if ($device) { adb -s $device install -r ./TeamCode/build/outputs/apk/debug/TeamCode-debug.apk ; Write-Host 'Deploy complete! Device: '$device } else { Write-Host 'No device found - check USB connection!' } }"
             ],
             "group": {
                 "kind": "build",
