@@ -132,6 +132,16 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     boolean intakeActive = false;
     long intakeStartTime = 0;
     static final long INTAKE_SPIN_TIME = 2000; // 2 seconds to intake one ball
+    // Dwell time to pause at sensor for reliable color detection during reindexing
+    static final long INDEXER_SENSOR_DWELL_MS = 200;
+
+    // Nonblocking reindexing state machine
+    private boolean reindexingActive = false;
+    private int reindexStepsRemaining = 0;
+    private long reindexStateStartMs = 0;
+    private int reindexTargetSlot = -1;
+    private enum ReindexState { IDLE, MOVE, WAIT_REACH, DWELL, SAMPLE }
+    private ReindexState reindexState = ReindexState.IDLE;
 
     private RTPAxon servo;
     private RTPAxon servo1;
@@ -208,6 +218,11 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         // Update shooter color and LED
         updateShooterPosColor();
+
+        // Nonblocking reindex processing
+        if (reindexingActive) {
+            updateReindex();
+        }
         updateShooterLed();
 
         // Handle intake auto-stop
@@ -243,7 +258,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 }
             }
             if (gamepads.isPressed(2, "square")) {
-                macroReindexIdentifyColors();
+                startReindex();
             }
             if (gamepads.isPressed(2, "triangle")) {
                 // Eject closest ball
@@ -719,17 +734,88 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     }
 
     void macroReindexIdentifyColors() {
-        for (int spin = 0; spin < NUM_SLOTS; spin++) {
-            updateShooterPosColor();
-            robot.feedingRotation.setPower(0.7);
+        // Spin the Geneva gently while stepping through slots
+        robot.feedingRotation.setPower(0.7);
+        for (int step = 0; step < NUM_SLOTS; step++) {
             int currentSlot = getSlotAtShootingPosition();
-            rotateIndexerTo((currentSlot + 1) % NUM_SLOTS);
-            try {
-                Thread.sleep(600);
-            } catch (InterruptedException e) {
+            int nextSlot = (currentSlot + 1) % NUM_SLOTS;
+
+            // Move to the next slot
+            rotateIndexerTo(nextSlot);
+
+            // Wait until rotation reaches target (with timeout safety)
+            long startWait = System.currentTimeMillis();
+            while (System.currentTimeMillis() - startWait < 1500 && !isIndexerAtTarget(5)) {
+                servo.update();
             }
+
+            // Dwell briefly in front of the sensor for reliable detection
+            try {
+                Thread.sleep(INDEXER_SENSOR_DWELL_MS);
+            } catch (InterruptedException e) {
+                // ignore
+            }
+
+            // Sample color and store into the slot currently at the shooter sensor
+            updateShooterPosColor();
         }
         robot.feedingRotation.setPower(0);
+    }
+
+    // Start nonblocking reindexing through each slot
+    void startReindex() {
+        if (reindexingActive) return;
+        reindexingActive = true;
+        reindexStepsRemaining = NUM_SLOTS;
+        robot.feedingRotation.setPower(0.7);
+        // Set initial target to next slot
+        int currentSlot = getSlotAtShootingPosition();
+        reindexTargetSlot = (currentSlot + 1) % NUM_SLOTS;
+        rotateIndexerTo(reindexTargetSlot);
+        reindexState = ReindexState.WAIT_REACH;
+        reindexStateStartMs = System.currentTimeMillis();
+    }
+
+    // Process nonblocking reindexing state machine
+    void updateReindex() {
+        switch (reindexState) {
+            case WAIT_REACH: {
+                boolean reached = isIndexerAtTarget(5);
+                boolean timedOut = System.currentTimeMillis() - reindexStateStartMs >= 1500;
+                if (reached || timedOut) {
+                    reindexState = ReindexState.DWELL;
+                    reindexStateStartMs = System.currentTimeMillis();
+                }
+                break;
+            }
+            case DWELL: {
+                if (System.currentTimeMillis() - reindexStateStartMs >= INDEXER_SENSOR_DWELL_MS) {
+                    reindexState = ReindexState.SAMPLE;
+                }
+                break;
+            }
+            case SAMPLE: {
+                // Sample sensor and store into current shooting slot
+                updateShooterPosColor();
+                reindexStepsRemaining -= 1;
+                if (reindexStepsRemaining <= 0) {
+                    // Done
+                    robot.feedingRotation.setPower(0);
+                    reindexingActive = false;
+                    reindexState = ReindexState.IDLE;
+                } else {
+                    // Move to next slot
+                    int currentSlot = getSlotAtShootingPosition();
+                    reindexTargetSlot = (currentSlot + 1) % NUM_SLOTS;
+                    rotateIndexerTo(reindexTargetSlot);
+                    reindexState = ReindexState.WAIT_REACH;
+                    reindexStateStartMs = System.currentTimeMillis();
+                }
+                break;
+            }
+            default:
+                break;
+        }
     }
 
     // ============================================
@@ -751,6 +837,20 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             robot.feedingRotation.setPower(1.0);
             int currentSlot = getSlotAtShootingPosition();
             rotateIndexerTo((currentSlot + 1) % NUM_SLOTS);
+            robot.feedingRotation.setPower(0);
+        }
+
+        // D-Pad manual slot moves (up = forward, down = backward)
+        if (gamepads.isPressed(2, "dpad_up")) {
+            robot.feedingRotation.setPower(1.0);
+            int currentSlot = getSlotAtShootingPosition();
+            rotateIndexerTo((currentSlot + 1) % NUM_SLOTS);
+            robot.feedingRotation.setPower(0);
+        }
+        if (gamepads.isPressed(2, "dpad_down")) {
+            robot.feedingRotation.setPower(1.0);
+            int currentSlot = getSlotAtShootingPosition();
+            rotateIndexerTo((currentSlot - 1 + NUM_SLOTS) % NUM_SLOTS);
             robot.feedingRotation.setPower(0);
         }
 
