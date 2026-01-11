@@ -754,7 +754,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
     }
 
-
+    
     void testingShootOneBall() {
         // Nonblocking test shoot using launcher state machine
         if (launcherState == LauncherState.IDLE) {
