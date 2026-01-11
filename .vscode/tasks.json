@@ -1,0 +1,43 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "FTC: Build & Deploy",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-Command",
+                "cd '${workspaceFolder}' ; ./gradlew.bat assembleDebug ; if ($?) { $device = adb devices | Select-String 'device$' | Select-Object -First 1 -ExpandProperty Line | ForEach-Object { $_.split()[0] } ; if ($device) { adb -s $device install -r ./TeamCode/build/outputs/apk/debug/TeamCode-debug.apk ; Write-Host 'Deploy complete! Device: '$device } else { Write-Host 'No device found!' } }"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$gradle"],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "FTC: Build Only",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-Command",
+                "cd '${workspaceFolder}' ; ./gradlew.bat assembleDebug"
+            ],
+            "problemMatcher": ["$gradle"]
+        },
+        {
+            "label": "FTC: Clean & Build",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-Command",
+                "cd '${workspaceFolder}' ; ./gradlew.bat clean assembleDebug"
+            ],
+            "problemMatcher": ["$gradle"]
+        }
+    ]
+}

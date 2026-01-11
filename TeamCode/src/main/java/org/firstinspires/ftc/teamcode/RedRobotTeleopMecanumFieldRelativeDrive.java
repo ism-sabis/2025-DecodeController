@@ -127,6 +127,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     static final double ANGLE_PER_SLOT = 120.0; // degrees to rotate per slot
     // Derived from servo position: which slot is currently at shooting position
     private int lastDetectedSlot = -1;
+    // Store target slot to avoid recalculating on each update
+    private int targetSlotIndex = -1;
 
     // Intake management
     boolean intakeActive = false;
@@ -490,31 +492,24 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     /**
      * Rotate indexer to bring targetIdx to the shooting position.
-     * Uses changeTargetRotation() for incremental movement.
+     * Sets absolute target rotation instead of relative to handle wraparound correctly.
      */
     void rotateIndexerTo(int targetIdx) {
         if (targetIdx < 0 || targetIdx >= NUM_SLOTS) return;
 
-        int currentSlot = getSlotAtShootingPosition();
-        // Compute shortest path (forward or backward)
-        int forwardDelta = (targetIdx - currentSlot + NUM_SLOTS) % NUM_SLOTS;
-        int backwardDelta = (currentSlot - targetIdx + NUM_SLOTS) % NUM_SLOTS;
-
-        double degreesToMove;
-        if (forwardDelta <= backwardDelta) {
-            // Move forward
-            degreesToMove = forwardDelta * ANGLE_PER_SLOT;
-        } else {
-            // Move backward
-            degreesToMove = -backwardDelta * ANGLE_PER_SLOT;
-        }
+        targetSlotIndex = targetIdx;
+        
+        // Calculate absolute target rotation: slot index * degrees per slot
+        // Slot 0 = 0°, Slot 1 = 120°, Slot 2 = 240°
+        double absoluteTargetRotation = targetIdx * ANGLE_PER_SLOT;
+        
+        // Set absolute target instead of using relative movement
+        // This prevents confusion from multiple rapid calls and handles wraparound
+        servo.setTargetRotation(absoluteTargetRotation);
+        servo1.setTargetRotation(absoluteTargetRotation);
 
         // Start intake to prevent balls from falling out during indexer rotation
         robot.feedingRotation.setPower(0.7);
-
-        // Command servo to move relative
-        servo.changeTargetRotation(degreesToMove);
-        servo1.changeTargetRotation(degreesToMove);
     }
 
     boolean isIndexerAtTarget(double tolerance) {
