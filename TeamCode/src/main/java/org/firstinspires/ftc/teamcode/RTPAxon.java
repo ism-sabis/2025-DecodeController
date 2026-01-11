@@ -277,17 +277,6 @@ public class RTPAxon {
         return Math.abs(targetRotation - filteredTotalRotation) < tolerance;
     }
 
-    // Normalize an angle to the range [-180, 180] so 360° == 0°
-    private double wrapTo180(double angle) {
-        double wrapped = angle % 360.0;
-        if (wrapped > 180) {
-            wrapped -= 360;
-        } else if (wrapped < -180) {
-            wrapped += 360;
-        }
-        return wrapped;
-    }
-
     // Force reset total rotation and PID state
     public void forceResetTotalRotation() {
         totalRotation = 0;
@@ -343,11 +332,6 @@ public class RTPAxon {
 
         // Use filtered position for PID calculation
         double error = targetRotation - totalRotation;
-        // If target is effectively the same angle modulo 360, use the shorter path
-        double wrappedError = wrapTo180(error);
-        if (Math.abs(wrappedError) < Math.abs(error)) {
-            error = wrappedError;
-        }
 
         // Deadzone for output
         final double DEADZONE = 2;
