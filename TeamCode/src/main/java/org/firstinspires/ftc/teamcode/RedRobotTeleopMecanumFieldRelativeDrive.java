@@ -127,8 +127,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     static final double ANGLE_PER_SLOT = 120.0; // degrees to rotate per slot
     // Derived from servo position: which slot is currently at shooting position
     private int lastDetectedSlot = -1;
-    // Store target slot to avoid recalculating on each update
-    private int targetSlotIndex = -1;
 
     // Intake management
     boolean intakeActive = false;
@@ -175,6 +173,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         AnalogInput encoder1 = hardwareMap.get(AnalogInput.class, "indexerEncoder1");
         servo = new RTPAxon(crservo, encoder);
         servo1 = new RTPAxon(crservo1, encoder1);
+        servo.setDirectionChangeCompensation(11);  // Match test loop
         servo1.setRtp(false);
 
         telemetry.addData("ColorSensor", "Initialized");
@@ -492,24 +491,31 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     /**
      * Rotate indexer to bring targetIdx to the shooting position.
-     * Sets absolute target rotation instead of relative to handle wraparound correctly.
+     * Uses changeTargetRotation() for incremental movement.
      */
     void rotateIndexerTo(int targetIdx) {
         if (targetIdx < 0 || targetIdx >= NUM_SLOTS) return;
 
-        targetSlotIndex = targetIdx;
-        
-        // Calculate absolute target rotation: slot index * degrees per slot
-        // Slot 0 = 0°, Slot 1 = 120°, Slot 2 = 240°
-        double absoluteTargetRotation = targetIdx * ANGLE_PER_SLOT;
-        
-        // Set absolute target instead of using relative movement
-        // This prevents confusion from multiple rapid calls and handles wraparound
-        servo.setTargetRotation(absoluteTargetRotation);
-        servo1.setTargetRotation(absoluteTargetRotation);
+        int currentSlot = getSlotAtShootingPosition();
+        // Compute shortest path (forward or backward)
+        int forwardDelta = (targetIdx - currentSlot + NUM_SLOTS) % NUM_SLOTS;
+        int backwardDelta = (currentSlot - targetIdx + NUM_SLOTS) % NUM_SLOTS;
+
+        double degreesToMove;
+        if (forwardDelta <= backwardDelta) {
+            // Move forward
+            degreesToMove = forwardDelta * ANGLE_PER_SLOT;
+        } else {
+            // Move backward
+            degreesToMove = -backwardDelta * ANGLE_PER_SLOT;
+        }
 
         // Start intake to prevent balls from falling out during indexer rotation
         robot.feedingRotation.setPower(0.7);
+
+        // Command servo to move relative (using servo. like the test loop)
+        servo.changeTargetRotation(degreesToMove);
+        servo1.changeTargetRotation(degreesToMove);
     }
 
     boolean isIndexerAtTarget(double tolerance) {

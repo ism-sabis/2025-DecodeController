@@ -264,7 +264,7 @@ public class RTPAxon {
     public double getCurrentAngle() {
         if (servoEncoder == null)
             return 0;
-        return (servoEncoder.getVoltage() / 3.3) * (direction.equals(Direction.REVERSE) ? 360 : -360);
+        return (servoEncoder.getVoltage() / 3.3) * (direction.equals(Direction.REVERSE) ? -360 : 360);
     }
 
     // Check if servo is at target (default tolerance)
@@ -274,16 +274,7 @@ public class RTPAxon {
 
     // Check if servo is at target (custom tolerance)
     public boolean isAtTarget(double tolerance) {
-        // Normalize both values to 0-360 range to handle wraparound
-        double normalizedTarget = ((targetRotation % 360) + 360) % 360;
-        double normalizedActual = ((filteredTotalRotation % 360) + 360) % 360;
-        
-        // Calculate shortest angular distance
-        double diff = normalizedTarget - normalizedActual;
-        if (diff > 180) diff -= 360;
-        if (diff < -180) diff += 360;
-        
-        return Math.abs(diff) < tolerance;
+        return Math.abs(targetRotation - filteredTotalRotation) < tolerance;
     }
 
     // Force reset total rotation and PID state
