@@ -214,6 +214,12 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         servo1.setRawPower(servo.getPower() * followerScale);
 
+        // Check if indexer reached target and clear flag to stop intake
+        if (indexerMoving && servo.isAtTarget(5)) {
+            indexerMoving = false;
+            robot.feedingRotation.setPower(0);
+        }
+
         gamepads.copyStates();
 
         // Set the default debounce time for all buttons
@@ -1024,11 +1030,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 // robot.indexer1.setPower(0);
                 robot.feedingRotation.setPower(0);
             }
-        }
-        
-        // Clear indexerMoving flag when indexer reaches target
-        if (indexerMoving && servo.isAtTarget()) {
-            indexerMoving = false;
         }
 
         // Manual launcher
