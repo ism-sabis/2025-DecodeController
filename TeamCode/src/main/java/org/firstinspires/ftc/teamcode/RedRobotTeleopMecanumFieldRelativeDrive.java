@@ -127,6 +127,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     static final double ANGLE_PER_SLOT = 120.0; // degrees to rotate per slot
     // Derived from servo position: which slot is currently at shooting position
     private int lastDetectedSlot = -1;
+    // Flag to keep intake running during indexer rotation
+    private boolean indexerMoving = false;
 
     // Intake management
     boolean intakeActive = false;
@@ -510,9 +512,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             degreesToMove = -backwardDelta * ANGLE_PER_SLOT;
         }
 
-        // Start intake to prevent balls from falling out during indexer rotation
-        robot.feedingRotation.setPower(0.7);
-
+        // Set flag to keep intake running during rotation
+        indexerMoving = true;
+        
         // Command servo to move relative (using servo. like the test loop)
         servo.changeTargetRotation(degreesToMove);
         servo1.changeTargetRotation(degreesToMove);
@@ -1000,28 +1002,33 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             robot.feedingRotation.setPower(1.0);
             int currentSlot = getSlotAtShootingPosition();
             rotateIndexerTo((currentSlot + 1) % NUM_SLOTS);
-            robot.feedingRotation.setPower(0);
         }
         if (gamepads.isPressed(2, "dpad_down")) {
             robot.feedingRotation.setPower(1.0);
             int currentSlot = getSlotAtShootingPosition();
             rotateIndexerTo((currentSlot - 1 + NUM_SLOTS) % NUM_SLOTS);
-            robot.feedingRotation.setPower(0);
         }
 
-        // Manual intake
-        if (gamepad2.square) {
-            // robot.indexer.setPower(1.0);
-            // robot.indexer1.setPower(1.0);
-            robot.feedingRotation.setPower(1);
-        } else if (gamepad2.triangle) {
-            // robot.indexer.setPower(-1.0);
-            // robot.indexer1.setPower(-1.0);
-            robot.feedingRotation.setPower(-1);
-        } else {
-            // robot.indexer.setPower(0);
-            // robot.indexer1.setPower(0);
-            robot.feedingRotation.setPower(0);
+        // Manual intake - only control if indexer is NOT moving
+        if (!indexerMoving) {
+            if (gamepad2.square) {
+                // robot.indexer.setPower(1.0);
+                // robot.indexer1.setPower(1.0);
+                robot.feedingRotation.setPower(1);
+            } else if (gamepad2.triangle) {
+                // robot.indexer.setPower(-1.0);
+                // robot.indexer1.setPower(-1.0);
+                robot.feedingRotation.setPower(-1);
+            } else {
+                // robot.indexer.setPower(0);
+                // robot.indexer1.setPower(0);
+                robot.feedingRotation.setPower(0);
+            }
+        }
+        
+        // Clear indexerMoving flag when indexer reaches target
+        if (indexerMoving && servo.isAtTarget()) {
+            indexerMoving = false;
         }
 
         // Manual launcher
