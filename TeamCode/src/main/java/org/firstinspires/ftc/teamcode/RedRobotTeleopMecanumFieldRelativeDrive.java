@@ -507,6 +507,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             degreesToMove = -backwardDelta * ANGLE_PER_SLOT;
         }
 
+        // Start intake to prevent balls from falling out during indexer rotation
+        robot.feedingRotation.setPower(0.7);
+
         // Command servo to move relative
         servo.changeTargetRotation(degreesToMove);
         servo1.changeTargetRotation(degreesToMove);
