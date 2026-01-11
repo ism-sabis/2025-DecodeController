@@ -4,20 +4,33 @@
         {
             "label": "FTC: Build & Deploy",
             "type": "shell",
-            "command": "powershell",
-            "args": [
-                "-Command",
-                "$env:Path += ';C:\\Users\\batma\\AppData\\Local\\Android\\Sdk\\platform-tools' ; cd '${workspaceFolder}' ; ./gradlew.bat assembleDebug ; if ($?) { $device = adb devices | Select-String 'device$' | Select-Object -First 1 -ExpandProperty Line | ForEach-Object { $_.split()[0] } ; if ($device) { adb -s $device install -r ./TeamCode/build/outputs/apk/debug/TeamCode-debug.apk ; Write-Host 'Deploy complete! Device: '$device } else { Write-Host 'No device found - check USB connection!' } }"
-            ],
+            "command": "C:\\Users\\batma\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe",
+            "args": [],
+            "dependsOn": ["Build APK", "Install APK"],
+            "dependsOrder": "sequence",
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
-            "problemMatcher": ["$gradle"],
-            "presentation": {
-                "reveal": "always",
-                "panel": "new"
-            }
+            "problemMatcher": []
+        },
+        {
+            "label": "Build APK",
+            "type": "shell",
+            "command": "${workspaceFolder}\\gradlew.bat",
+            "args": ["assembleDebug"],
+            "problemMatcher": ["$gradle"]
+        },
+        {
+            "label": "Install APK",
+            "type": "shell",
+            "command": "C:\\Users\\batma\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe",
+            "args": [
+                "install",
+                "-r",
+                "${workspaceFolder}\\TeamCode\\build\\outputs\\apk\\debug\\TeamCode-debug.apk"
+            ],
+            "problemMatcher": []
         },
         {
             "label": "FTC: Build Only",
