@@ -223,6 +223,12 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         if (reindexingActive) {
             updateReindex();
         }
+        if (shootOneActive) {
+            updateShootOneBall();
+        }
+        if (autoFillActive) {
+            updateAutoFill();
+        }
         updateShooterLed();
 
         // Handle intake auto-stop
@@ -248,14 +254,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 macroIntakeOneBall();
             }
             if (gamepads.isPressed(2, "circle")) {
-                // Auto intake fill
-                while (findFirstEmptySlot() != -1) {
-                    macroIntakeOneBall();
-                    try {
-                        Thread.sleep(3000);
-                    } catch (InterruptedException e) {
-                    }
-                }
+                // Start nonblocking auto fill
+                startAutoFill();
             }
             if (gamepads.isPressed(2, "square")) {
                 startReindex();
@@ -272,16 +272,16 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 macroIntakeOneBall();
             }
             if (gamepads.isPressed(2, "circle")) {
-                macroShootOneBall(BallColor.GREEN);
+                startShootOneBall(BallColor.GREEN);
             }
             if (gamepads.isPressed(2, "square")) {
-                macroShootOneBall(BallColor.PURPLE);
+                startShootOneBall(BallColor.PURPLE);
             }
             if (gamepads.isPressed(2, "triangle")) {
-                macroShootAllBalls();
+                startShootAllBalls();
             }
             if (gamepads.isPressed(2, "dpad_up")) {
-                macroShootInPattern();
+                startShootInPattern();
             }
         }
 
@@ -357,6 +357,14 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         updateKicker();
 
 
+        // Update nonblocking sequences
+        if (shootAllActive) {
+            updateShootAllBalls();
+        }
+        if (shootPatternActive) {
+            updateShootInPattern();
+        }
+
         // Telemetry
         int shootingSlot = getSlotAtShootingPosition();
         telemetry.addData("spinUpTime", calculateSpinUpTime());
@@ -366,6 +374,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         telemetry.addData("Slot at Shooting Pos", shootingSlot);
         telemetry.addData("Slots", indexerSlots[0] + " | " + indexerSlots[1] + " | " + indexerSlots[2]);
         telemetry.addData("launcherState", launcherState.toString());
+        telemetry.addData("reindexing", reindexingActive);
+        telemetry.addData("shootAll", shootAllActive);
+        telemetry.addData("shootPattern", shootPatternActive);
         telemetry.update();
 
     }
@@ -583,6 +594,60 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         return spinUpTime;
     }
 
+    // ===== Nonblocking Auto Fill =====
+    private boolean autoFillActive = false;
+    private long autoFillNextActionMs = 0;
+    private enum AutoFillState { IDLE, MOVE_TO_EMPTY, WAIT_REACH, DWELL, DONE }
+    private AutoFillState autoFillState = AutoFillState.IDLE;
+
+    void startAutoFill() {
+        if (autoFillActive) return;
+        autoFillActive = true;
+        autoFillState = AutoFillState.MOVE_TO_EMPTY;
+        robot.feedingRotation.setPower(0.7);
+    }
+
+    void updateAutoFill() {
+        if (!autoFillActive) return;
+        switch (autoFillState) {
+            case MOVE_TO_EMPTY: {
+                int emptySlot = findFirstEmptySlot();
+                if (emptySlot == -1) {
+                    autoFillState = AutoFillState.DONE;
+                } else {
+                    rotateIndexerTo(emptySlot);
+                    autoFillState = AutoFillState.WAIT_REACH;
+                    autoFillNextActionMs = System.currentTimeMillis();
+                }
+                break;
+            }
+            case WAIT_REACH: {
+                boolean reached = isIndexerAtTarget(5);
+                boolean timedOut = System.currentTimeMillis() - autoFillNextActionMs >= 1500;
+                if (reached || timedOut) {
+                    autoFillState = AutoFillState.DWELL;
+                    autoFillNextActionMs = System.currentTimeMillis();
+                }
+                break;
+            }
+            case DWELL: {
+                if (System.currentTimeMillis() - autoFillNextActionMs >= INDEXER_SENSOR_DWELL_MS) {
+                    // intake sequence could be started here if needed
+                    autoFillState = AutoFillState.MOVE_TO_EMPTY;
+                }
+                break;
+            }
+            case DONE: {
+                robot.feedingRotation.setPower(0);
+                autoFillActive = false;
+                autoFillState = AutoFillState.IDLE;
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
     // ============================================
     // MACRO FUNCTIONS
     // ============================================
@@ -595,20 +660,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             return;
         }
 
+        // Nonblocking: just command rotation, intake sequence handled separately
         rotateIndexerTo(emptySlot);
-
-        // Wait for indexer
-        long startWait = System.currentTimeMillis();
-        while (System.currentTimeMillis() - startWait < 1500 && !isIndexerAtTarget(5)) {
-            servo.update();
-        }
-
-        // Start intake
-        // robot.indexer.setPower(1.0);
-        // robot.indexer1.setPower(1.0);
-        // robot.feedingRotation.setPower(1.0);
-        // intakeActive = true;
-        // intakeStartTime = System.currentTimeMillis();
     }
 
     void stopIntake() {
@@ -618,43 +671,63 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         intakeActive = false;
     }
 
-    void macroShootOneBall(BallColor color) {
+    // Nonblocking single-shot by color
+    private boolean shootOneActive = false;
+    private BallColor shootOneTarget = BallColor.NONE;
+    private long shootOneStartMs = 0;
+    private enum ShootOneState { IDLE, MOVE, WAIT_REACH, START_SHOOT, WAIT_SHOOT, DONE }
+    private ShootOneState shootOneState = ShootOneState.IDLE;
+
+    void startShootOneBall(BallColor color) {
         int idx = findNearestSlotWithColor(color);
         if (idx == -1) {
-            gamepads.blipRumble(2, 3); // Vibrate: not found
+            gamepads.blipRumble(2, 3);
             telemetry.addLine("SHOOT: " + color + " not found!");
             return;
         }
-
+        shootOneActive = true;
+        shootOneTarget = color;
         robot.feedingRotation.setPower(1.0);
         rotateIndexerTo(idx);
+        shootOneState = ShootOneState.WAIT_REACH;
+        shootOneStartMs = System.currentTimeMillis();
+    }
 
-        // Wait for rotation
-        long startWait = System.currentTimeMillis();
-        while (System.currentTimeMillis() - startWait < 1500 && !isIndexerAtTarget(5)) {
-            servo.update();
+    void updateShootOneBall() {
+        if (!shootOneActive) return;
+        switch (shootOneState) {
+            case WAIT_REACH: {
+                boolean reached = isIndexerAtTarget(5);
+                boolean timedOut = System.currentTimeMillis() - shootOneStartMs >= 1500;
+                if (reached || timedOut) {
+                    shootOneState = ShootOneState.START_SHOOT;
+                }
+                break;
+            }
+            case START_SHOOT: {
+                if (launcherState == LauncherState.IDLE) {
+                    launcherState = LauncherState.STARTING;
+                    shootOneState = ShootOneState.WAIT_SHOOT;
+                }
+                break;
+            }
+            case WAIT_SHOOT: {
+                if (launcherState == LauncherState.IDLE) {
+                    int shootingSlot = getSlotAtShootingPosition();
+                    indexerSlots[shootingSlot] = BallColor.NONE;
+                    shootOneState = ShootOneState.DONE;
+                }
+                break;
+            }
+            case DONE: {
+                robot.feedingRotation.setPower(0);
+                shootOneActive = false;
+                shootOneState = ShootOneState.IDLE;
+                break;
+            }
+            default:
+                break;
         }
-        if (launcherState == LauncherState.IDLE) {
-            launcherState = LauncherState.STARTING;
-        }
-        shootLoop();
-        // Shoot
-        /*
-         * spinLauncherToSetPower();
-         * try { Thread.sleep(10000); } catch (InterruptedException e) { }
-         *
-         * safeKick();
-         * try { Thread.sleep(500); } catch (InterruptedException e) { }
-         * robot.kicker.setPosition(KICKER_DOWN);
-         * robot.launcher.setPower(0);
-         */
-//        shoot();
-
-        robot.feedingRotation.setPower(0);
-
-        // Clear the slot that was at shooting position
-        int shootingSlot = getSlotAtShootingPosition();
-        indexerSlots[shootingSlot] = BallColor.NONE;
     }
 
     void shootLoop() {
@@ -680,86 +753,162 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
 
     void testingShootOneBall() {
-        // Shoot
-        robot.launcher.setPower(testingLauncherPower);
-        try {
-            Thread.sleep(10000);
-        } catch (InterruptedException e) {
+        // Nonblocking test shoot using launcher state machine
+        if (launcherState == LauncherState.IDLE) {
+            launcherState = LauncherState.STARTING;
         }
-        safeKick();
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {
-        }
-        robot.kicker.setPosition(KICKER_DOWN);
-
-        robot.launcher.setPower(0);
-
     }
 
-    void macroShootAllBalls() {
+    // Nonblocking shoot-all state machine
+    private boolean shootAllActive = false;
+    private int shootAllRemaining = 0;
+    private long shootAllStateStartMs = 0;
+    private enum ShootAllState { IDLE, CHECK_SLOT, START_SHOOT, WAIT_SHOOT, NEXT_MOVE, WAIT_REACH, DONE }
+    private ShootAllState shootAllState = ShootAllState.IDLE;
+
+    void startShootAllBalls() {
+        if (shootAllActive) return;
+        shootAllActive = true;
+        shootAllRemaining = NUM_SLOTS;
         robot.feedingRotation.setPower(1.0);
-        for (int count = 0; count < NUM_SLOTS; count++) {
-            int shootingSlot = getSlotAtShootingPosition();
-            BallColor c = indexerSlots[shootingSlot];
-            if (c != BallColor.NONE) {
-//                shoot();
-                indexerSlots[shootingSlot] = BallColor.NONE;
-            }
-            if (count < NUM_SLOTS - 1) {
-                int nextSlot = (shootingSlot + 1) % NUM_SLOTS;
-                rotateIndexerTo(nextSlot);
-                try {
-                    Thread.sleep(800);
-                } catch (InterruptedException e) {
+        shootAllState = ShootAllState.CHECK_SLOT;
+        shootAllStateStartMs = System.currentTimeMillis();
+    }
+
+    void updateShootAllBalls() {
+        if (!shootAllActive) return;
+        switch (shootAllState) {
+            case CHECK_SLOT: {
+                int shootingSlot = getSlotAtShootingPosition();
+                BallColor c = indexerSlots[shootingSlot];
+                if (c != BallColor.NONE) {
+                    // initiate shooting
+                    if (launcherState == LauncherState.IDLE) {
+                        launcherState = LauncherState.STARTING;
+                        shootAllState = ShootAllState.WAIT_SHOOT;
+                    }
+                } else {
+                    // move to next slot
+                    int nextSlot = (shootingSlot + 1) % NUM_SLOTS;
+                    rotateIndexerTo(nextSlot);
+                    shootAllState = ShootAllState.WAIT_REACH;
+                    shootAllStateStartMs = System.currentTimeMillis();
                 }
+                break;
             }
+            case WAIT_SHOOT: {
+                // Wait until shooter completes (launcherState returns to IDLE)
+                if (launcherState == LauncherState.IDLE) {
+                    // After shooting, clear the slot and proceed
+                    int shootingSlot = getSlotAtShootingPosition();
+                    indexerSlots[shootingSlot] = BallColor.NONE;
+                    shootAllRemaining -= 1;
+                    if (shootAllRemaining <= 0) {
+                        shootAllState = ShootAllState.DONE;
+                    } else {
+                        // move to next slot
+                        int nextSlot = (shootingSlot + 1) % NUM_SLOTS;
+                        rotateIndexerTo(nextSlot);
+                        shootAllState = ShootAllState.WAIT_REACH;
+                        shootAllStateStartMs = System.currentTimeMillis();
+                    }
+                }
+                break;
+            }
+            case WAIT_REACH: {
+                boolean reached = isIndexerAtTarget(5);
+                boolean timedOut = System.currentTimeMillis() - shootAllStateStartMs >= 1500;
+                if (reached || timedOut) {
+                    shootAllState = ShootAllState.CHECK_SLOT;
+                }
+                break;
+            }
+            case DONE: {
+                robot.feedingRotation.setPower(0);
+                shootAllActive = false;
+                shootAllState = ShootAllState.IDLE;
+                gamepads.blipRumble(2, 2);
+                break;
+            }
+            default:
+                break;
         }
-        robot.feedingRotation.setPower(0);
-        gamepads.blipRumble(2, 2); // Done!
     }
 
-    void macroShootInPattern() {
-        for (int i = 0; i < NUM_SLOTS; i++) {
-            BallColor toShoot = aprilOrder[i];
-            if (toShoot == BallColor.NONE)
-                continue;
-            macroShootOneBall(toShoot);
-            try {
-                Thread.sleep(300);
-            } catch (InterruptedException e) {
-            }
-        }
-        gamepads.blipRumble(2, 2);
+    // Nonblocking shoot pattern state
+    private boolean shootPatternActive = false;
+    private int shootPatternIndex = 0;
+    private long shootPatternStateStartMs = 0;
+    private enum ShootPatternState { IDLE, MOVE, WAIT_REACH, START_SHOOT, WAIT_SHOOT, NEXT, DONE }
+    private ShootPatternState shootPatternState = ShootPatternState.IDLE;
+
+    void startShootInPattern() {
+        shootPatternActive = true;
+        shootPatternIndex = 0;
+        shootPatternState = ShootPatternState.NEXT;
     }
 
+    void updateShootInPattern() {
+        if (!shootPatternActive) return;
+        switch (shootPatternState) {
+            case NEXT: {
+                if (shootPatternIndex >= NUM_SLOTS) {
+                    shootPatternState = ShootPatternState.DONE;
+                    break;
+                }
+                BallColor toShoot = aprilOrder[shootPatternIndex];
+                shootPatternIndex++;
+                if (toShoot == BallColor.NONE) {
+                    shootPatternState = ShootPatternState.NEXT;
+                } else {
+                    int idx = findNearestSlotWithColor(toShoot);
+                    if (idx == -1) {
+                        shootPatternState = ShootPatternState.NEXT;
+                    } else {
+                        rotateIndexerTo(idx);
+                        shootPatternState = ShootPatternState.WAIT_REACH;
+                        shootPatternStateStartMs = System.currentTimeMillis();
+                    }
+                }
+                break;
+            }
+            case WAIT_REACH: {
+                boolean reached = isIndexerAtTarget(5);
+                boolean timedOut = System.currentTimeMillis() - shootPatternStateStartMs >= 1500;
+                if (reached || timedOut) {
+                    shootPatternState = ShootPatternState.START_SHOOT;
+                }
+                break;
+            }
+            case START_SHOOT: {
+                if (launcherState == LauncherState.IDLE) {
+                    launcherState = LauncherState.STARTING;
+                    shootPatternState = ShootPatternState.WAIT_SHOOT;
+                }
+                break;
+            }
+            case WAIT_SHOOT: {
+                if (launcherState == LauncherState.IDLE) {
+                    int shootingSlot = getSlotAtShootingPosition();
+                    indexerSlots[shootingSlot] = BallColor.NONE;
+                    shootPatternState = ShootPatternState.NEXT;
+                }
+                break;
+            }
+            case DONE: {
+                shootPatternActive = false;
+                shootPatternState = ShootPatternState.IDLE;
+                gamepads.blipRumble(2, 2);
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+    // Deprecated: use startReindex() for nonblocking behavior
     void macroReindexIdentifyColors() {
-        // Spin the Geneva gently while stepping through slots
-        robot.feedingRotation.setPower(0.7);
-        for (int step = 0; step < NUM_SLOTS; step++) {
-            int currentSlot = getSlotAtShootingPosition();
-            int nextSlot = (currentSlot + 1) % NUM_SLOTS;
-
-            // Move to the next slot
-            rotateIndexerTo(nextSlot);
-
-            // Wait until rotation reaches target (with timeout safety)
-            long startWait = System.currentTimeMillis();
-            while (System.currentTimeMillis() - startWait < 1500 && !isIndexerAtTarget(5)) {
-                servo.update();
-            }
-
-            // Dwell briefly in front of the sensor for reliable detection
-            try {
-                Thread.sleep(INDEXER_SENSOR_DWELL_MS);
-            } catch (InterruptedException e) {
-                // ignore
-            }
-
-            // Sample color and store into the slot currently at the shooter sensor
-            updateShooterPosColor();
-        }
-        robot.feedingRotation.setPower(0);
+        startReindex();
     }
 
     // Start nonblocking reindexing through each slot
@@ -925,31 +1074,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     }
 
     public void shootOneBallAlways() {
-        // Spin flywheel
-        robot.launcher.setPower(1.0);
-
-        try {
-            Thread.sleep(750); // spin-up time
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        // Fire regardless of kicker position
-        robot.kicker.setPosition(KICKER_UP);
-
-        try {
-            Thread.sleep(250); // allow kick
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        robot.kicker.setPosition(KICKER_DOWN);
-
-        // Optional small pause between shots
-        try {
-            Thread.sleep(200);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+        // Use nonblocking launcher state machine
+        if (launcherState == LauncherState.IDLE) {
+            launcherState = LauncherState.STARTING;
         }
     }
 
@@ -1138,101 +1265,23 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     }
 
     public void shootOneBall() {
-        // Spin flywheel up
-        robot.launcher.setPower(1.0);
-        try {
-            Thread.sleep(750);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt(); // restore interrupted status
+        // Start nonblocking shoot sequence
+        if (launcherState == LauncherState.IDLE) {
+            launcherState = LauncherState.STARTING;
         }
-        // change to your real spin-up time
-
-        // Fire
-        robot.kicker.setPosition(KICKER_UP);
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt(); // restore interrupted status
-        }
-
-        robot.kicker.setPosition(KICKER_DOWN);
 
     }
 
     public void macroRandomizedShoot() {
-        for (int i = 0; i < 3; i++) {
-            BallColor targetColor = aprilOrder[i];
-
-            // Skip if no color assigned
-            if (targetColor == BallColor.NONE)
-                continue;
-
-            // Rotate until the correct color is detected
-            while (true) {
-                BallColor current = detectColor1();
-
-                if (current == targetColor) {
-                    // Target color found, stop rotation
-                    servo.setPower(0);
-                    servo1.setPower(0);
-                    feederState = 0;
-
-                    break; // exit while loop
-                } else {
-                    // Rotate feeder forward to find the target
-                    servo.setPower(0);
-                    servo1.setPower(0);
-                    feederState = 1;
-
-                }
-            }
-
-            // Shoot the detected ball
-            shootOneBall();
-        }
-
-        // Ensure feeder stops at the end
-        servo.setPower(0);
-        servo1.setPower(0);
-        feederState = 0;
-
+        // Nonblocking replacement: shoot according to aprilOrder
+        startShootInPattern();
     }
 
     public void macroSimpleShoot() {
-        // Number of balls to shoot
-        int ballsToShoot = 3;
-
-        for (int i = 0; i < ballsToShoot; i++) {
-            // Rotate until a ball of color GREEN or PURPLE is detected
-            while (true) {
-                BallColor current = detectColor1();
-
-                if (current == BallColor.GREEN || current == BallColor.PURPLE) {
-                    // Ball detected, stop feeder rotation
-                    robot.indexer.setPower(0);
-                    robot.indexer1.setPower(0);
-                    feederState = 0;
-
-                    break; // exit while loop
-                } else {
-                    // Keep rotating forward to find the next ball
-                    robot.indexer.setPower(1);
-                    robot.indexer1.setPower(1);
-                    feederState = 1;
-
-                }
-            }
-
-            // Shoot the detected ball
-            shootOneBall();
-        }
-
-        // Ensure feeder stops at the end
-        robot.indexer.setPower(0);
-        robot.indexer1.setPower(0);
-        feederState = 0;
-
+        // Nonblocking replacement: shoot all present balls
+        startShootAllBalls();
     }
+
 
     public void readAprilTagAndStoreOrder(int tagId) {
         switch (tagId) {
