@@ -129,8 +129,10 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     private int lastDetectedSlot = -1;
     // Flag to keep intake running during indexer rotation
     private boolean indexerMoving = false;
-    // Track current position in 60° increments (0-5, where 0-2 is shooting, 3-5 is intake)
+    // Track current position in 60° increments (0-5, even=shooting, odd=intake)
     private int currentPosition = 0;
+    // Timer for intake post-move duration
+    private long intakeStopTime = 0;
 
     // Intake management
     boolean intakeActive = false;
@@ -219,6 +221,11 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Check if indexer reached target OR servo power is near zero (coasting to stop)
         if (indexerMoving && (servo.isAtTarget(40) || Math.abs(servo.getPower()) < 0.05)) {
             indexerMoving = false;
+            intakeStopTime = System.currentTimeMillis() + 250;  // Keep intake running for 250ms
+        }
+        
+        // Stop intake after 500ms delay
+        if (!indexerMoving && System.currentTimeMillis() > intakeStopTime) {
             robot.feedingRotation.setPower(0);
         }
 
