@@ -122,7 +122,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     // Indexer slot tracking
     static final int NUM_SLOTS = 3;
-    BallColor[] indexerSlots = {BallColor.NONE, BallColor.NONE, BallColor.NONE};
+    BallColor[] indexerSlots = {BallColor.UNIDENTIFIED, BallColor.UNIDENTIFIED, BallColor.UNIDENTIFIED};
     static final double ANGLE_PER_SLOT = 120.0; // degrees to rotate per slot
     // Derived from servo position: which slot is currently at shooting position
     private int lastDetectedSlot = -1;
@@ -335,6 +335,26 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         BallColor shootingSlotColor = indexerSlots[shootingSlot];
         String position = isAtSensorPosition() ? "AT SENSOR" : "MOVING";
         
+        // New detailed telemetry for Shooter and Intake positions
+        String shooterLine = "";
+        String intakeLine = "";
+
+        if (isAtSensorPosition()) {
+            // Slot aligned with sensor (shooter)
+            if (shootingSlotColor != BallColor.NONE) {
+                shooterLine = "Slot " + shootingSlot + " - " + shootingSlotColor.toString();
+            } // else leave blank when truly empty
+        } else {
+            // Slot aligned with intake (odd positions 1,3,5 → slots 1,0,2)
+            int[] intakeSlots = {1, 0, 2};
+            int intakeSlot = intakeSlots[(currentPosition - 1) / 2];
+            BallColor intakeColor = indexerSlots[intakeSlot];
+            String c = (intakeColor == BallColor.NONE) ? BallColor.UNIDENTIFIED.toString() : intakeColor.toString();
+            intakeLine = "Slot " + intakeSlot + " - " + c;
+        }
+
+        telemetry.addData("Shooter", shooterLine);
+        telemetry.addData("Intake", intakeLine);
         telemetry.addData("Current", "Slot " + shootingSlot + " - " + shootingSlotColor + " (" + position + ")");
         telemetry.addData("Indexer Slots", indexerSlots[0] + " | " + indexerSlots[1] + " | " + indexerSlots[2]);
         telemetry.update();
@@ -376,12 +396,19 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             return;
         }
 
+        int shootingSlot = getSlotAtShootingPosition();
+        BallColor current = indexerSlots[shootingSlot];
+
+        // Allow UNIDENTIFIED to transition to NONE when sensor sees no ball
         if (detected == BallColor.NONE) {
+            if (current == BallColor.UNIDENTIFIED) {
+                indexerSlots[shootingSlot] = BallColor.NONE;
+            }
             return;
         }
 
-        int shootingSlot = getSlotAtShootingPosition();
-        if (indexerSlots[shootingSlot] == BallColor.NONE) {
+        // If slot is empty/unknown, store detected color
+        if (current == BallColor.NONE || current == BallColor.UNIDENTIFIED) {
             indexerSlots[shootingSlot] = detected;
         }
     }
@@ -401,10 +428,12 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     /**
      * Calculate which slot is currently at the shooting position.
      * Position is tracked in 60° increments (0-5): even = shooting, odd = intake.
-     * Each slot occupies 2 positions (shooting and intake), so slot = position / 2.
+     * Slots rotate in pattern: 0→2→1 at shooter due to 120° spacing with 60° moves.
      */
     int getSlotAtShootingPosition() {
-        return currentPosition / 2;
+        // Shooter position mapping: pos 0→slot 0, pos 2→slot 2, pos 4→slot 1
+        int[] shooterSlots = {0, 2, 1};
+        return shooterSlots[currentPosition / 2];
     }
 
     /**
@@ -453,7 +482,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     int findFirstEmptySlot() {
         for (int i = 0; i < NUM_SLOTS; i++) {
-            if (indexerSlots[i] == BallColor.NONE) {
+            // Treat NONE (empty) and UNIDENTIFIED (unknown) as available
+            if (indexerSlots[i] != BallColor.GREEN && indexerSlots[i] != BallColor.PURPLE) {
                 return i;
             }
         }
@@ -763,7 +793,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             case CHECK_SLOT: {
                 int shootingSlot = getSlotAtShootingPosition();
                 BallColor c = indexerSlots[shootingSlot];
-                if (c != BallColor.NONE) {
+                if (c == BallColor.GREEN || c == BallColor.PURPLE) {
                     // initiate shooting
                     if (launcherState == LauncherState.IDLE) {
                         launcherState = LauncherState.STARTING;
