@@ -132,6 +132,10 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     private int currentPosition = 0;
     // Timer for intake post-move duration
     private long intakeStopTime = 0;
+    // Flag to ensure intake only runs after first stop
+    private boolean intakeDelayUsed = false;
+    // Timer for eject button press (run intake for 1 second)
+    private long ejectEndTime = 0;
 
     // Intake management
     boolean intakeActive = false;
@@ -203,7 +207,13 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Check if indexer reached target OR servo power is near zero (coasting to stop)
         if (indexerMoving && (servo.isAtTarget(40) || Math.abs(servo.getPower()) < 0.05)) {
             indexerMoving = false;
-            intakeStopTime = System.currentTimeMillis() + 250;  // Keep intake running for 250ms
+            // Only run intake delay once after first stop
+            if (!intakeDelayUsed) {
+                intakeStopTime = System.currentTimeMillis() + 250;  // Keep intake running for 250ms
+                intakeDelayUsed = true;
+            } else {
+                intakeStopTime = 0;  // Stop immediately on subsequent stops
+            }
         }
         
         // Stop intake after 500ms delay
@@ -261,9 +271,32 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 startReindex();
             }
             if (gamepads.isPressed(2, "triangle")) {
-                // Eject closest ball
-                int currentSlot = getSlotAtShootingPosition();
-                rotateIndexerTo((currentSlot + 1) % NUM_SLOTS);
+                // Eject ball at intake position
+                if (!isAtSensorPosition()) {
+                    // At intake position - check for ball
+                    int[] intakeSlots = {1, 0, 2};
+                    int intakeSlot = intakeSlots[(currentPosition - 1) / 2];
+                    BallColor intakeColor = indexerSlots[intakeSlot];
+                    if (intakeColor == BallColor.GREEN || intakeColor == BallColor.PURPLE || intakeColor == BallColor.UNIDENTIFIED) {
+                        // Ball present - reverse intake to eject for 1 second
+                        robot.feedingRotation.setPower(-1.0);
+                        ejectEndTime = System.currentTimeMillis() + 1000;  // Run for 1 second
+                        intakeStopTime = 0;  // Clear any conflicting intake stop timer
+                    } else {
+                        // No ball - vibrate
+                        gamepads.blipRumble(2, 3);
+                    }
+                } else {
+                    // At sensor position - can't eject, vibrate
+                    gamepads.blipRumble(2, 3);
+                }
+            }
+            // Stop eject after 1 second timer or when button released
+            if (!gamepad2.triangle || System.currentTimeMillis() > ejectEndTime) {
+                if (!indexerMoving) {
+                    robot.feedingRotation.setPower(0);
+                    ejectEndTime = 0;
+                }
             }
         }
         // LAYER 1: BASIC MACROS (NO TRIGGER)
@@ -498,6 +531,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     private void commandIndexerRotation(double degreesToMove) {
         indexerMoving = true;
+        intakeDelayUsed = false;  // Reset for new rotation sequence
         servo.changeTargetRotation(degreesToMove);
         servo1.changeTargetRotation(degreesToMove);
         applyPositionDelta(degreesToMove);
@@ -506,14 +540,23 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     /**
      * Rotate indexer to bring targetIdx to the shooting position.
      * Uses changeTargetRotation() for incremental movement.
+     * Accounts for physical rotation order: slot 0 → slot 2 → slot 1
      */
     void rotateIndexerTo(int targetIdx) {
         if (targetIdx < 0 || targetIdx >= NUM_SLOTS) return;
 
         int currentSlot = getSlotAtShootingPosition();
-        // Compute shortest path (forward or backward)
-        int forwardDelta = (targetIdx - currentSlot + NUM_SLOTS) % NUM_SLOTS;
-        int backwardDelta = (currentSlot - targetIdx + NUM_SLOTS) % NUM_SLOTS;
+        
+        // Physical rotation sequence: 0 → 2 → 1 → 0
+        // Map slot numbers to their sequence position
+        int[] slotToSeq = {0, 2, 1};  // slot 0→seq 0, slot 1→seq 2, slot 2→seq 1
+        
+        int currentSeq = slotToSeq[currentSlot];
+        int targetSeq = slotToSeq[targetIdx];
+        
+        // Compute shortest path in sequence space
+        int forwardDelta = (targetSeq - currentSeq + NUM_SLOTS) % NUM_SLOTS;
+        int backwardDelta = (currentSeq - targetSeq + NUM_SLOTS) % NUM_SLOTS;
 
         double degreesToMove;
         if (forwardDelta <= backwardDelta) {
@@ -621,7 +664,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         if (autoFillActive) return;
         autoFillActive = true;
         autoFillState = AutoFillState.MOVE_TO_EMPTY;
-        robot.feedingRotation.setPower(0.7);
+        robot.feedingRotation.setPower(1.0);
     }
 
     void updateAutoFill() {
@@ -677,7 +720,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             return;
         }
 
-        // Nonblocking: just command rotation, intake sequence handled separately
+        // Nonblocking: command rotation with full power intake
+        robot.feedingRotation.setPower(1.0);
         rotateIndexerTo(emptySlot);
     }
 
@@ -926,7 +970,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         if (reindexingActive) return;
         reindexingActive = true;
         reindexStepsRemaining = NUM_SLOTS;
-        robot.feedingRotation.setPower(0.7);
+        robot.feedingRotation.setPower(1.0);
         // Set initial target to next slot
         int currentSlot = getSlotAtShootingPosition();
         reindexTargetSlot = (currentSlot + 1) % NUM_SLOTS;
@@ -939,6 +983,10 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     void updateReindex() {
         switch (reindexState) {
             case WAIT_REACH: {
+                // Keep intake running during wait
+                if (reindexingActive) {
+                    robot.feedingRotation.setPower(1.0);
+                }
                 boolean reached = isIndexerAtTarget(5);
                 boolean timedOut = System.currentTimeMillis() - reindexStateStartMs >= 1500;
                 if (reached || timedOut) {
@@ -948,6 +996,10 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 break;
             }
             case DWELL: {
+                // Keep intake running during dwell
+                if (reindexingActive) {
+                    robot.feedingRotation.setPower(1.0);
+                }
                 if (System.currentTimeMillis() - reindexStateStartMs >= INDEXER_SENSOR_DWELL_MS) {
                     reindexState = ReindexState.SAMPLE;
                 }
