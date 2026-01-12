@@ -333,10 +333,10 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Telemetry
         int shootingSlot = getSlotAtShootingPosition();
         BallColor shootingSlotColor = indexerSlots[shootingSlot];
-        String slotPosition = isAtIntakeSide() ? "INTAKE" : "SHOOTING";
+        String position = isAtSensorPosition() ? "AT SENSOR" : "MOVING";
         
-        telemetry.addData("Current Slot", shootingSlot + ": " + shootingSlotColor + " at " + slotPosition);
-        telemetry.addData("Inventory", indexerSlots[0] + " | " + indexerSlots[1] + " | " + indexerSlots[2]);
+        telemetry.addData("Current", "Slot " + shootingSlot + " - " + shootingSlotColor + " (" + position + ")");
+        telemetry.addData("Indexer Slots", indexerSlots[0] + " | " + indexerSlots[1] + " | " + indexerSlots[2]);
         telemetry.update();
 
     }
@@ -371,8 +371,19 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
      */
     void updateShooterPosColor() {
         BallColor detected = detectColor1();
+        // Only read when at sensor position (even positions: 0, 2, 4) and not moving
+        if (!isAtSensorPosition() || indexerMoving) {
+            return;
+        }
+
+        if (detected == BallColor.NONE) {
+            return;
+        }
+
         int shootingSlot = getSlotAtShootingPosition();
-        indexerSlots[shootingSlot] = detected;
+        if (indexerSlots[shootingSlot] == BallColor.NONE) {
+            indexerSlots[shootingSlot] = detected;
+        }
     }
 
     void updateShooterLed() {
@@ -390,19 +401,18 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     /**
      * Calculate which slot is currently at the shooting position.
      * Position is tracked in 60° increments (0-5): even = shooting, odd = intake.
+     * Each slot occupies 2 positions (shooting and intake), so slot = position / 2.
      */
     int getSlotAtShootingPosition() {
-        // Odd positions are intake, even are shooting
-        // Slot is determined by position / 2 (gives 0-2)
         return currentPosition / 2;
     }
 
     /**
-     * Check if current position is at intake side.
-     * Odd positions = intake, even positions = shooting
+     * Check if a slot is currently at the sensor position.
+     * Even positions = slot at sensor, odd positions = between slots
      */
-    boolean isAtIntakeSide() {
-        return currentPosition % 2 == 1;
+    boolean isAtSensorPosition() {
+        return currentPosition % 2 == 0;
     }
 
     /**
@@ -450,6 +460,21 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         return -1;
     }
 
+    private void applyPositionDelta(double degreesMoved) {
+        int steps = (int) Math.round(degreesMoved / 60.0);
+        currentPosition = (currentPosition + steps + 6) % 6;
+        if (currentPosition < 0) {
+            currentPosition += 6;
+        }
+    }
+
+    private void commandIndexerRotation(double degreesToMove) {
+        indexerMoving = true;
+        servo.changeTargetRotation(degreesToMove);
+        servo1.changeTargetRotation(degreesToMove);
+        applyPositionDelta(degreesToMove);
+    }
+
     /**
      * Rotate indexer to bring targetIdx to the shooting position.
      * Uses changeTargetRotation() for incremental movement.
@@ -472,11 +497,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
 
         // Set flag to keep intake running during rotation
-        indexerMoving = true;
-        
         // Command servo to move relative (using servo. like the test loop)
-        servo.changeTargetRotation(degreesToMove);
-        servo1.changeTargetRotation(degreesToMove);
+        commandIndexerRotation(degreesToMove);
     }
 
     boolean isIndexerAtTarget(double tolerance) {
@@ -952,17 +974,17 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // D-Pad manual slot moves (up = forward 60deg, down = backward 60deg)
         if (gamepads.isPressed(2, "dpad_up")) {
             robot.feedingRotation.setPower(1.0);
-            servo.changeTargetRotation(60);
-            servo1.changeTargetRotation(60);
-            currentPosition = (currentPosition + 1) % 6;
-            indexerMoving = true;
+            commandIndexerRotation(60);
         }
         if (gamepads.isPressed(2, "dpad_down")) {
             robot.feedingRotation.setPower(1.0);
-            servo.changeTargetRotation(-60);
-            servo1.changeTargetRotation(-60);
-            currentPosition = (currentPosition - 1 + 6) % 6;
-            indexerMoving = true;
+            commandIndexerRotation(-60);
+        }
+        
+        // Position reset: RT + Left Stick Button = reset to shooting position 0
+        if (gamepad2.right_trigger > 0.4 && gamepads.isPressed(2, "left_stick_button")) {
+            currentPosition = 0;
+            gamepad2.rumble(500);
         }
 
         // Manual intake - only control if indexer is NOT moving
