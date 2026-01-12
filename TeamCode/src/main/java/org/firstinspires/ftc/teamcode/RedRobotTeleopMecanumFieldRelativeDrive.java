@@ -117,7 +117,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     double distanceNew = 0;
 
-    double testingLauncherPower = 0.5;
 
     int feederState = 0; // -1 = backward, 0 = off, 1 = forward
 
@@ -182,24 +181,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         servo.setDirectionChangeCompensation(11);  // Match test loop
         servo1.setRtp(false);
 
-        telemetry.addData("ColorSensor", "Initialized");
-        telemetry.addData("ColorSensor1", "Initialized");
-
-        // Limelight3A
-        // LLStatus status;
-        // LLResult result;
-        // Pose3D botpose;
-        // double captureLatency;
-        // double targetingLatency;
-        // List<LLResultTypes.FiducialResult> fiducialResults;
-        // LLResultTypes.FiducialResult fiducialResult;
-        // LLResultTypes.FiducialResult fiducialResult;
-        // List<LLResultTypes.ColorResult> colorResults;
-        // LLResultTypes.ColorResult colorResult;
-
         telemetry.setMsTransmissionInterval(11);
-        telemetry.addData(">", "Robot Ready.  Press Play.");
-        // telemetry.update();
 
         double driverYawOffset = Math.PI; // adjust to your driver position
 
@@ -303,48 +285,13 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             }
         }
 
-        telemetry.addData("launcherPower", "%.2f", testingLauncherPower);
-
         // ========== REST OF YOUR EXISTING CODE ==========
 
-        // Limelight (keep your existing code)
+        // Limelight distance update (no telemetry spam)
         LLStatus status = robot.limelight.getStatus();
         LLResult result = robot.limelight.getLatestResult();
         if (result != null) {
-            for (LLResultTypes.FiducialResult fiducialResult : result.getFiducialResults()) {
-                telemetry.addData("Fiducial", "ID: " + fiducialResult.getFiducialId());
-                distanceNew = getDistanceFromTag(result.getTa());
-
-                double targetOffsetAngle_Vertical = 0.0;
-
-                targetOffsetAngle_Vertical = result.getTy();
-                // how many degrees back is your limelight rotated from perfectly vertical?
-                double limelightMountAngleDegrees = 0;
-
-                // distance from the center of the Limelight lens to the floor
-                double limelightLensHeightInches = 16.06;
-
-                // distance from the target to the floor
-                double goalHeightInches = 29.5;
-
-                double angleToGoalDegrees = limelightMountAngleDegrees + targetOffsetAngle_Vertical;
-                double angleToGoalRadians = angleToGoalDegrees * (3.14159 / 180.0);
-
-                // calculate distance
-                double distanceHypotenuse = (goalHeightInches - limelightLensHeightInches)
-                        / Math.sin(angleToGoalRadians);
-
-                double distance = (goalHeightInches - limelightLensHeightInches) / Math.tan(angleToGoalRadians);
-
-                // telemetry.addData("AprilTag distanceHypotenuse (in)", "%.2f",
-                // distanceHypotenuse);
-                // telemetry.addData("AprilTag distance (in)", "%.2f", distance);
-                telemetry.addData("AprilTag distance new (in)", "%.2f", distanceNew);
-                // telemetry.addData("ty (deg)", "%.2f", targetOffsetAngle_Vertical);
-                // telemetry.addData("Angle (deg)", "%.2f", angleToGoalDegrees);
-                double area = result.getTa();
-                telemetry.addData("area", "%.2f", area);
-            }
+            distanceNew = getDistanceFromTag(result.getTa());
         }
 
         displayAprilTagOrder();
@@ -772,13 +719,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     }
 
 
-    void testingShootOneBall() {
-        // Nonblocking test shoot using launcher state machine
-        if (launcherState == LauncherState.IDLE) {
-            launcherState = LauncherState.STARTING;
-        }
-    }
-
     // Nonblocking shoot-all state machine
     private boolean shootAllActive = false;
     private int shootAllRemaining = 0;
@@ -1055,15 +995,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             }
         }
 
-        if (gamepad2.dpad_up) {
-            testingLauncherPower = (testingLauncherPower + 0.01);
-        }
-        if (gamepad2.dpad_down) {
-            testingLauncherPower = (testingLauncherPower - 0.01);
-        }
-        if (gamepad2.right_stick_button) {
-            testingShootOneBall();
-        }
         if (gamepad2.left_stick_button && launcherState == LauncherState.IDLE) {
             launcherState = LauncherState.STARTING;
         }
@@ -1186,9 +1117,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
      *
      * robot.turretSpinner.setPower(turretPower);
      *
-     * telemetry.addData("Turret Tracking", "Aiming at Tag 24");
-     * telemetry.addData("tx", tx);
-     * telemetry.addData("Power", turretPower);
+                telemetry.addData("Turret Tracking", "Aiming at Tag 24");
      * return;
      * }
      * }
@@ -1239,7 +1168,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 }
 
                 telemetry.addData("Turret Tracking", "Aiming at Tag 24");
-                telemetry.addData("tx", tx);
                 // telemetry.addData("Power", robot.turretSpinner.getPower());
                 return;
             }
@@ -1497,13 +1425,11 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // ----------------------------
         if (gamepad2.left_bumper) {
             robot.turretSpinner.setPower(-0.8); // rotate left
-            telemetry.addData("Turret Mode", "Manual Left");
             return;
         }
 
         if (gamepad2.right_bumper) {
             robot.turretSpinner.setPower(0.8); // rotate right
-            telemetry.addData("Turret Mode", "Manual Right");
             return;
         }
 
@@ -1597,10 +1523,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                     aprilOrderSet = true; // lock order
 
                     // Show telemetry
-                    telemetry.addData("AprilTag ID", detectedTagId);
-                    telemetry.addData("AprilOrder",
-                            "0: " + aprilOrder[0] + ", 1: " + aprilOrder[1] + ", 2: " + aprilOrder[2]);
-                    // telemetry.update(); // make sure it actually shows
+                    // Order captured; no telemetry to minimize clutter
                 }
             }
         }
