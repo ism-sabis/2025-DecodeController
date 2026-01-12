@@ -333,7 +333,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Telemetry
         int shootingSlot = getSlotAtShootingPosition();
         BallColor shootingSlotColor = indexerSlots[shootingSlot];
-        String position = isAtSensorPosition() ? "AT SENSOR" : "MOVING";
         
         // New detailed telemetry for Shooter and Intake positions
         String shooterLine = "";
@@ -355,7 +354,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         telemetry.addData("Shooter", shooterLine);
         telemetry.addData("Intake", intakeLine);
-        telemetry.addData("Current", "Slot " + shootingSlot + " - " + shootingSlotColor + " (" + position + ")");
         telemetry.addData("Indexer Slots", indexerSlots[0] + " | " + indexerSlots[1] + " | " + indexerSlots[2]);
         telemetry.update();
 
