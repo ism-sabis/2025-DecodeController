@@ -281,19 +281,10 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             if (gamepad2.triangle) {
                 // Eject ball at intake position - runs while held
                 if (!isAtSensorPosition()) {
-                    // At intake position - check for ball
-                    int[] intakeSlots = {1, 0, 2};
-                    int intakeSlot = intakeSlots[(currentPosition - 1) / 2];
-                    BallColor intakeColor = indexerSlots[intakeSlot];
-                    if (intakeColor == BallColor.GREEN || intakeColor == BallColor.PURPLE || intakeColor == BallColor.UNIDENTIFIED) {
-                        // Ball present - reverse intake to eject
-                        robot.feedingRotation.setPower(-1.0);
-                        intakeStopTime = 0;  // Clear any conflicting intake stop timer
-                        ejectEndTime = 1;  // Flag that we're ejecting
-                    } else {
-                        // No ball - vibrate
-                        gamepads.blipRumble(2, 3);
-                    }
+                    // At intake position - eject regardless of detected color
+                    robot.feedingRotation.setPower(-1.0);
+                    intakeStopTime = 0;  // Clear any conflicting intake stop timer
+                    ejectEndTime = 1;  // Flag that we're ejecting
                 } else {
                     // At sensor position - can't eject, vibrate
                     gamepads.blipRumble(2, 3);
@@ -579,6 +570,45 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         commandIndexerRotation(degreesToMove);
     }
 
+    /**
+     * Rotate indexer to bring targetIdx to the INTAKE position (180° from shooter).
+     * For intaking balls, the slot needs to be at intake position, not shooter.
+     */
+    void rotateIndexerToIntake(int targetIdx) {
+        if (targetIdx < 0 || targetIdx >= NUM_SLOTS) return;
+
+        int currentSlot = getSlotAtShootingPosition();
+        
+        // Physical rotation sequence: 0 → 2 → 1 → 0
+        int[] slotToSeq = {0, 2, 1};
+        
+        int currentSeq = slotToSeq[currentSlot];
+        int targetSeq = slotToSeq[targetIdx];
+        
+        // Compute shortest path in sequence space
+        int forwardDelta = (targetSeq - currentSeq + NUM_SLOTS) % NUM_SLOTS;
+        int backwardDelta = (currentSeq - targetSeq + NUM_SLOTS) % NUM_SLOTS;
+
+        double degreesToMove;
+        if (forwardDelta <= backwardDelta) {
+            degreesToMove = forwardDelta * ANGLE_PER_SLOT;
+        } else {
+            degreesToMove = -backwardDelta * ANGLE_PER_SLOT;
+        }
+
+        // Add 180° to move slot to intake position instead of shooter
+        degreesToMove += 180.0;
+        
+        // Normalize to shortest path
+        if (degreesToMove > 180.0) {
+            degreesToMove -= 360.0;
+        } else if (degreesToMove < -180.0) {
+            degreesToMove += 360.0;
+        }
+
+        commandIndexerRotation(degreesToMove);
+    }
+
     boolean isIndexerAtTarget(double tolerance) {
         // Both servos should be at their target, with small tolerance
         return servo.isAtTarget(tolerance) && servo1.isAtTarget(tolerance);
@@ -682,7 +712,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                 if (emptySlot == -1) {
                     autoFillState = AutoFillState.DONE;
                 } else {
-                    rotateIndexerTo(emptySlot);
+                    rotateIndexerToIntake(emptySlot);
                     autoFillState = AutoFillState.WAIT_REACH;
                     autoFillNextActionMs = System.currentTimeMillis();
                 }
@@ -728,8 +758,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
 
         // Nonblocking: command rotation with full power intake
+        // Rotate to INTAKE position (180°), not shooter position
         robot.feedingRotation.setPower(1.0);
-        rotateIndexerTo(emptySlot);
+        rotateIndexerToIntake(emptySlot);
     }
 
     void stopIntake() {
