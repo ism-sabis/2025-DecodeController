@@ -129,6 +129,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     private int lastDetectedSlot = -1;
     // Flag to keep intake running during indexer rotation
     private boolean indexerMoving = false;
+    // Track current position in 60° increments (0-5, where 0-2 is shooting, 3-5 is intake)
+    private int currentPosition = 0;
 
     // Intake management
     boolean intakeActive = false;
@@ -377,7 +379,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // Telemetry
         int shootingSlot = getSlotAtShootingPosition();
         BallColor shootingSlotColor = indexerSlots[shootingSlot];
-        String slotPosition = indexerMoving ? "INTAKE" : "SHOOTING";
+        String slotPosition = isAtIntakeSide() ? "INTAKE" : "SHOOTING";
         
         telemetry.addData("Current Slot", shootingSlot + ": " + shootingSlotColor + " at " + slotPosition);
         telemetry.addData("Inventory", indexerSlots[0] + " | " + indexerSlots[1] + " | " + indexerSlots[2]);
@@ -432,17 +434,21 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     }
 
     /**
-     * Calculate which slot is currently at the shooting position based on servo rotation.
-     * Slot 0 is at 0°, Slot 1 is at 120°, Slot 2 is at 240°
-     * Shooting position is at 0° totalRotation
+     * Calculate which slot is currently at the shooting position.
+     * Position is tracked in 60° increments (0-5): even = shooting, odd = intake.
      */
     int getSlotAtShootingPosition() {
-        double totalRot = servo.getTotalRotation();
-        // Normalize to 0-360 range
-        double normalizedRot = ((totalRot % 360) + 360) % 360;
-        // Find nearest slot
-        int nearestSlot = Math.round((float) normalizedRot / 120.0f) % NUM_SLOTS;
-        return nearestSlot;
+        // Odd positions are intake, even are shooting
+        // Slot is determined by position / 2 (gives 0-2)
+        return currentPosition / 2;
+    }
+
+    /**
+     * Check if current position is at intake side.
+     * Odd positions = intake, even positions = shooting
+     */
+    boolean isAtIntakeSide() {
+        return currentPosition % 2 == 1;
     }
 
     /**
@@ -1001,12 +1007,14 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             robot.feedingRotation.setPower(1.0);
             servo.changeTargetRotation(60);
             servo1.changeTargetRotation(60);
+            currentPosition = (currentPosition + 1) % 6;
             indexerMoving = true;
         }
         if (gamepads.isPressed(2, "dpad_down")) {
             robot.feedingRotation.setPower(1.0);
             servo.changeTargetRotation(-60);
             servo1.changeTargetRotation(-60);
+            currentPosition = (currentPosition - 1 + 6) % 6;
             indexerMoving = true;
         }
 
