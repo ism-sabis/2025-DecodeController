@@ -88,7 +88,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     final float[] hsvValues = new float[3];
     boolean xPrev = false;
 
-    BallColor[] aprilOrder = new BallColor[3];
+    BallColor[] aprilOrder = {BallColor.NONE, BallColor.NONE, BallColor.NONE};
 
     BallColor[] finColors = {
             BallColor.NONE, BallColor.NONE, BallColor.NONE
@@ -1649,24 +1649,29 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     // ----- Function to detect AprilTag and display MOTIF order -----
     private void displayAprilTagOrder() {
-        // Only run if we haven’t set the order yet
+        // Only run if we haven't set the order yet
         if (!aprilOrderSet) {
-            LLResult tagResult = robot.limelight.getLatestResult(); // get latest camera result
-            if (tagResult != null) {
-                List<LLResultTypes.FiducialResult> tags = tagResult.getFiducialResults(); // get detected tags
+            LLStatus status = robot.limelight.getStatus();
+            LLResult tagResult = robot.limelight.getLatestResult();
+            
+            if (tagResult != null && status.isConnected()) {
+                List<LLResultTypes.FiducialResult> tags = tagResult.getFiducialResults();
 
-                if (!tags.isEmpty()) { // if a tag was detected
-                    int detectedTagId = tags.get(0).getFiducialId(); // first tag
-
-                    // Use your existing function to set the order
-                    readAprilTagAndStoreOrder(detectedTagId);
-                    aprilOrderSet = true; // lock order
-
-                    // Show telemetry
-                    // Order captured; no telemetry to minimize clutter
+                if (!tags.isEmpty()) {
+                    int detectedTagId = tags.get(0).getFiducialId();
+                    
+                    // Only lock in tags 21, 22, 23
+                    if (detectedTagId == 21 || detectedTagId == 22 || detectedTagId == 23) {
+                        readAprilTagAndStoreOrder(detectedTagId);
+                        aprilOrderSet = true;
+                        telemetry.addData("April Tag", "Tag " + detectedTagId + " detected - Order locked");
+                    }
                 }
             }
+        } else {
+            // Display the locked order on telemetry
+            telemetry.addData("Shoot Order", 
+                String.format("%s | %s | %s", aprilOrder[0], aprilOrder[1], aprilOrder[2]));
         }
     }
 
-}

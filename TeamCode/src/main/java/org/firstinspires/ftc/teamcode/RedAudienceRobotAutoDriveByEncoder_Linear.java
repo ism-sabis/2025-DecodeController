@@ -101,6 +101,34 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
 
     private ElapsedTime runtime = new ElapsedTime();
 
+    // ========== INDEXER TRACKING ==========
+    static final int NUM_SLOTS = 3;
+    BallColor[] indexerSlots = {BallColor.UNIDENTIFIED, BallColor.UNIDENTIFIED, BallColor.UNIDENTIFIED};
+    static final double ANGLE_PER_SLOT = 120.0;
+    private int currentPosition = 0;
+    private boolean indexerMoving = false;
+    private long intakeStopTime = 0;
+    private boolean intakeDelayUsed = false;
+
+    private RTPAxon servo;
+    private RTPAxon servo1;
+    private AnalogInput encoder;
+    private AnalogInput encoder1;
+    private CRServo crservo;
+    private CRServo crservo1;
+
+    // Nonblocking shoot state machine
+    private boolean shootAllActive = false;
+    private int shootAllRemaining = 0;
+    private long shootAllStateStartMs = 0;
+    private enum ShootAllState { IDLE, CHECK_SLOT, START_SHOOT, WAIT_SHOOT, NEXT_MOVE, WAIT_REACH, DONE }
+    private ShootAllState shootAllState = ShootAllState.IDLE;
+
+    private LauncherState launcherState = LauncherState.IDLE;
+
+    // Distance and power calculation
+    private double distanceNew = 0;
+
     // Kicker auto-cycle state
     boolean kickerCycling = false;
     long kickerTimer = 0;
@@ -185,6 +213,16 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         robot.init(hardwareMap); // This will initialize motors, sensors, and limelight
         colorSensor = hardwareMap.get(NormalizedColorSensor.class, "colorSensor");
         colorSensor1 = hardwareMap.get(NormalizedColorSensor.class, "colorSensor1");
+
+        // Initialize indexer servos
+        crservo = hardwareMap.crservo.get("indexer");
+        crservo1 = hardwareMap.crservo.get("indexer1");
+        encoder = hardwareMap.get(AnalogInput.class, "indexerEncoder");
+        encoder1 = hardwareMap.get(AnalogInput.class, "indexerEncoder1");
+        servo = new RTPAxon(crservo, encoder);
+        servo1 = new RTPAxon(crservo1, encoder1);
+        servo.setDirectionChangeCompensation(11);
+        servo1.setRtp(false);
 
         // Apply gain
         colorSensor.setGain(colorGain);
@@ -316,167 +354,74 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
 
         encoderDrive(DRIVE_SPEED, 7, 7, 2); // S1: Forward toward Y-axis (mirrored), 5 sec timeout
 
-        // encoderDrive(TURN_SPEED, 10, -10, 4.0); // S2: Turn right 12 inches (mirrored
-        // left), 4 sec timeout
-
         encoderDrive(TURN_SPEED, -23, 23, 4.0); // S2: Turn left 50 inches (mirrored right), 4 sec timeout
 
         encoderDrive(DRIVE_SPEED, 6.5, 6.5, 4.0); // S3: Forward 24 inches (mirrored), 4 sec timeout
 
         encoderDrive(TURN_SPEED, 23, -23, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
 
-        shootOneBall(); // Shoot a single ball
-
-        // sleep(5000);
-        /*
-         * int ballsToShoot = 3;
-         * 
-         * 
-         * for (int i = 0; i < ballsToShoot; i++) {
-         * // Rotate until a ball of color GREEN or PURPLE is detected
-         * while (true) {
-         * BallColor current = detectColor1();
-         * 
-         * if (current == BallColor.GREEN || current == BallColor.PURPLE) {
-         * // Ball detected, stop feeder rotation
-         * robot.feedingRotation.setPower(0);
-         * break; // exit while loop
-         * } else {
-         * // Keep rotating forward to find the next ball
-         * robot.feedingRotation.setPower(1);
-         * }
-         * }
-         * }
-         * 
-         * shootOneBall(); // Shoot a single ball
-         * 
-         * //sleep(5000);
-         * 
-         * for (int i = 0; i < ballsToShoot; i++) {
-         * // Rotate until a ball of color GREEN or PURPLE is detected
-         * while (true) {
-         * BallColor current = detectColor1();
-         * 
-         * if (current == BallColor.GREEN || current == BallColor.PURPLE) {
-         * // Ball detected, stop feeder rotation
-         * robot.feedingRotation.setPower(0);
-         * break; // exit while loop
-         * } else {
-         * // Keep rotating forward to find the next ball
-         * robot.feedingRotation.setPower(1);
-         * }
-         * }
-         * }
-         * 
-         * 
-         * 
-         * encoderDrive(DRIVE_SPEED, 18, 18, 4.0); // S3: Reverse 24 inches (mirrored),
-         * 4 sec timeout
-         * 
-         * 
-         * encoderDrive(TURN_SPEED, 23, -23, 4.0); // S2: Turn right 12 inches (mirrored
-         * left), 4 sec timeout
-         * 
-         * int ballsToShoot = 3;
-         * 
-         * 
-         * for (int i = 0; i < ballsToShoot; i++) {
-         * // Rotate until a ball of color GREEN or PURPLE is detected
-         * while (true) {
-         * BallColor current = detectColor1();
-         * 
-         * if (current == BallColor.GREEN || current == BallColor.PURPLE) {
-         * // Ball detected, stop feeder rotation
-         * robot.feedingRotation.setPower(0);
-         * break; // exit while loop
-         * } else {
-         * // Keep rotating forward to find the next ball
-         * robot.feedingRotation.setPower(1);
-         * }
-         * }
-         * }
-         */
-        // seekFeederToColor(BallColor.GREEN);
+        autoShootOneBall();
 
         encoderDrive(DRIVE_SPEED, 10, 10, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
 
-        // awaitFeederColor(BallColor.GREEN);
 
         encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
 
-        /*
-         * macroSimpleShoot(); // Shoot balls based on AprilTag order
-         * 
-         * 
-         * encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn left 12 inches (mirrored
-         * right), 4 sec timeout
-         * 
-         * 
-         * encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Forward 24 inches
-         * (mirrored), 4 sec timeout
-         * 
-         * 
-         * encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored
-         * left), 4 sec timeout
-         * 
-         * 
-         * encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Reverse 24 inches (mirrored),
-         * 4 sec timeout
-         * 
-         * 
-         * encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn right 12 inches (mirrored
-         * left), 4 sec timeout
-         * 
-         * 
-         * encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Reverse 24 inches (mirrored),
-         * 4 sec timeout
-         * 
-         * 
-         * encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored
-         * left), 4 sec timeout
-         * 
-         * 
-         * macroSimpleShoot(); // Shoot balls based on AprilTag order
-         * 
-         * 
-         * encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn left 12 inches (mirrored
-         * right), 4 sec timeout
-         * 
-         * 
-         * encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Forward 24 inches
-         * (mirrored), 4 sec timeout
-         * 
-         * 
-         * encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored
-         * left), 4 sec timeout
-         * 
-         * 
-         * encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Reverse 24 inches (mirrored),
-         * 4 sec timeout
-         * 
-         * 
-         * encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn right 12 inches (mirrored
-         * left), 4 sec timeout
-         * 
-         * 
-         * encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Reverse 24 inches (mirrored),
-         * 4 sec timeout
-         * 
-         * 
-         * encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored
-         * left), 4 sec timeout
-         * 
-         * 
-         * macroSimpleShoot(); // Shoot balls based on AprilTag order
-         * 
-         * 
-         * encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn left 12 inches (mirrored
-         * right), 4 sec timeout
-         * 
-         * 
-         * encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Forward 24 inches
-         * (mirrored), 4 sec timeout
-         */
+                macroSimpleShoot(); // Shoot balls based on AprilTag order
+          
+          
+          encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn left 12 inches (mirrored right), 4 sec timeout
+          
+          
+          encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Forward 24 inches (mirrored), 4 sec timeout
+          
+          
+          encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
+          
+          
+          encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
+          
+          
+          encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
+          
+          
+          encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
+          
+          
+          encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
+          
+          
+          macroSimpleShoot(); // Shoot balls based on AprilTag order
+          
+          
+          encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn left 12 inches (mirrored right), 4 sec timeout
+          
+          
+          encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Forward 24 inches (mirrored), 4 sec timeout
+          
+          
+          encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
+          
+          
+          encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
+          
+          
+          encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
+          
+         
+          encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
+          
+          
+          encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
+          
+          
+          macroSimpleShoot(); // Shoot balls based on AprilTag order
+          
+          
+          encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn left 12 inches (mirrored right), 4 sec timeout
+          
+          
+          encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Forward 24 inches (mirrored), 4 sec timeout
 
         telemetry.addData("Path", "Complete");
         telemetry.update();
@@ -559,6 +504,120 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
             rearRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
             sleep(250); // optional pause after each move.
+        }
+    }
+
+    // ============================================
+    // INDEXER & BALL TRACKING HELPERS
+    // ============================================
+
+    int getSlotAtShootingPosition() {
+        int[] shooterSlots = {0, 2, 1};
+        return shooterSlots[currentPosition / 2];
+    }
+
+    boolean isAtSensorPosition() {
+        return currentPosition % 2 == 0;
+    }
+
+    void applyPositionDelta(double degreesMoved) {
+        int steps = (int) Math.round(degreesMoved / 60.0);
+        currentPosition = (currentPosition + steps + 6) % 6;
+        if (currentPosition < 0) currentPosition += 6;
+    }
+
+    void commandIndexerRotation(double degreesToMove) {
+        indexerMoving = true;
+        intakeDelayUsed = false;
+        servo.changeTargetRotation(degreesToMove);
+        servo1.changeTargetRotation(degreesToMove);
+        applyPositionDelta(degreesToMove);
+    }
+
+    void rotateIndexerTo(int targetIdx) {
+        if (targetIdx < 0 || targetIdx >= NUM_SLOTS) return;
+        int currentSlot = getSlotAtShootingPosition();
+        int[] slotToSeq = {0, 2, 1};
+        int currentSeq = slotToSeq[currentSlot];
+        int targetSeq = slotToSeq[targetIdx];
+        int forwardDelta = (targetSeq - currentSeq + NUM_SLOTS) % NUM_SLOTS;
+        int backwardDelta = (currentSeq - targetSeq + NUM_SLOTS) % NUM_SLOTS;
+        double degreesToMove;
+        if (forwardDelta <= backwardDelta) {
+            degreesToMove = forwardDelta * ANGLE_PER_SLOT;
+        } else {
+            degreesToMove = -backwardDelta * ANGLE_PER_SLOT;
+        }
+        commandIndexerRotation(degreesToMove);
+    }
+
+    void rotateIndexerToIntake(int targetIdx) {
+        if (targetIdx < 0 || targetIdx >= NUM_SLOTS) return;
+        int currentSlot = getSlotAtShootingPosition();
+        int[] slotToSeq = {0, 2, 1};
+        int currentSeq = slotToSeq[currentSlot];
+        int targetSeq = slotToSeq[targetIdx];
+        int forwardDelta = (targetSeq - currentSeq + NUM_SLOTS) % NUM_SLOTS;
+        int backwardDelta = (currentSeq - targetSeq + NUM_SLOTS) % NUM_SLOTS;
+        double degreesToMove;
+        if (forwardDelta <= backwardDelta) {
+            degreesToMove = forwardDelta * ANGLE_PER_SLOT;
+        } else {
+            degreesToMove = -backwardDelta * ANGLE_PER_SLOT;
+        }
+        degreesToMove += 180.0;
+        if (degreesToMove > 180.0) {
+            degreesToMove -= 360.0;
+        } else if (degreesToMove < -180.0) {
+            degreesToMove += 360.0;
+        }
+        commandIndexerRotation(degreesToMove);
+    }
+
+    int findFirstEmptySlot() {
+        for (int i = 0; i < NUM_SLOTS; i++) {
+            if (indexerSlots[i] != BallColor.GREEN && indexerSlots[i] != BallColor.PURPLE) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    int findNearestSlotWithColor(BallColor target) {
+        int currentSlot = getSlotAtShootingPosition();
+        int bestDist = NUM_SLOTS;
+        int bestIdx = -1;
+        for (int i = 0; i < NUM_SLOTS; i++) {
+            if (indexerSlots[i] == target) {
+                int forward = (i - currentSlot + NUM_SLOTS) % NUM_SLOTS;
+                int backward = (currentSlot - i + NUM_SLOTS) % NUM_SLOTS;
+                int d = Math.min(forward, backward);
+                if (d < bestDist) {
+                    bestDist = d;
+                    bestIdx = i;
+                }
+            }
+        }
+        return bestIdx;
+    }
+
+    boolean isIndexerAtTarget(double tolerance) {
+        return servo.isAtTarget(tolerance) && servo1.isAtTarget(tolerance);
+    }
+
+    void updateShooterPosColor() {
+        BallColor detected = detectColor1();
+        if (!isAtSensorPosition() || indexerMoving) return;
+        int shootingSlot = getSlotAtShootingPosition();
+        BallColor current = indexerSlots[shootingSlot];
+        if (detected == BallColor.NONE) {
+            if (current == BallColor.UNIDENTIFIED) {
+                indexerSlots[shootingSlot] = BallColor.NONE;
+            }
+            return;
+        }
+        if (current == BallColor.NONE || current == BallColor.UNIDENTIFIED) {
+            indexerSlots[shootingSlot] = detected;
         }
     }
 
@@ -1257,6 +1316,322 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
             telemetry.addData("Limelight", "No data available");
         }
 
+    }
+
+    // ============================================
+    // AUTONOMOUS SHOOT & INTAKE MACROS
+    // ============================================
+
+    /**
+     * Autonomous intake one ball - rotate to empty slot at intake position and run intake.
+     */
+    public void autoIntakeOneBall() {
+        int emptySlot = findFirstEmptySlot();
+        if (emptySlot == -1) {
+            telemetry.addLine("AUTO: Indexer full!");
+            telemetry.update();
+            return;
+        }
+        robot.feedingRotation.setPower(1.0);
+        rotateIndexerToIntake(emptySlot);
+        
+        // Wait for indexer to reach target
+        long timeoutMs = System.currentTimeMillis() + 3000;
+        while (opModeIsActive() && !isIndexerAtTarget(5) && System.currentTimeMillis() < timeoutMs) {
+            servo.update();
+            servo1.setRawPower(servo.getPower() * 0.5);
+        }
+    }
+
+    /**
+     * Autonomous shoot all balls - rotates through slots and shoots any GREEN/PURPLE balls.
+     */
+    public void autoShootAllBalls() {
+        shootAllActive = true;
+        shootAllRemaining = NUM_SLOTS;
+        shootAllState = ShootAllState.CHECK_SLOT;
+        shootAllStateStartMs = System.currentTimeMillis();
+        
+        while (opModeIsActive() && shootAllActive) {
+            servo.update();
+            servo1.setRawPower(servo.getPower() * 0.5);
+            updateShooterPosColor();
+            updateAutoShootAll();
+            updateLauncherAuto();
+        }
+    }
+
+    /**
+     * Update method for nonblocking shoot-all in autonomous.
+     */
+    private void updateAutoShootAll() {
+        if (!shootAllActive) return;
+        
+        // Check if indexer movement complete
+        if (indexerMoving && (servo.isAtTarget(40) || Math.abs(servo.getPower()) < 0.05)) {
+            indexerMoving = false;
+            if (!intakeDelayUsed) {
+                intakeStopTime = System.currentTimeMillis() + 250;
+                intakeDelayUsed = true;
+            } else {
+                intakeStopTime = 0;
+            }
+        }
+        
+        // Stop intake after delay
+        if (!indexerMoving && intakeStopTime > 0 && System.currentTimeMillis() > intakeStopTime) {
+            robot.feedingRotation.setPower(0);
+        }
+        
+        switch (shootAllState) {
+            case CHECK_SLOT: {
+                int shootingSlot = getSlotAtShootingPosition();
+                BallColor c = indexerSlots[shootingSlot];
+                if (c == BallColor.GREEN || c == BallColor.PURPLE) {
+                    if (launcherState == LauncherState.IDLE) {
+                        launcherState = LauncherState.STARTING;
+                        shootAllState = ShootAllState.WAIT_SHOOT;
+                    }
+                } else {
+                    int nextSlot = (shootingSlot + 1) % NUM_SLOTS;
+                    rotateIndexerTo(nextSlot);
+                    shootAllState = ShootAllState.WAIT_REACH;
+                    shootAllStateStartMs = System.currentTimeMillis();
+                }
+                break;
+            }
+            case WAIT_SHOOT: {
+                if (launcherState == LauncherState.IDLE) {
+                    int shootingSlot = getSlotAtShootingPosition();
+                    indexerSlots[shootingSlot] = BallColor.NONE;
+                    shootAllRemaining -= 1;
+                    if (shootAllRemaining <= 0) {
+                        shootAllState = ShootAllState.DONE;
+                    } else {
+                        int nextSlot = (shootingSlot + 1) % NUM_SLOTS;
+                        rotateIndexerTo(nextSlot);
+                        shootAllState = ShootAllState.WAIT_REACH;
+                        shootAllStateStartMs = System.currentTimeMillis();
+                    }
+                }
+                break;
+            }
+            case WAIT_REACH: {
+                boolean reached = isIndexerAtTarget(5);
+                boolean timedOut = System.currentTimeMillis() - shootAllStateStartMs >= 1500;
+                if (reached || timedOut) {
+                    shootAllState = ShootAllState.CHECK_SLOT;
+                }
+                break;
+            }
+            case DONE: {
+                robot.feedingRotation.setPower(0);
+                shootAllActive = false;
+                shootAllState = ShootAllState.IDLE;
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+    /**
+     * Update launcher state machine during autonomous shoot.
+     */
+    private void updateLauncherAuto() {
+        if (launcherState == LauncherState.STARTING) {
+            robot.launcher.setPower(0.075);
+            runtime.reset();
+            launcherState = LauncherState.SPINNING;
+        } else if (launcherState == LauncherState.SPINNING && runtime.seconds() >= 1.5) {
+            robot.kicker.setPosition(KICKER_UP);
+            runtime.reset();
+            launcherState = LauncherState.KICKING;
+        } else if (launcherState == LauncherState.KICKING && runtime.seconds() >= 0.5) {
+            robot.kicker.setPosition(KICKER_DOWN);
+            launcherState = LauncherState.UNKICKING;
+        } else if (launcherState == LauncherState.UNKICKING) {
+            robot.launcher.setPower(0);
+            launcherState = LauncherState.IDLE;
+        }
+    }
+
+    // ============================================
+    // TURRET TRACKING
+    // ============================================
+
+    /**
+     * Autonomous turret tracking - aims at red goal (tag 24) and waits until aligned.
+     * Blocks until aligned or timeout.
+     */
+    public void autoAimTurret(long timeoutMs) {
+        long startTime = System.currentTimeMillis();
+        
+        while (opModeIsActive() && System.currentTimeMillis() - startTime < timeoutMs) {
+            LLResult result = robot.limelight.getLatestResult();
+            
+            if (result != null) {
+                for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+                    if (tag.getFiducialId() == 24) { // Red Alliance goal
+                        double tx = tag.getTargetXDegrees();
+                        
+                        double deadband = 1.0;
+                        double maxPower = 0.17;
+                        double minPower = 0.1;
+                        double kP = 0.04;
+                        
+                        if (Math.abs(tx) < deadband) {
+                            // Aligned - stop turret
+                            robot.turretSpinner.setPower(0);
+                            telemetry.addData("Turret", "Aligned with goal");
+                            telemetry.update();
+                            return; // Exit when aligned
+                        } else {
+                            // Scale proportional to error, clamp to min/max
+                            double scaledPower = Math.abs(kP * tx);
+                            if (scaledPower < minPower) {
+                                scaledPower = minPower;
+                            } else if (scaledPower > maxPower) {
+                                scaledPower = maxPower;
+                            }
+                            robot.turretSpinner.setPower(Math.signum(tx) * scaledPower);
+                            telemetry.addData("Turret", "Aiming... tx: " + String.format("%.2f", tx));
+                            telemetry.update();
+                        }
+                        return; // Found tag, exit loop
+                    }
+                }
+            }
+            
+            // No tag found - stop turret
+            robot.turretSpinner.setPower(0);
+            telemetry.addData("Turret", "No target found");
+            telemetry.update();
+        }
+        
+        // Timeout - stop turret
+        robot.turretSpinner.setPower(0);
+        telemetry.addData("Turret", "Timeout - stopped");
+        telemetry.update();
+    }
+
+    /**
+     * Continuous turret tracking - keeps aiming at goal while other tasks run.
+     * Call this periodically during autonomous routines.
+     */
+    public void updateTurretAim() {
+        LLResult result = robot.limelight.getLatestResult();
+        
+        if (result != null) {
+            for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+                if (tag.getFiducialId() == 24) { // Red Alliance goal
+                    double tx = tag.getTargetXDegrees();
+                    
+                    double deadband = 1.0;
+                    double maxPower = 0.17;
+                    double minPower = 0.1;
+                    double kP = 0.04;
+                    
+                    if (Math.abs(tx) < deadband) {
+                        robot.turretSpinner.setPower(0);
+                    } else {
+                        double scaledPower = Math.abs(kP * tx);
+                        if (scaledPower < minPower) {
+                            scaledPower = minPower;
+                        } else if (scaledPower > maxPower) {
+                            scaledPower = maxPower;
+                        }
+                        robot.turretSpinner.setPower(Math.signum(tx) * scaledPower);
+                    }
+                    return;
+                }
+            }
+        }
+        
+        // No target - stop
+        robot.turretSpinner.setPower(0);
+    }
+
+    // ============================================
+    // LAUNCHER POWER CALCULATION
+    // ============================================
+
+    /**
+     * Calculate distance from AprilTag using Limelight ta (target area).
+     */
+    public double getDistanceFromTag(double ta) {
+        distanceNew = 72.34359 * Math.pow(ta, -0.479834);
+        return distanceNew;
+    }
+
+    /**
+     * Calculate launcher power based on distance to goal.
+     */
+    double calculateLauncherPower() {
+        LLResult result = robot.limelight.getLatestResult();
+        if (result == null) return 1;
+
+        for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
+            if (tag.getFiducialId() != 24) continue;
+
+            double area = result.getTa();
+            double launcherPower = (0.00303584 * distanceNew) + 0.586525;
+            return launcherPower;
+        }
+        return 1;
+    }
+
+    /**
+     * Calculate RPM needed for launcher.
+     */
+    double calculateRPM() {
+        return 6000 * calculateLauncherPower();
+    }
+
+    /**
+     * Calculate spin-up time for launcher.
+     */
+    double calculateSpinUpTime() {
+        return 0.00000275688 * Math.pow(calculateRPM(), 1.54859);
+    }
+
+    /**
+     * Autonomous shoot one ball - aims turret, spins up launcher with calculated power, and fires.
+     */
+    public void autoShootOneBall() {
+        // 1. Aim turret at goal
+        autoAimTurret(3000);
+        
+        // 2. Get distance from Limelight and calculate power
+        LLResult result = robot.limelight.getLatestResult();
+        if (result != null) {
+            double ta = result.getTa();
+            getDistanceFromTag(ta);
+        }
+        
+        // 3. Spin up launcher with calculated power
+        double power = calculateLauncherPower();
+        robot.launcher.setPower(power);
+        
+        // 4. Wait for spin-up
+        runtime.reset();
+        while (opModeIsActive() && runtime.seconds() < calculateSpinUpTime()) {
+            // Keep turret aimed during spin-up
+            updateTurretAim();
+        }
+        
+        // 5. Fire the kicker
+        robot.kicker.setPosition(KICKER_UP);
+        runtime.reset();
+        while (opModeIsActive() && runtime.seconds() < 0.5) {
+            // Wait for kick
+        }
+        
+        // 6. Reset kicker and stop launcher
+        robot.kicker.setPosition(KICKER_DOWN);
+        robot.launcher.setPower(0);
+        telemetry.addData("Shot", "Complete - Distance: " + String.format("%.2f", distanceNew) + "in");
+        telemetry.update();
     }
 
 }
