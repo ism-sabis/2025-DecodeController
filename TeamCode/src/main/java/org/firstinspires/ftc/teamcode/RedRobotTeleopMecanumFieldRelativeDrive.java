@@ -376,18 +376,11 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         // Telemetry
         int shootingSlot = getSlotAtShootingPosition();
-        telemetry.addData("spinUpTime", calculateSpinUpTime());
-        telemetry.addData("launcherPower",calculateLauncherPower());
-        telemetry.addData("RPM", calculateRPM());
-        telemetry.addData("Starting angle", servo.STARTPOS);
-        telemetry.addLine(servo.log());
-        telemetry.addData("NTRY", servo.ntry);
-        telemetry.addData("Slot at Shooting Pos", shootingSlot);
-        telemetry.addData("Slots", indexerSlots[0] + " | " + indexerSlots[1] + " | " + indexerSlots[2]);
-        telemetry.addData("launcherState", launcherState.toString());
-        telemetry.addData("reindexing", reindexingActive);
-        telemetry.addData("shootAll", shootAllActive);
-        telemetry.addData("shootPattern", shootPatternActive);
+        BallColor shootingSlotColor = indexerSlots[shootingSlot];
+        String slotPosition = indexerMoving ? "INTAKE" : "SHOOTING";
+        
+        telemetry.addData("Current Slot", shootingSlot + ": " + shootingSlotColor + " at " + slotPosition);
+        telemetry.addData("Inventory", indexerSlots[0] + " | " + indexerSlots[1] + " | " + indexerSlots[2]);
         telemetry.update();
 
     }
@@ -1003,16 +996,18 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             robot.feedingRotation.setPower(0);
         }
 
-        // D-Pad manual slot moves (up = forward, down = backward)
+        // D-Pad manual slot moves (up = forward 60deg, down = backward 60deg)
         if (gamepads.isPressed(2, "dpad_up")) {
             robot.feedingRotation.setPower(1.0);
-            int currentSlot = getSlotAtShootingPosition();
-            rotateIndexerTo((currentSlot + 1) % NUM_SLOTS);
+            servo.changeTargetRotation(60);
+            servo1.changeTargetRotation(60);
+            indexerMoving = true;
         }
         if (gamepads.isPressed(2, "dpad_down")) {
             robot.feedingRotation.setPower(1.0);
-            int currentSlot = getSlotAtShootingPosition();
-            rotateIndexerTo((currentSlot - 1 + NUM_SLOTS) % NUM_SLOTS);
+            servo.changeTargetRotation(-60);
+            servo1.changeTargetRotation(-60);
+            indexerMoving = true;
         }
 
         // Manual intake - only control if indexer is NOT moving
