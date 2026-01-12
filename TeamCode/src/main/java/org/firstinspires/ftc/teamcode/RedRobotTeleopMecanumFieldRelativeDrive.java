@@ -190,6 +190,14 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         double driverYawOffset = Math.PI; // adjust to your driver position
 
         robot.kicker.setPosition(KICKER_DOWN);
+        
+        // Read slot 0 immediately and set to NONE if empty
+        BallColor slot0Color = detectColor1();
+        if (slot0Color == BallColor.NONE) {
+            indexerSlots[0] = BallColor.NONE;
+        } else {
+            indexerSlots[0] = slot0Color;
+        }
 
     }
 
@@ -216,8 +224,8 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             }
         }
         
-        // Stop intake after 500ms delay
-        if (!indexerMoving && System.currentTimeMillis() > intakeStopTime) {
+        // Stop intake after 250ms delay (but NOT during eject)
+        if (!indexerMoving && intakeStopTime > 0 && System.currentTimeMillis() > intakeStopTime && ejectEndTime == 0) {
             robot.feedingRotation.setPower(0);
         }
 
@@ -278,9 +286,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                     int intakeSlot = intakeSlots[(currentPosition - 1) / 2];
                     BallColor intakeColor = indexerSlots[intakeSlot];
                     if (intakeColor == BallColor.GREEN || intakeColor == BallColor.PURPLE || intakeColor == BallColor.UNIDENTIFIED) {
-                        // Ball present - reverse intake to eject for 1 second
+                        // Ball present - reverse intake to eject for 2 seconds
                         robot.feedingRotation.setPower(-1.0);
-                        ejectEndTime = System.currentTimeMillis() + 1000;  // Run for 1 second
+                        ejectEndTime = System.currentTimeMillis() + 2000;  // Run for 2 seconds
                         intakeStopTime = 0;  // Clear any conflicting intake stop timer
                     } else {
                         // No ball - vibrate
@@ -373,16 +381,13 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
         if (isAtSensorPosition()) {
             // Slot aligned with sensor (shooter)
-            if (shootingSlotColor != BallColor.NONE) {
-                shooterLine = "Slot " + shootingSlot + " - " + shootingSlotColor.toString();
-            } // else leave blank when truly empty
+            shooterLine = "Slot " + shootingSlot + " - " + shootingSlotColor.toString();
         } else {
             // Slot aligned with intake (odd positions 1,3,5 → slots 1,0,2)
             int[] intakeSlots = {1, 0, 2};
             int intakeSlot = intakeSlots[(currentPosition - 1) / 2];
             BallColor intakeColor = indexerSlots[intakeSlot];
-            String c = (intakeColor == BallColor.NONE) ? BallColor.UNIDENTIFIED.toString() : intakeColor.toString();
-            intakeLine = "Slot " + intakeSlot + " - " + c;
+            intakeLine = "Slot " + intakeSlot + " - " + intakeColor.toString();
         }
 
         telemetry.addData("Shooter", shooterLine);
