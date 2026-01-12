@@ -278,18 +278,18 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             if (gamepads.isPressed(2, "square")) {
                 startReindex();
             }
-            if (gamepads.isPressed(2, "triangle")) {
-                // Eject ball at intake position
+            if (gamepad2.triangle) {
+                // Eject ball at intake position - runs while held
                 if (!isAtSensorPosition()) {
                     // At intake position - check for ball
                     int[] intakeSlots = {1, 0, 2};
                     int intakeSlot = intakeSlots[(currentPosition - 1) / 2];
                     BallColor intakeColor = indexerSlots[intakeSlot];
                     if (intakeColor == BallColor.GREEN || intakeColor == BallColor.PURPLE || intakeColor == BallColor.UNIDENTIFIED) {
-                        // Ball present - reverse intake to eject for 2 seconds
+                        // Ball present - reverse intake to eject
                         robot.feedingRotation.setPower(-1.0);
-                        ejectEndTime = System.currentTimeMillis() + 2000;  // Run for 2 seconds
                         intakeStopTime = 0;  // Clear any conflicting intake stop timer
+                        ejectEndTime = 1;  // Flag that we're ejecting
                     } else {
                         // No ball - vibrate
                         gamepads.blipRumble(2, 3);
@@ -298,11 +298,13 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
                     // At sensor position - can't eject, vibrate
                     gamepads.blipRumble(2, 3);
                 }
-            }
-            // Stop eject after 1 second timer or when button released
-            if (!gamepad2.triangle || System.currentTimeMillis() > ejectEndTime) {
+            } else if (ejectEndTime > 0) {
+                // Button released after ejecting - stop and mark as NONE
                 if (!indexerMoving) {
                     robot.feedingRotation.setPower(0);
+                    int[] intakeSlots = {1, 0, 2};
+                    int intakeSlot = intakeSlots[(currentPosition - 1) / 2];
+                    indexerSlots[intakeSlot] = BallColor.NONE;  // Mark ejected slot as empty
                     ejectEndTime = 0;
                 }
             }
