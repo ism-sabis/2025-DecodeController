@@ -162,7 +162,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     final float[] hsvValues = new float[3];
     boolean xPrev = false;
 
-    BallColor[] aprilOrder = new BallColor[3];
+    BallColor[] aprilOrder = {BallColor.NONE, BallColor.NONE, BallColor.NONE};
 
     BallColor[] finColors = {
             BallColor.NONE, BallColor.NONE, BallColor.NONE
@@ -183,6 +183,13 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     long intakeColorIgnoreUntil = 0;
 
     private boolean aprilOrderSet = false;
+
+    // Nonblocking shoot pattern state machine
+    private boolean shootPatternActive = false;
+    private int shootPatternIndex = 0;
+    private long shootPatternStateStartMs = 0;
+    private enum ShootPatternState { IDLE, MOVE, WAIT_REACH, START_SHOOT, WAIT_SHOOT, NEXT, DONE }
+    private ShootPatternState shootPatternState = ShootPatternState.IDLE;
 
     // Calculate the COUNTS_PER_INCH for your specific drive train.
     // Go to your motor vendor website to determine your motor's
@@ -367,61 +374,62 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
 
         encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
 
-                macroSimpleShoot(); // Shoot balls based on AprilTag order
+        displayAprilTagOrder();
+        startShootInPattern(); // Shoot balls based on AprilTag order
           
           
-          encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn left 12 inches (mirrored right), 4 sec timeout
+        encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn left 12 inches (mirrored right), 4 sec timeout
           
           
-          encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Forward 24 inches (mirrored), 4 sec timeout
+        encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Forward 24 inches (mirrored), 4 sec timeout
           
           
-          encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
+        encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
           
           
-          encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
+        encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
           
           
-          encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
+        encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
           
           
-          encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
+        encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
           
           
-          encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
+        encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
           
           
-          macroSimpleShoot(); // Shoot balls based on AprilTag order
+        startShootInPattern(); // Shoot balls based on AprilTag order
           
           
-          encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn left 12 inches (mirrored right), 4 sec timeout
+        encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn left 12 inches (mirrored right), 4 sec timeout
           
           
-          encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Forward 24 inches (mirrored), 4 sec timeout
+        encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Forward 24 inches (mirrored), 4 sec timeout
           
           
-          encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
+        encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
           
           
-          encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
+        encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
           
           
-          encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
+        encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
           
          
-          encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
+        encoderDrive(DRIVE_SPEED, 24, 24, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
           
           
-          encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
+        encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
           
           
-          macroSimpleShoot(); // Shoot balls based on AprilTag order
+        startShootInPattern(); // Shoot balls based on AprilTag order
           
           
-          encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn left 12 inches (mirrored right), 4 sec timeout
+        encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn left 12 inches (mirrored right), 4 sec timeout
           
           
-          encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Forward 24 inches (mirrored), 4 sec timeout
+        encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Forward 24 inches (mirrored), 4 sec timeout
 
         telemetry.addData("Path", "Complete");
         telemetry.update();
@@ -1632,6 +1640,97 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         robot.launcher.setPower(0);
         telemetry.addData("Shot", "Complete - Distance: " + String.format("%.2f", distanceNew) + "in");
         telemetry.update();
+    }
+
+    // ============================================
+    // APRIL TAG DISPLAY & SHOOT PATTERN MACRO
+    // ============================================
+
+    /**
+     * Display the detected April tag order and shoot order on telemetry.
+     * Called during autonomous init and loop to show current state.
+     */
+    private void displayAprilTagOrder() {
+        if (!aprilOrderSet) {
+            telemetry.addData("April Tag", "Scanning...");
+        } else {
+            telemetry.addData("Shoot Order", 
+                String.format("%s | %s | %s", aprilOrder[0], aprilOrder[1], aprilOrder[2]));
+        }
+    }
+
+    /**
+     * Start the nonblocking shoot pattern sequence.
+     * Shoots balls in the order specified by aprilOrder (from detected tag).
+     * Skips NONE entries automatically.
+     */
+    void startShootInPattern() {
+        if (shootPatternActive) return;
+        shootPatternActive = true;
+        shootPatternIndex = 0;
+        shootPatternState = ShootPatternState.NEXT;
+    }
+
+    /**
+     * Update the nonblocking shoot pattern state machine.
+     * Call this in the loop to execute the pattern shooting sequence.
+     */
+    void updateShootInPattern() {
+        if (!shootPatternActive) return;
+        switch (shootPatternState) {
+            case NEXT: {
+                if (shootPatternIndex >= NUM_SLOTS) {
+                    shootPatternState = ShootPatternState.DONE;
+                    break;
+                }
+                BallColor toShoot = aprilOrder[shootPatternIndex];
+                shootPatternIndex++;
+                if (toShoot == BallColor.NONE) {
+                    shootPatternState = ShootPatternState.NEXT;
+                } else {
+                    int idx = findNearestSlotWithColor(toShoot);
+                    if (idx == -1) {
+                        shootPatternState = ShootPatternState.NEXT;
+                    } else {
+                        rotateIndexerTo(idx);
+                        shootPatternState = ShootPatternState.WAIT_REACH;
+                        shootPatternStateStartMs = System.currentTimeMillis();
+                    }
+                }
+                break;
+            }
+            case WAIT_REACH: {
+                boolean reached = isIndexerAtTarget(5);
+                boolean timedOut = System.currentTimeMillis() - shootPatternStateStartMs >= 1500;
+                if (reached || timedOut) {
+                    shootPatternState = ShootPatternState.START_SHOOT;
+                }
+                break;
+            }
+            case START_SHOOT: {
+                if (launcherState == LauncherState.IDLE) {
+                    launcherState = LauncherState.STARTING;
+                    shootPatternState = ShootPatternState.WAIT_SHOOT;
+                }
+                break;
+            }
+            case WAIT_SHOOT: {
+                if (launcherState == LauncherState.IDLE) {
+                    int shootingSlot = getSlotAtShootingPosition();
+                    indexerSlots[shootingSlot] = BallColor.NONE;
+                    shootPatternState = ShootPatternState.NEXT;
+                }
+                break;
+            }
+            case DONE: {
+                shootPatternActive = false;
+                shootPatternState = ShootPatternState.IDLE;
+                telemetry.addData("Shoot Pattern", "Complete");
+                break;
+            }
+            default:
+                break;
+        }
     }
 
 }
