@@ -1375,26 +1375,28 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     }
 
 
-    public void readAprilTagAndStoreOrder(int tagId) {
+    public boolean readAprilTagAndStoreOrder(int tagId) {
         switch (tagId) {
             case 21:
                 aprilOrder[0] = BallColor.GREEN;
                 aprilOrder[1] = BallColor.PURPLE;
-                aprilOrder[2] = BallColor.GREEN;
-                break;
+                aprilOrder[2] = BallColor.PURPLE;
+                return true;
 
             case 22:
-                aprilOrder[0] = BallColor.GREEN;
+                aprilOrder[0] = BallColor.PURPLE;
                 aprilOrder[1] = BallColor.GREEN;
-                aprilOrder[2] = BallColor.GREEN;
-                break;
+                aprilOrder[2] = BallColor.PURPLE;
+                return true;
+
 
             case 23:
-                aprilOrder[0] = BallColor.NONE;
-                aprilOrder[1] = BallColor.NONE;
-                aprilOrder[2] = BallColor.NONE;
-                break;
-        }
+                aprilOrder[0] = BallColor.PURPLE;
+                aprilOrder[1] = BallColor.PURPLE;
+                aprilOrder[2] = BallColor.GREEN;
+                return true;
+            }
+        return false;
     }
 
     // Call this every loop
@@ -1654,15 +1656,14 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             LLStatus status = robot.limelight.getStatus();
             LLResult tagResult = robot.limelight.getLatestResult();
             
-            if (tagResult != null && status.isConnected()) {
-                List<LLResultTypes.FiducialResult> tags = tagResult.getFiducialResults();
-
-                if (!tags.isEmpty()) {
-                    int detectedTagId = tags.get(0).getFiducialId();
-                    
+            if (tagResult != null) {
+                for (LLResultTypes.FiducialResult fiducialResult : tagResult.getFiducialResults()) {
+                    if (aprilOrderSet) {
+                        break; // Exit if order is already set
+                    }
+                    int detectedTagId = fiducialResult.getFiducialId();
                     // Only lock in tags 21, 22, 23
-                    if (detectedTagId == 21 || detectedTagId == 22 || detectedTagId == 23) {
-                        readAprilTagAndStoreOrder(detectedTagId);
+                    if (readAprilTagAndStoreOrder(detectedTagId)) {
                         aprilOrderSet = true;
                         telemetry.addData("April Tag", "Tag " + detectedTagId + " detected - Order locked");
                     }
