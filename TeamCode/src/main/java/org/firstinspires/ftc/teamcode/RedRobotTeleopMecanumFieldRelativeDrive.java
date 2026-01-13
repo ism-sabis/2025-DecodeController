@@ -224,8 +224,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             }
         }
         
-        // Stop intake after 250ms delay (but NOT during eject)
-        if (!indexerMoving && intakeStopTime > 0 && System.currentTimeMillis() > intakeStopTime && ejectEndTime == 0) {
+        // Stop intake after 250ms delay (but NOT during eject or manual mode)
+        boolean manualMode = gamepad2.right_trigger > 0.4;
+        if (!indexerMoving && intakeStopTime > 0 && System.currentTimeMillis() > intakeStopTime && ejectEndTime == 0 && !manualMode) {
             robot.feedingRotation.setPower(0);
         }
 
@@ -786,7 +787,10 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
         shootOneActive = true;
         shootOneTarget = color;
-        robot.feedingRotation.setPower(0);  // Stop intake during shooting
+        // Only stop intake if not part of a pattern sequence
+        if (!shootPatternActive) {
+            robot.feedingRotation.setPower(0);  // Stop intake during shooting
+        }
         rotateIndexerTo(idx);
         shootOneState = ShootOneState.WAIT_REACH;
         shootOneStartMs = System.currentTimeMillis();
@@ -871,20 +875,10 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         if (!shootAllActive) return;
         switch (shootAllState) {
             case CHECK_SLOT: {
-                int shootingSlot = getSlotAtShootingPosition();
-                BallColor c = indexerSlots[shootingSlot];
-                if (c == BallColor.GREEN || c == BallColor.PURPLE) {
-                    // initiate shooting
-                    if (launcherState == LauncherState.IDLE) {
-                        launcherState = LauncherState.STARTING;
-                        shootAllState = ShootAllState.WAIT_SHOOT;
-                    }
-                } else {
-                    // move to next slot
-                    int nextSlot = (shootingSlot + 1) % NUM_SLOTS;
-                    rotateIndexerTo(nextSlot);
-                    shootAllState = ShootAllState.WAIT_REACH;
-                    shootAllStateStartMs = System.currentTimeMillis();
+                // Always shoot current slot regardless of color
+                if (launcherState == LauncherState.IDLE) {
+                    launcherState = LauncherState.STARTING;
+                    shootAllState = ShootAllState.WAIT_SHOOT;
                 }
                 break;
             }
@@ -937,65 +931,37 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     void startShootInPattern() {
         shootPatternActive = true;
         shootPatternIndex = 0;
+        robot.feedingRotation.setPower(1.0);
         shootPatternState = ShootPatternState.NEXT;
     }
 
     void updateShootInPattern() {
         if (!shootPatternActive) return;
-        switch (shootPatternState) {
-            case NEXT: {
-                if (shootPatternIndex >= NUM_SLOTS) {
-                    shootPatternState = ShootPatternState.DONE;
-                    break;
-                }
-                BallColor toShoot = aprilOrder[shootPatternIndex];
-                shootPatternIndex++;
-                if (toShoot == BallColor.NONE) {
-                    shootPatternState = ShootPatternState.NEXT;
-                } else {
-                    int idx = findNearestSlotWithColor(toShoot);
-                    if (idx == -1) {
-                        shootPatternState = ShootPatternState.NEXT;
-                    } else {
-                        rotateIndexerTo(idx);
-                        shootPatternState = ShootPatternState.WAIT_REACH;
-                        shootPatternStateStartMs = System.currentTimeMillis();
-                    }
-                }
-                break;
-            }
-            case WAIT_REACH: {
-                boolean reached = isIndexerAtTarget(5);
-                boolean timedOut = System.currentTimeMillis() - shootPatternStateStartMs >= 1500;
-                if (reached || timedOut) {
-                    shootPatternState = ShootPatternState.START_SHOOT;
-                }
-                break;
-            }
-            case START_SHOOT: {
-                if (launcherState == LauncherState.IDLE) {
-                    launcherState = LauncherState.STARTING;
-                    shootPatternState = ShootPatternState.WAIT_SHOOT;
-                }
-                break;
-            }
-            case WAIT_SHOOT: {
-                if (launcherState == LauncherState.IDLE) {
-                    int shootingSlot = getSlotAtShootingPosition();
-                    indexerSlots[shootingSlot] = BallColor.NONE;
-                    shootPatternState = ShootPatternState.NEXT;
-                }
-                break;
-            }
-            case DONE: {
-                shootPatternActive = false;
-                shootPatternState = ShootPatternState.IDLE;
-                gamepads.blipRumble(2, 2);
-                break;
-            }
-            default:
-                break;
+        
+        // Wait for any active shootOne to complete
+        if (shootOneActive) {
+            return;
         }
+        
+        // Move to next color in pattern
+        if (shootPatternIndex >= NUM_SLOTS) {
+            // Done with all colors
+            robot.feedingRotation.setPower(0);
+            shootPatternActive = false;
+            gamepads.blipRumble(2, 2);
+            return;
+        }
+        
+        BallColor toShoot = aprilOrder[shootPatternIndex];
+        shootPatternIndex++;
+        
+        if (toShoot == BallColor.NONE) {
+            // Skip NONE entries
+            return;
+        }
+        
+        // Trigger shoot one ball for this color
+        startShootOneBall(toShoot);
     }
 
     // Deprecated: use startReindex() for nonblocking behavior
