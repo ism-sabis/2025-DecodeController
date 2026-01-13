@@ -1449,10 +1449,11 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
      */
     private void updateLauncherAuto() {
         if (launcherState == LauncherState.STARTING) {
-            robot.launcher.setPower(0.075);
+            double power = calculateLauncherPower();
+            robot.launcher.setPower(power);
             runtime.reset();
             launcherState = LauncherState.SPINNING;
-        } else if (launcherState == LauncherState.SPINNING && runtime.seconds() >= 1.5) {
+        } else if (launcherState == LauncherState.SPINNING && runtime.seconds() >= calculateSpinUpTime()) {
             robot.kicker.setPosition(KICKER_UP);
             runtime.reset();
             launcherState = LauncherState.KICKING;
