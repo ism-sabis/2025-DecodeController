@@ -192,6 +192,13 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     private enum ShootPatternState { IDLE, MOVE, WAIT_REACH, START_SHOOT, WAIT_SHOOT, NEXT, DONE }
     private ShootPatternState shootPatternState = ShootPatternState.IDLE;
 
+    // Nonblocking single-shot by color
+    private boolean shootOneActive = false;
+    private BallColor shootOneTarget = BallColor.NONE;
+    private long shootOneStartMs = 0;
+    private enum ShootOneState { IDLE, MOVE, WAIT_REACH, START_SHOOT, WAIT_SHOOT, DONE }
+    private ShootOneState shootOneState = ShootOneState.IDLE;
+
     // Calculate the COUNTS_PER_INCH for your specific drive train.
     // Go to your motor vendor website to determine your motor's
     // COUNTS_PER_MOTOR_REV
@@ -368,7 +375,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
 
         encoderDrive(TURN_SPEED, 23, -23, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
 
-        autoShootOneBall();
+        autoShootAllBalls(); // Shoot all preloaded balls
 
         encoderDrive(DRIVE_SPEED, 10, 10, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
 
@@ -376,7 +383,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
 
         displayAprilTagOrder();
-        startShootInPattern(); // Shoot balls based on AprilTag order
+        runShootInPatternBlocking(); // Shoot balls based on AprilTag order
           
           
         encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn left 12 inches (mirrored right), 4 sec timeout
@@ -400,7 +407,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
           
           
-        startShootInPattern(); // Shoot balls based on AprilTag order
+        runShootInPatternBlocking(); // Shoot balls based on AprilTag order
           
           
         encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn left 12 inches (mirrored right), 4 sec timeout
@@ -424,7 +431,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
           
           
-        startShootInPattern(); // Shoot balls based on AprilTag order
+        runShootInPatternBlocking(); // Shoot balls based on AprilTag order
           
           
         encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn left 12 inches (mirrored right), 4 sec timeout
@@ -1358,6 +1365,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     public void autoShootAllBalls() {
         shootAllActive = true;
         shootAllRemaining = NUM_SLOTS;
+        robot.feedingRotation.setPower(1.0);
         shootAllState = ShootAllState.CHECK_SLOT;
         shootAllStateStartMs = System.currentTimeMillis();
         
@@ -1394,18 +1402,10 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         
         switch (shootAllState) {
             case CHECK_SLOT: {
-                int shootingSlot = getSlotAtShootingPosition();
-                BallColor c = indexerSlots[shootingSlot];
-                if (c == BallColor.GREEN || c == BallColor.PURPLE) {
-                    if (launcherState == LauncherState.IDLE) {
-                        launcherState = LauncherState.STARTING;
-                        shootAllState = ShootAllState.WAIT_SHOOT;
-                    }
-                } else {
-                    int nextSlot = (shootingSlot + 1) % NUM_SLOTS;
-                    rotateIndexerTo(nextSlot);
-                    shootAllState = ShootAllState.WAIT_REACH;
-                    shootAllStateStartMs = System.currentTimeMillis();
+                // Always shoot current slot regardless of color
+                if (launcherState == LauncherState.IDLE) {
+                    launcherState = LauncherState.STARTING;
+                    shootAllState = ShootAllState.WAIT_SHOOT;
                 }
                 break;
             }
@@ -1669,7 +1669,42 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         if (shootPatternActive) return;
         shootPatternActive = true;
         shootPatternIndex = 0;
+        robot.feedingRotation.setPower(1.0);
         shootPatternState = ShootPatternState.NEXT;
+    }
+    
+    /**
+     * LinearOpMode helper: Run shoot in pattern and wait for completion.
+     * Continuously updates servo and state machines until done.
+     */
+    void runShootInPatternBlocking() {
+        startShootInPattern();
+        while (opModeIsActive() && shootPatternActive) {
+            servo.update();
+            servo1.setRawPower(servo.getPower() * 0.5);
+            updateShooterPosColor();
+            updateShootInPattern();
+            updateLauncherAuto();
+            
+            // Handle indexer stop logic
+            if (indexerMoving && (servo.isAtTarget(40) || Math.abs(servo.getPower()) < 0.05)) {
+                indexerMoving = false;
+                if (!intakeDelayUsed) {
+                    intakeStopTime = System.currentTimeMillis() + 250;
+                    intakeDelayUsed = true;
+                } else {
+                    intakeStopTime = 0;
+                }
+            }
+            
+            // Stop intake after delay
+            if (!indexerMoving && intakeStopTime > 0 && System.currentTimeMillis() > intakeStopTime) {
+                robot.feedingRotation.setPower(0);
+            }
+            
+            telemetry.addData("Pattern", "Shooting... Index: " + shootPatternIndex);
+            telemetry.update();
+        }
     }
 
     /**
@@ -1678,40 +1713,70 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
      */
     void updateShootInPattern() {
         if (!shootPatternActive) return;
-        switch (shootPatternState) {
-            case NEXT: {
-                if (shootPatternIndex >= NUM_SLOTS) {
-                    shootPatternState = ShootPatternState.DONE;
-                    break;
-                }
-                BallColor toShoot = aprilOrder[shootPatternIndex];
-                shootPatternIndex++;
-                if (toShoot == BallColor.NONE) {
-                    shootPatternState = ShootPatternState.NEXT;
-                } else {
-                    int idx = findNearestSlotWithColor(toShoot);
-                    if (idx == -1) {
-                        shootPatternState = ShootPatternState.NEXT;
-                    } else {
-                        rotateIndexerTo(idx);
-                        shootPatternState = ShootPatternState.WAIT_REACH;
-                        shootPatternStateStartMs = System.currentTimeMillis();
-                    }
-                }
-                break;
-            }
+        
+        // Keep intake running while indexer moving
+        if (indexerMoving) {
+            robot.feedingRotation.setPower(1.0);
+            intakeStopTime = 0;
+        }
+        
+        // Wait for any active shootOne to complete
+        if (shootOneActive) {
+            updateShootOneBall();
+            return;
+        }
+        
+        // Move to next color in pattern
+        if (shootPatternIndex >= NUM_SLOTS) {
+            // Done with all colors
+            robot.feedingRotation.setPower(0);
+            shootPatternActive = false;
+            return;
+        }
+        
+        BallColor toShoot = aprilOrder[shootPatternIndex];
+        shootPatternIndex++;
+        
+        if (toShoot == BallColor.NONE) {
+            // Skip NONE entries
+            return;
+        }
+        
+        // Find and shoot this color
+        int idx = findNearestSlotWithColor(toShoot);
+        if (idx == -1) {
+            return; // Color not found, skip
+        }
+        
+        // Start shooting this ball
+        shootOneActive = true;
+        shootOneTarget = toShoot;
+        if (!shootPatternActive) {
+            robot.feedingRotation.setPower(0);
+        }
+        rotateIndexerTo(idx);
+        shootOneState = ShootOneState.WAIT_REACH;
+        shootOneStartMs = System.currentTimeMillis();
+    }
+
+    /**
+     * Update shoot one ball state machine for autonomous.
+     */
+    void updateShootOneBall() {
+        if (!shootOneActive) return;
+        switch (shootOneState) {
             case WAIT_REACH: {
                 boolean reached = isIndexerAtTarget(5);
-                boolean timedOut = System.currentTimeMillis() - shootPatternStateStartMs >= 1500;
+                boolean timedOut = System.currentTimeMillis() - shootOneStartMs >= 1500;
                 if (reached || timedOut) {
-                    shootPatternState = ShootPatternState.START_SHOOT;
+                    shootOneState = ShootOneState.START_SHOOT;
                 }
                 break;
             }
             case START_SHOOT: {
                 if (launcherState == LauncherState.IDLE) {
                     launcherState = LauncherState.STARTING;
-                    shootPatternState = ShootPatternState.WAIT_SHOOT;
+                    shootOneState = ShootOneState.WAIT_SHOOT;
                 }
                 break;
             }
@@ -1719,14 +1784,16 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
                 if (launcherState == LauncherState.IDLE) {
                     int shootingSlot = getSlotAtShootingPosition();
                     indexerSlots[shootingSlot] = BallColor.NONE;
-                    shootPatternState = ShootPatternState.NEXT;
+                    shootOneState = ShootOneState.DONE;
                 }
                 break;
             }
             case DONE: {
-                shootPatternActive = false;
-                shootPatternState = ShootPatternState.IDLE;
-                telemetry.addData("Shoot Pattern", "Complete");
+                if (!shootPatternActive) {
+                    robot.feedingRotation.setPower(0);
+                }
+                shootOneActive = false;
+                shootOneState = ShootOneState.IDLE;
                 break;
             }
             default:
