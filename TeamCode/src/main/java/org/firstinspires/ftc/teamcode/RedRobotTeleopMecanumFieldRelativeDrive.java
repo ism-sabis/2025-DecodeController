@@ -937,6 +937,12 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     void updateShootInPattern() {
         if (!shootPatternActive) return;
+
+        // Keep intake running while the indexer is moving during the pattern sequence
+        if (indexerMoving) {
+            robot.feedingRotation.setPower(1.0);
+            intakeStopTime = 0; // prevent any delayed auto-stop from kicking in
+        }
         
         // Wait for any active shootOne to complete
         if (shootOneActive) {
