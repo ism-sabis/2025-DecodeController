@@ -27,7 +27,7 @@
             "command": "C:\\Users\\batma\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe",
             "args": [
                 "-s",
-                "33486785bac94834",
+                "192.168.43.1:5555",
                 "install",
                 "-r",
                 "${workspaceFolder}\\TeamCode\\build\\outputs\\apk\\debug\\TeamCode-debug.apk"
