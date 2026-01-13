@@ -671,7 +671,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
             double launcherPower = 0;
 
-            launcherPower = (0.00303584 * distanceNew) + 0.586525;
+            launcherPower = (0.00303584 * distanceNew) + 0.8;
 
             return launcherPower;
         }
@@ -786,7 +786,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         }
         shootOneActive = true;
         shootOneTarget = color;
-        robot.feedingRotation.setPower(1.0);
+        robot.feedingRotation.setPower(0);  // Stop intake during shooting
         rotateIndexerTo(idx);
         shootOneState = ShootOneState.WAIT_REACH;
         shootOneStartMs = System.currentTimeMillis();
@@ -1075,28 +1075,24 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         if (gamepad2.right_trigger < 0.4)
             return;
 
-        // Manual indexer rotation
+        // Manual indexer rotation (60deg increments)
         if (gamepads.isPressed(2, "cross")) {
             robot.feedingRotation.setPower(1.0);
-            int currentSlot = getSlotAtShootingPosition();
-            rotateIndexerTo((currentSlot - 1 + NUM_SLOTS) % NUM_SLOTS);
-            robot.feedingRotation.setPower(0);
+            commandIndexerRotation(-60);
         }
         if (gamepads.isPressed(2, "circle")) {
             robot.feedingRotation.setPower(1.0);
-            int currentSlot = getSlotAtShootingPosition();
-            rotateIndexerTo((currentSlot + 1) % NUM_SLOTS);
-            robot.feedingRotation.setPower(0);
+            commandIndexerRotation(60);
         }
 
-        // D-Pad manual slot moves (up = forward 60deg, down = backward 60deg)
+        // D-Pad manual slot moves (up = forward 5deg, down = backward 5deg)
         if (gamepads.isPressed(2, "dpad_up")) {
             robot.feedingRotation.setPower(1.0);
-            commandIndexerRotation(60);
+            commandIndexerRotation(5);
         }
         if (gamepads.isPressed(2, "dpad_down")) {
             robot.feedingRotation.setPower(1.0);
-            commandIndexerRotation(-60);
+            commandIndexerRotation(-5);
         }
         
         // Position reset: RT + Left Stick Button = reset to shooting position 0
