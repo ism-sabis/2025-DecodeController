@@ -349,7 +349,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         updateTurretControl();
 
         // Lift
-        // lift();
+        //lift();
 
         shootLoop();
 
@@ -1418,7 +1418,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
     public void lift() {
         if (gamepad1.dpad_up) {
             robot.leftLift.setPower(LIFT_SPEED);
-            robot.rightLift.setPower(LIFT_SPEED);
+           robot.rightLift.setPower(LIFT_SPEED);
         } else if (gamepad1.dpad_down) {
             robot.leftLift.setPower(-LIFT_SPEED);
             robot.rightLift.setPower(-LIFT_SPEED);

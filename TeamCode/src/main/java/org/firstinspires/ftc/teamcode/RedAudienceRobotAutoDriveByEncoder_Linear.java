@@ -1365,7 +1365,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     public void autoShootAllBalls() {
         shootAllActive = true;
         shootAllRemaining = NUM_SLOTS;
-        robot.feedingRotation.setPower(1.0);
+        robot.feedingRotation.setPower(0.7); // run intake at 70% during cycles
         shootAllState = ShootAllState.CHECK_SLOT;
         shootAllStateStartMs = System.currentTimeMillis();
         
@@ -1387,12 +1387,12 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         // Check if indexer movement complete - keep intake running
         if (indexerMoving && (servo.isAtTarget(40) || Math.abs(servo.getPower()) < 0.05)) {
             indexerMoving = false;
-            // Keep intake running - don't stop after movements
+            robot.feedingRotation.setPower(0.7);
         }
         
         // Keep intake running during entire sequence
         if (shootAllActive && launcherState != LauncherState.KICKING) {
-            robot.feedingRotation.setPower(1.0);
+            robot.feedingRotation.setPower(0.7);
         }
         
         switch (shootAllState) {
@@ -1422,7 +1422,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
             }
             case WAIT_REACH: {
                 // Keep intake running while waiting
-                robot.feedingRotation.setPower(1.0);
+                robot.feedingRotation.setPower(0.7);
                 boolean reached = isIndexerAtTarget(5);
                 boolean timedOut = System.currentTimeMillis() - shootAllStateStartMs >= 1500;
                 if (reached || timedOut) {
@@ -1463,8 +1463,9 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
             launcherState = LauncherState.KICKING;
         } else if (launcherState == LauncherState.KICKING && runtime.seconds() >= 0.8) {
             robot.kicker.setPosition(KICKER_DOWN);
+            runtime.reset();
             launcherState = LauncherState.UNKICKING;
-        } else if (launcherState == LauncherState.UNKICKING) {
+        } else if (launcherState == LauncherState.UNKICKING && runtime.seconds() >= 0.3) {
             robot.launcher.setPower(0);
             launcherState = LauncherState.IDLE;
         }
@@ -1614,7 +1615,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
      */
     public void autoShootOneBall() {
         // 1. Aim turret at goal (increased time)
-        autoAimTurret(5000);
+        autoAimTurret(7000);
         
         // 2. Get distance from Limelight and calculate power
         LLResult result = robot.limelight.getLatestResult();
