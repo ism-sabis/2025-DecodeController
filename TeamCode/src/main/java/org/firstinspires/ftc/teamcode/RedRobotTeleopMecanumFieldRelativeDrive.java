@@ -1088,11 +1088,11 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         // D-Pad manual slot moves (up = forward 5deg, down = backward 5deg)
         if (gamepads.isPressed(2, "dpad_up")) {
             robot.feedingRotation.setPower(1.0);
-            commandIndexerRotation(5);
+            commandIndexerRotation(10);
         }
         if (gamepads.isPressed(2, "dpad_down")) {
             robot.feedingRotation.setPower(1.0);
-            commandIndexerRotation(-5);
+            commandIndexerRotation(-10);
         }
         
         // Position reset: RT + Left Stick Button = reset to shooting position 0
@@ -1131,9 +1131,9 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             }
         }
 
-        if (gamepad2.left_stick_button && launcherState == LauncherState.IDLE) {
-            launcherState = LauncherState.STARTING;
-        }
+       // if (gamepad2.left_stick_button && launcherState == LauncherState.IDLE) {
+       //     launcherState = LauncherState.STARTING;
+       // }
     }
 
     private void driveDriverRelative(double forward, double right, double rotate, double driverYawOffset) {
