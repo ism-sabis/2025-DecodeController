@@ -1448,6 +1448,13 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
      * Update launcher state machine during autonomous shoot.
      */
     private void updateLauncherAuto() {
+        // Continuously update distance from Limelight
+        LLResult result = robot.limelight.getLatestResult();
+        if (result != null) {
+            double ta = result.getTa();
+            getDistanceFromTag(ta);
+        }
+        
         if (launcherState == LauncherState.STARTING) {
             double power = calculateLauncherPower();
             robot.launcher.setPower(power);
