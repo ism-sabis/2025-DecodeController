@@ -805,6 +805,13 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
     void updateShootOneBall() {
         if (!shootOneActive) return;
+
+        // Keep intake running while the indexer is moving during single shot
+        if (indexerMoving) {
+            robot.feedingRotation.setPower(1.0);
+            intakeStopTime = 0; // prevent any delayed auto-stop from kicking in
+        }
+
         switch (shootOneState) {
             case WAIT_REACH: {
                 boolean reached = isIndexerAtTarget(5);
