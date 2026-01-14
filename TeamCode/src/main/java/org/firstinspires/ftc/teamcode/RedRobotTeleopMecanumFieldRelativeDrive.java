@@ -675,7 +675,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
             double launcherPower = 0;
 
-            launcherPower = (0.00303584 * distanceNew) + 0.8;
+            launcherPower = (0.00303584 * distanceNew) + 0.586525;
 
             return launcherPower;
         }
@@ -856,9 +856,10 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             launcherState = LauncherState.KICKING;
         } else if (launcherState == LauncherState.KICKING && waitTimer.seconds() >= 0.6) {
             robot.kicker.setPosition(KICKER_DOWN);
+            waitTimer.reset();
             launcherState = LauncherState.UNKICKING;
         }
-        else if (launcherState == LauncherState.UNKICKING) {
+        else if (launcherState == LauncherState.UNKICKING && waitTimer.seconds() >= 0.5) {
             robot.launcher.setPower(0);
             launcherState = LauncherState.IDLE;
         }
