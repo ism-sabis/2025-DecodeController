@@ -392,7 +392,49 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         encoderDrive(DRIVE_SPEED, 10, 10, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
 
 
-        encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
+        encoderDrive(TURN_SPEED, 23, -23, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
+
+
+        encoderDrive(DRIVE_SPEED, 20, 20, 4.0);
+
+
+        encoderDrive(DRIVE_SPEED, -20, -20, 4.0);
+
+
+        encoderDrive(TURN_SPEED, -23, 23, 4.0);
+
+
+         encoderDrive(DRIVE_SPEED, -10, -10, 4.0);
+
+
+         encoderDrive(DRIVE_SPEED, 10, 10, 4.0); 
+
+
+         encoderDrive(TURN_SPEED, 46, -46, 4.0);
+
+
+         encoderDrive(DRIVE_SPEED, 20, 20, 4.0);
+
+
+         encoderDrive(TURN_SPEED, 23, -23, 4.0);
+
+
+         encoderDrive(DRIVE_SPEED, 20, 20, 4.0);
+
+
+         encoderDrive(TURN_SPEED, 46, -46, 4.0);
+
+
+         encoderDrive(DRIVE_SPEED, 20, 20, 4.0);
+
+
+         encoderDrive(TURN_SPEED, -23, 23, 4.0);
+
+
+         encoderDrive(DRIVE_SPEED, 20, 20, 4.0);
+
+
+         encoderDrive(TURN_SPEED, 46, -46, 4.0);
 
         displayAprilTagOrder();
         runShootInPatternBlocking(); // Shoot balls based on AprilTag order
