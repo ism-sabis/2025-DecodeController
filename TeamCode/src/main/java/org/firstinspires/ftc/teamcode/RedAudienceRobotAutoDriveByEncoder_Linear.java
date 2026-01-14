@@ -386,6 +386,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         encoderDrive(TURN_SPEED, 23, -23, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
 
         autoReindexIdentifyColors();  // Identify all balls before shooting
+        aimTurretAtRedGoal();  // Aim turret at goal before shooting
         autoShootAllBalls(); // Shoot all preloaded balls
 
         encoderDrive(DRIVE_SPEED, 10, 10, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
@@ -777,7 +778,9 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
      */
 
     public void aimTurretAtRedGoal() {
-        if (opModeIsActive()) {
+        long timeoutMs = System.currentTimeMillis() + 5000;  // 5 second timeout
+        
+        while (opModeIsActive() && System.currentTimeMillis() < timeoutMs) {
             LLResult result = robot.limelight.getLatestResult();
 
             if (result == null) {
@@ -786,40 +789,59 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
                 return;
             }
 
+            boolean foundTarget = false;
             for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
                 if (tag.getFiducialId() == 24) { // Red Alliance goal
+                    foundTarget = true;
                     double tx = tag.getTargetXDegrees();
 
-                    // ------------------------
-                    // Adaptive CR servo control
-                    // ------------------------
-                    double deadband = 0.5; // degrees, ignore tiny offsets
-                    double maxPower = 0.15; // max speed at close range
-                    double minPower = 0.05; // minimum speed to overcome friction
-                    double kP = 0.05; // proportional gain
+                    // Deadband for alignment
+                    double deadband = 1.0; // degrees
 
                     if (Math.abs(tx) < deadband) {
-                        // close enough → stop
+                        // Aligned!
                         robot.turretSpinner.setPower(0);
+                        telemetry.addData("Turret", "ALIGNED");
+                        telemetry.update();
+                        return;
                     } else {
-                        // scale proportional to error, clamp to min/max
+                        // Aim toward target
+                        double maxPower = 0.15;
+                        double minPower = 0.02;  // Very small minimum to prevent overshoot
+                        double kP = 0.05;
                         double scaledPower = Math.min(maxPower, Math.max(minPower, Math.abs(kP * tx)));
-                        // apply direction
-                        robot.turretSpinner.setPower(Math.signum(-tx) * scaledPower);
+                        robot.turretSpinner.setPower(Math.signum(tx) * scaledPower);
+                        
+                        telemetry.addData("Turret Tracking", "Aiming at Tag 24");
+                        telemetry.addData("tx", tx);
+                        telemetry.addData("Power", robot.turretSpinner.getPower());
                     }
-
-                    telemetry.addData("Turret Tracking", "Aiming at Tag 24");
-                    telemetry.addData("tx", tx);
-                    telemetry.addData("Power", robot.turretSpinner.getPower());
-                    return;
+                    break;
                 }
             }
-
-            // No target found → stop turret
-            robot.turretSpinner.setPower(0);
-            telemetry.addData("Turret Tracking", "No target");
+            
+            if (!foundTarget) {
+                // No target found → stop turret and return
+                robot.turretSpinner.setPower(0);
+                return;
+            }
+            
+            telemetry.update();
+            
+            // Small delay to let limelight update and turret momentum settle
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
+        
+        // Timeout reached - stop turret
+        robot.turretSpinner.setPower(0);
     }
+
+    // ============================================
+
 
     private BallColor detectColor() {
         if (opModeIsActive()) {
