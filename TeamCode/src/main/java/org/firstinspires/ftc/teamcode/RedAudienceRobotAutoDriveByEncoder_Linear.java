@@ -217,7 +217,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     static final double TURN_SPEED = 0.5;
 
     @Override
-    public void runOpMode() {
+    public void runOpMode() throws InterruptedException {
 
         // Initialize the drive system variables.
         frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
@@ -384,10 +384,10 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         encoderDrive(DRIVE_SPEED, 6.5, 6.5, 4.0); // S3: Forward 24 inches (mirrored), 4 sec timeout
 
         encoderDrive(TURN_SPEED, 23, -23, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
-
-        autoReindexIdentifyColors();  // Identify all balls before shooting
-        aimTurretAtRedGoal();  // Aim turret at goal before shooting
-        autoShootAllBalls(); // Shoot all preloaded balls
+        autoShoot();
+        //autoReindexIdentifyColors();  // Identify all balls before shooting
+        //aimTurretAtRedGoal();  // Aim turret at goal before shooting
+        //autoShootAllBalls(); // Shoot all preloaded balls
 
         encoderDrive(DRIVE_SPEED, 10, 10, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
 
@@ -818,7 +818,62 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
      * telemetry.addData("Turret Tracking", "No target");
      * }
      */
+    public void autoShoot() throws InterruptedException {
+    // Shot 1
+    aimTurretAtRedGoal();
+    robot.launcher.setPower(1);
+    Thread.sleep((long)(5*1000));  // Convert seconds to milliseconds
+    
+    robot.kicker.setPosition(KICKER_UP);
+    robot.launcher.setPower(0);  // Stop launcher between shots
+    Thread.sleep(1000);  // 0.5 seconds = 500 milliseconds
+    robot.kicker.setPosition(KICKER_DOWN);
+    Thread.sleep(500);
 
+    robot.feedingRotation.setPower(0.7);
+    
+    servo.changeTargetRotation(120);
+    double followerScale = 0.5;
+    long timeoutMs = System.currentTimeMillis() + 2000;
+    while (opModeIsActive() && !servo.isAtTarget(5) && System.currentTimeMillis() < timeoutMs) {
+        servo.update();
+        servo1.setRawPower(servo.getPower() * followerScale);
+    }
+    robot.feedingRotation.setPower(0);
+    
+    // Shot 2
+    aimTurretAtRedGoal();
+    robot.launcher.setPower(calculateLauncherPower());
+    Thread.sleep((long)(calculateSpinUpTime() * 1000));
+    
+    robot.kicker.setPosition(KICKER_UP);
+    robot.launcher.setPower(0);  // Stop launcher between shots
+    Thread.sleep(1000);
+    robot.kicker.setPosition(KICKER_DOWN);
+    Thread.sleep(500);
+
+    robot.feedingRotation.setPower(0.7);
+    
+    servo.changeTargetRotation(120);
+    timeoutMs = System.currentTimeMillis() + 2000;
+    while (opModeIsActive() && !servo.isAtTarget(5) && System.currentTimeMillis() < timeoutMs) {
+        servo.update();
+        servo1.setRawPower(servo.getPower() * followerScale);
+    }
+    robot.feedingRotation.setPower(0);
+    
+    // Shot 3
+    aimTurretAtRedGoal();
+    robot.launcher.setPower(calculateLauncherPower());
+    Thread.sleep((long)(calculateSpinUpTime() * 1000));
+    
+    robot.kicker.setPosition(KICKER_UP);
+    robot.launcher.setPower(0);  // Stop launcher between shots
+    Thread.sleep(1000);
+    robot.kicker.setPosition(KICKER_DOWN);
+    Thread.sleep(500);
+
+}
     public void aimTurretAtRedGoal() {
         long timeoutMs = System.currentTimeMillis() + 5000;  // 5 second timeout
         
