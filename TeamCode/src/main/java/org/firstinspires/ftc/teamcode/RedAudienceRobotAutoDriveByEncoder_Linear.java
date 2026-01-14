@@ -264,6 +264,16 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         rearLeft.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rearRight.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
+        // Ensure all motors are stopped during init
+        frontLeft.setPower(0);
+        frontRight.setPower(0);
+        rearLeft.setPower(0);
+        rearRight.setPower(0);
+        robot.feedingRotation.setPower(0);
+        robot.launcher.setPower(0);
+        robot.leftLift.setPower(0);
+        robot.rightLift.setPower(0);
+
         // Send telemetry message to indicate successful Encoder reset
         telemetry.addData("Starting at", "%7d :%7d",
                 frontLeft.getCurrentPosition(),
@@ -375,6 +385,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
 
         encoderDrive(TURN_SPEED, 23, -23, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
 
+        autoReindexIdentifyColors();  // Identify all balls before shooting
         autoShootAllBalls(); // Shoot all preloaded balls
 
         encoderDrive(DRIVE_SPEED, 10, 10, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
@@ -1360,12 +1371,62 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     }
 
     /**
+     * Autonomous reindex - rotate through all slots and identify ball colors.
+     * Must be called before autoShootAllBalls() to populate indexerSlots[].
+     */
+    public void autoReindexIdentifyColors() {
+        robot.feedingRotation.setPower(1.0);
+        
+        // Rotate through each slot and read color
+        for (int i = 0; i < NUM_SLOTS; i++) {
+            int targetSlot = i;
+            rotateIndexerTo(targetSlot);
+            
+            // Wait for indexer to reach target
+            long timeoutMs = System.currentTimeMillis() + 2000;
+            while (opModeIsActive() && !isIndexerAtTarget(5) && System.currentTimeMillis() < timeoutMs) {
+                servo.update();
+                servo1.setRawPower(servo.getPower() * 0.5);
+                updateShooterPosColor();  // Read color while rotating
+            }
+            
+            // Allow sensor to stabilize and sample again
+            long stabilizeMs = System.currentTimeMillis() + 300;
+            while (opModeIsActive() && System.currentTimeMillis() < stabilizeMs) {
+                servo.update();
+                servo1.setRawPower(servo.getPower() * 0.5);
+                updateShooterPosColor();  // Keep sampling during stabilize time
+            }
+        }
+        
+        // Ensure indexer is completely stopped before returning
+        robot.feedingRotation.setPower(0);
+        servo.setPower(0);
+        servo1.setPower(0);
+        
+        // Wait a bit for everything to settle
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        
+        // Reset state flags to ensure shooting doesn't interfere
+        shootAllActive = false;
+        launcherState = LauncherState.IDLE;
+        indexerMoving = false;
+    }
+
+    /**
      * Autonomous shoot all balls - rotates through slots and shoots any GREEN/PURPLE balls.
      */
     public void autoShootAllBalls() {
+        // Ensure clean start - no leftover movement from reindex
+        indexerMoving = false;
         shootAllActive = true;
         shootAllRemaining = NUM_SLOTS;
-        robot.feedingRotation.setPower(0.7); // run intake at 70% during cycles
+        launcherState = LauncherState.IDLE;
+        robot.feedingRotation.setPower(1.0);  // Keep intake running full power
         shootAllState = ShootAllState.CHECK_SLOT;
         shootAllStateStartMs = System.currentTimeMillis();
         
@@ -1384,16 +1445,8 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     private void updateAutoShootAll() {
         if (!shootAllActive) return;
         
-        // Check if indexer movement complete - keep intake running
-        if (indexerMoving && (servo.isAtTarget(40) || Math.abs(servo.getPower()) < 0.05)) {
-            indexerMoving = false;
-            robot.feedingRotation.setPower(0.7);
-        }
-        
-        // Keep intake running during entire sequence
-        if (shootAllActive && launcherState != LauncherState.KICKING) {
-            robot.feedingRotation.setPower(0.7);
-        }
+        // Always keep intake running during entire shoot-all sequence
+        robot.feedingRotation.setPower(1.0);
         
         switch (shootAllState) {
             case CHECK_SLOT: {
@@ -1421,8 +1474,6 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
                 break;
             }
             case WAIT_REACH: {
-                // Keep intake running while waiting
-                robot.feedingRotation.setPower(0.7);
                 boolean reached = isIndexerAtTarget(5);
                 boolean timedOut = System.currentTimeMillis() - shootAllStateStartMs >= 1500;
                 if (reached || timedOut) {
