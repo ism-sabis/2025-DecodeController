@@ -279,10 +279,6 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             if (gamepads.isPressed(2, "cross")) {
                 macroIntakeOneBall();
             }
-            if (gamepads.isPressed(2, "circle")) {
-                // Start nonblocking auto fill
-                startAutoFill();
-            }
             if (gamepads.isPressed(2, "square")) {
                 startReindex();
             }
@@ -356,7 +352,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
         updateTurretControl();
 
         // Lift
-        //lift();
+        lift();
 
         shootLoop();
 
