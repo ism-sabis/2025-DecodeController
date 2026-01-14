@@ -2,11 +2,11 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "FTC: Build & Deploy",
+            "label": "FTC: Build & Deploy (WiFi)",
             "type": "shell",
             "command": "C:\\Users\\batma\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe",
             "args": [],
-            "dependsOn": ["Build APK", "Install APK"],
+            "dependsOn": ["Build APK", "Install APK (WiFi)"],
             "dependsOrder": "sequence",
             "group": {
                 "kind": "build",
@@ -22,7 +22,7 @@
             "problemMatcher": ["$gradle"]
         },
         {
-            "label": "Install APK",
+            "label": "Install APK (WiFi)",
             "type": "shell",
             "command": "C:\\Users\\batma\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe",
             "args": [
@@ -32,6 +32,30 @@
                 "-r",
                 "${workspaceFolder}\\TeamCode\\build\\outputs\\apk\\debug\\TeamCode-debug.apk"
             ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Install APK (USB)",
+            "type": "shell",
+            "command": "C:\\Users\\batma\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe",
+            "args": [
+                "-d",
+                "install",
+                "-r",
+                "${workspaceFolder}\\TeamCode\\build\\outputs\\apk\\debug\\TeamCode-debug.apk"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "FTC: Build & Deploy (USB)",
+            "type": "shell",
+            "command": "C:\\Users\\batma\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe",
+            "args": [],
+            "dependsOn": ["Build APK", "Install APK (USB)"],
+            "dependsOrder": "sequence",
+            "group": {
+                "kind": "build"
+            },
             "problemMatcher": []
         },
         {
