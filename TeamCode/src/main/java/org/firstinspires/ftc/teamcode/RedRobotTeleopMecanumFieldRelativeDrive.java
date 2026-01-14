@@ -224,10 +224,17 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             }
         }
         
-        // Stop intake after 250ms delay (but NOT during eject or manual mode)
+        // Stop intake after 250ms delay (but NOT during eject, manual mode, or shoot-all/pattern macros)
         boolean manualMode = gamepad2.right_trigger > 0.4;
-        if (!indexerMoving && intakeStopTime > 0 && System.currentTimeMillis() > intakeStopTime && ejectEndTime == 0 && !manualMode) {
+        boolean suppressAutoStop = shootAllActive || shootPatternActive;
+        if (!indexerMoving && intakeStopTime > 0 && System.currentTimeMillis() > intakeStopTime && ejectEndTime == 0 && !manualMode && !suppressAutoStop) {
             robot.feedingRotation.setPower(0);
+        }
+
+        // Keep intake running through the entire shoot-all sequence
+        if (shootAllActive) {
+            intakeStopTime = 0; // clear any pending auto-stop
+            robot.feedingRotation.setPower(1.0);
         }
 
         gamepads.copyStates();
@@ -844,7 +851,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             robot.kicker.setPosition(KICKER_UP);
             waitTimer.reset();
             launcherState = LauncherState.KICKING;
-        } else if (launcherState == LauncherState.KICKING && waitTimer.seconds() >= 0.5) {
+        } else if (launcherState == LauncherState.KICKING && waitTimer.seconds() >= 0.6) {
             robot.kicker.setPosition(KICKER_DOWN);
             launcherState = LauncherState.UNKICKING;
         }
