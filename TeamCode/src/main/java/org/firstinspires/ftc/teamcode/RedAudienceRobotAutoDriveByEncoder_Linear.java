@@ -1530,17 +1530,24 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
             robot.launcher.setPower(power);
             runtime.reset();
             launcherState = LauncherState.SPINNING;
-        } else if (launcherState == LauncherState.SPINNING && runtime.seconds() >= calculateSpinUpTime()) {
-            robot.kicker.setPosition(KICKER_UP);
-            runtime.reset();
-            launcherState = LauncherState.KICKING;
-        } else if (launcherState == LauncherState.KICKING && runtime.seconds() >= 0.8) {
-            robot.kicker.setPosition(KICKER_DOWN);
-            runtime.reset();
-            launcherState = LauncherState.UNKICKING;
-        } else if (launcherState == LauncherState.UNKICKING && runtime.seconds() >= 0.3) {
-            robot.launcher.setPower(0);
-            launcherState = LauncherState.IDLE;
+        } else if (launcherState == LauncherState.SPINNING) {
+            double spinUpTime = calculateSpinUpTime();
+            if (runtime.seconds() >= spinUpTime) {
+                robot.kicker.setPosition(KICKER_UP);
+                runtime.reset();
+                launcherState = LauncherState.KICKING;
+            }
+        } else if (launcherState == LauncherState.KICKING) {
+            if (runtime.seconds() >= 1.0) {
+                robot.kicker.setPosition(KICKER_DOWN);
+                runtime.reset();
+                launcherState = LauncherState.UNKICKING;
+            }
+        } else if (launcherState == LauncherState.UNKICKING) {
+            if (runtime.seconds() >= 0.3) {
+                robot.launcher.setPower(0);
+                launcherState = LauncherState.IDLE;
+            }
         }
     }
 
@@ -1662,8 +1669,12 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
             if (tag.getFiducialId() != 24) continue;
 
-            double area = result.getTa();
-            double launcherPower = (0.00303584 * distanceNew) + 0.586525;
+            double ta = result.getTa();
+            // Calculate distance from target area
+            double distance = 72.34359 * Math.pow(ta, -0.479834);
+            distanceNew = distance;  // Update for telemetry
+            
+            double launcherPower = (0.00303584 * distance) + 0.586525;
             return launcherPower;
         }
         return 1;
