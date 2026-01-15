@@ -821,10 +821,15 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     public void autoShoot() throws InterruptedException {
     // Shot 1
     aimTurretAtRedGoal();
+
+    robot.turretSpinner.setPower(0.5); // Stop turret after aiming
+    Thread.sleep(250); // timer
+    robot.turretSpinner.setPower(0);
+
     robot.launcher.setPower(1);
     Thread.sleep((long)(2000));  // Convert seconds to milliseconds
-    
-    robot.kicker.setPosition(KICKER_UP);
+
+     robot.kicker.setPosition(KICKER_UP);
     robot.launcher.setPower(0);  // Stop launcher between shots
     Thread.sleep(1000);  // 1.0 second for kicker to fully extend
     robot.kicker.setPosition(KICKER_DOWN);
@@ -843,6 +848,11 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     
     // Shot 2
     aimTurretAtRedGoal();
+
+    robot.turretSpinner.setPower(0.5); // Stop turret after aiming
+    Thread.sleep(250); // timer
+    robot.turretSpinner.setPower(0);
+
     robot.launcher.setPower(1);
     Thread.sleep((long)(2000));
     
@@ -864,6 +874,11 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     
     // Shot 3
     aimTurretAtRedGoal();
+
+    robot.turretSpinner.setPower(0.5); // Stop turret after aiming
+    Thread.sleep(250); // timer
+    robot.turretSpinner.setPower(0);
+    
     robot.launcher.setPower(1);
     Thread.sleep(2000);
     
