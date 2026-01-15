@@ -822,13 +822,13 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     // Shot 1
     aimTurretAtRedGoal();
     robot.launcher.setPower(1);
-    Thread.sleep((long)(5000));  // Convert seconds to milliseconds
+    Thread.sleep((long)(2000));  // Convert seconds to milliseconds
     
     robot.kicker.setPosition(KICKER_UP);
     robot.launcher.setPower(0);  // Stop launcher between shots
     Thread.sleep(1000);  // 1.0 second for kicker to fully extend
     robot.kicker.setPosition(KICKER_DOWN);
-    Thread.sleep(500);
+    Thread.sleep(1000);
 
     robot.feedingRotation.setPower(0.7);
     
@@ -839,18 +839,20 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         servo.update();
         servo1.setRawPower(servo.getPower() * followerScale);
     }
-    robot.feedingRotation.setPower(0.7);
+    robot.feedingRotation.setPower(0);
     
     // Shot 2
     aimTurretAtRedGoal();
     robot.launcher.setPower(1);
-    Thread.sleep((long)(5000));
+    Thread.sleep((long)(2000));
     
     robot.kicker.setPosition(KICKER_UP);
     robot.launcher.setPower(0);  // Stop launcher between shots
     Thread.sleep(1000);  // 1.0 second for kicker to fully extend
     robot.kicker.setPosition(KICKER_DOWN);
-    Thread.sleep(500);
+    Thread.sleep(1000);
+
+    robot.feedingRotation.setPower(0.7);
     
     servo.changeTargetRotation(120);
     timeoutMs = System.currentTimeMillis() + 2000;
@@ -858,17 +860,18 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         servo.update();
         servo1.setRawPower(servo.getPower() * followerScale);
     }
+    robot.feedingRotation.setPower(0);
     
     // Shot 3
     aimTurretAtRedGoal();
     robot.launcher.setPower(1);
-    Thread.sleep(5000);
+    Thread.sleep(2000);
     
     robot.kicker.setPosition(KICKER_UP);
     robot.launcher.setPower(0);  // Stop launcher between shots
     Thread.sleep(1000);  // 1.0 second for kicker to fully extend
     robot.kicker.setPosition(KICKER_DOWN);
-    Thread.sleep(500);
+    Thread.sleep(1000);
 }
     public void aimTurretAtRedGoal() {
         long timeoutMs = System.currentTimeMillis() + 5000;  // 5 second timeout
