@@ -391,7 +391,9 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
 
         encoderDrive(DRIVE_SPEED, 10, 10, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
 
+        encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
 
+/* 
         encoderDrive(TURN_SPEED, 23, -23, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
 
 
@@ -492,6 +494,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
           
           
         encoderDrive(DRIVE_SPEED, -24, -24, 4.0); // S3: Forward 24 inches (mirrored), 4 sec timeout
+        */
 
         telemetry.addData("Path", "Complete");
         telemetry.update();
@@ -832,6 +835,8 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     robot.kicker.setPosition(KICKER_UP);
     Thread.sleep(1000);  // give kicker time to push ball
 
+    
+
     robot.kicker.setPosition(KICKER_DOWN);
     Thread.sleep(1000);  // let ball fully clear
 
@@ -861,6 +866,8 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     robot.kicker.setPosition(KICKER_UP);
     Thread.sleep(1000);  // give kicker time to push ball
 
+    
+
     robot.kicker.setPosition(KICKER_DOWN);
     Thread.sleep(1000);  // let ball fully clear
 
@@ -883,11 +890,12 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     Thread.sleep(250); // timer
     robot.turretSpinner.setPower(0);
 */
-    robot.launcher.setPower(0.9);
-    Thread.sleep(4500); // let launcher reach full speed
+    robot.launcher.setPower(0.88);
+    Thread.sleep(3500); // let launcher reach full speed
 
     robot.kicker.setPosition(KICKER_UP);
     Thread.sleep(1000);  // give kicker time to push ball
+
 
     robot.kicker.setPosition(KICKER_DOWN);
     Thread.sleep(1000);  // let ball fully clear
