@@ -822,7 +822,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     // Shot 1
     aimTurretAtRedGoal();
 
-    robot.turretSpinner.setPower(0.5); // Stop turret after aiming
+    robot.turretSpinner.setPower(0.1); // Stop turret after aiming
     Thread.sleep(250); // timer
     robot.turretSpinner.setPower(0);
 
@@ -849,7 +849,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     // Shot 2
     aimTurretAtRedGoal();
 
-    robot.turretSpinner.setPower(0.5); // Stop turret after aiming
+    robot.turretSpinner.setPower(0.1); // Stop turret after aiming
     Thread.sleep(250); // timer
     robot.turretSpinner.setPower(0);
 
@@ -875,10 +875,10 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     // Shot 3
     aimTurretAtRedGoal();
 
-    robot.turretSpinner.setPower(0.5); // Stop turret after aiming
+    robot.turretSpinner.setPower(0.1); // Stop turret after aiming
     Thread.sleep(250); // timer
     robot.turretSpinner.setPower(0);
-    
+
     robot.launcher.setPower(1);
     Thread.sleep(2000);
     

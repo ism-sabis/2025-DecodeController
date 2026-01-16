@@ -670,7 +670,7 @@ public class RedRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
             // double ty = Math.max(tag.getTargetYDegrees(), 2.0);
 
-            double area = result.getTa();
+            double area = result.getTa();  
             // telemetry.addData("area", "%.2f", area);
 
             double launcherPower = 0;
