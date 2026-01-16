@@ -821,19 +821,21 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     public void autoShoot() throws InterruptedException {
     // Shot 1
     aimTurretAtRedGoal();
-
+/* 
     robot.turretSpinner.setPower(0.1); // Stop turret after aiming
     Thread.sleep(250); // timer
     robot.turretSpinner.setPower(0);
+*/
+    robot.launcher.setPower(0.9);
+    Thread.sleep(3000); // let launcher reach full speed
 
-    robot.launcher.setPower(1);
-    Thread.sleep((long)(2000));  // Convert seconds to milliseconds
+    robot.kicker.setPosition(KICKER_UP);
+    Thread.sleep(1000);  // give kicker time to push ball
 
-     robot.kicker.setPosition(KICKER_UP);
-    robot.launcher.setPower(0);  // Stop launcher between shots
-    Thread.sleep(1000);  // 1.0 second for kicker to fully extend
     robot.kicker.setPosition(KICKER_DOWN);
-    Thread.sleep(1000);
+    Thread.sleep(1000);  // let ball fully clear
+
+    robot.launcher.setPower(0);  // Stop launcher between shots
 
     robot.feedingRotation.setPower(0.7);
     
@@ -848,19 +850,21 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     
     // Shot 2
     aimTurretAtRedGoal();
-
+/* 
     robot.turretSpinner.setPower(0.1); // Stop turret after aiming
     Thread.sleep(250); // timer
     robot.turretSpinner.setPower(0);
+*/
+    robot.launcher.setPower(0.9);
+    Thread.sleep(3500); // let launcher reach full speed
 
-    robot.launcher.setPower(1);
-    Thread.sleep((long)(2000));
-    
     robot.kicker.setPosition(KICKER_UP);
-    robot.launcher.setPower(0);  // Stop launcher between shots
-    Thread.sleep(1000);  // 1.0 second for kicker to fully extend
+    Thread.sleep(1000);  // give kicker time to push ball
+
     robot.kicker.setPosition(KICKER_DOWN);
-    Thread.sleep(1000);
+    Thread.sleep(1000);  // let ball fully clear
+
+    robot.launcher.setPower(0);  // Stop launcher between shots
 
     robot.feedingRotation.setPower(0.7);
     
@@ -874,19 +878,21 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     
     // Shot 3
     aimTurretAtRedGoal();
-
+/* 
     robot.turretSpinner.setPower(0.1); // Stop turret after aiming
     Thread.sleep(250); // timer
     robot.turretSpinner.setPower(0);
+*/
+    robot.launcher.setPower(0.9);
+    Thread.sleep(4500); // let launcher reach full speed
 
-    robot.launcher.setPower(1);
-    Thread.sleep(2000);
-    
     robot.kicker.setPosition(KICKER_UP);
-    robot.launcher.setPower(0);  // Stop launcher between shots
-    Thread.sleep(1000);  // 1.0 second for kicker to fully extend
+    Thread.sleep(1000);  // give kicker time to push ball
+
     robot.kicker.setPosition(KICKER_DOWN);
-    Thread.sleep(1000);
+    Thread.sleep(1000);  // let ball fully clear
+
+    robot.launcher.setPower(0);  // Stop launcher between shots
 }
     public void aimTurretAtRedGoal() {
         long timeoutMs = System.currentTimeMillis() + 5000;  // 5 second timeout
