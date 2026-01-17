@@ -389,9 +389,11 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
         //aimTurretAtRedGoal();  // Aim turret at goal before shooting
         //autoShootAllBalls(); // Shoot all preloaded balls
 
+        encoderDrive(TURN_SPEED, 12, -12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
+
         encoderDrive(DRIVE_SPEED, 10, 10, 4.0); // S3: Reverse 24 inches (mirrored), 4 sec timeout
 
-        encoderDrive(TURN_SPEED, -12, 12, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
+        encoderDrive(TURN_SPEED, -24, 24, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
 
 /* 
         encoderDrive(TURN_SPEED, 23, -23, 4.0); // S2: Turn right 12 inches (mirrored left), 4 sec timeout
@@ -890,7 +892,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     Thread.sleep(250); // timer
     robot.turretSpinner.setPower(0);
 */
-    robot.launcher.setPower(0.88);
+    robot.launcher.setPower(0.9); //.88
     Thread.sleep(3500); // let launcher reach full speed
 
     robot.kicker.setPosition(KICKER_UP);

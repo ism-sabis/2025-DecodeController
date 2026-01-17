@@ -675,7 +675,7 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
             double launcherPower = 0;
 
-            launcherPower = (0.00303584 * distanceNew) + 0.586525; //.65
+            launcherPower = (0.00303584 * distanceNew) + 0.606525; //.65
 
             return launcherPower;
         }
