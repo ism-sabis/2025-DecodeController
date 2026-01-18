@@ -831,7 +831,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     Thread.sleep(250); // timer
     robot.turretSpinner.setPower(0);
 */
-    robot.launcher.setPower(0.9);
+    robot.launcher.setPower(0.95);
     Thread.sleep(3000); // let launcher reach full speed
 
     robot.kicker.setPosition(KICKER_UP);
@@ -862,7 +862,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     Thread.sleep(250); // timer
     robot.turretSpinner.setPower(0);
 */
-    robot.launcher.setPower(0.9);
+    robot.launcher.setPower(0.95);
     Thread.sleep(3500); // let launcher reach full speed
 
     robot.kicker.setPosition(KICKER_UP);
@@ -892,7 +892,7 @@ public class RedAudienceRobotAutoDriveByEncoder_Linear extends LinearOpMode {
     Thread.sleep(250); // timer
     robot.turretSpinner.setPower(0);
 */
-    robot.launcher.setPower(0.9); //.88
+    robot.launcher.setPower(0.95); //.88
     Thread.sleep(3500); // let launcher reach full speed
 
     robot.kicker.setPosition(KICKER_UP);

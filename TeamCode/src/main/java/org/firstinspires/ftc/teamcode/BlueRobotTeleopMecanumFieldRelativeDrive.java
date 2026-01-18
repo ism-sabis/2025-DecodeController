@@ -282,6 +282,44 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
             if (gamepads.isPressed(2, "square")) {
                 startReindex();
             }
+            if (gamepads.isPressed(2, "left_dpad")) {
+                robot.launcher.setPower(0.85);
+                waitTimer.reset();
+                launcherState = LauncherState.SPINNING;
+                if (launcherState == LauncherState.SPINNING && waitTimer.seconds() >=3) {
+                    //safeKick();
+                    robot.kicker.setPosition(KICKER_UP);
+                    waitTimer.reset();
+                    launcherState = LauncherState.KICKING;
+                } else if (launcherState == LauncherState.KICKING && waitTimer.seconds() >= 0.6) {
+                    robot.kicker.setPosition(KICKER_DOWN);
+                    waitTimer.reset();
+                    launcherState = LauncherState.UNKICKING;
+                }
+                else if (launcherState == LauncherState.UNKICKING && waitTimer.seconds() >= 0.5) {
+                    robot.launcher.setPower(0);
+                    launcherState = LauncherState.IDLE;
+                }
+            }
+            if (gamepads.isPressed(2, "right_dpad")) {
+                robot.launcher.setPower(1.0);
+                waitTimer.reset();
+                launcherState = LauncherState.SPINNING;
+                if (launcherState == LauncherState.SPINNING && waitTimer.seconds() >=3) {
+                    //safeKick();
+                    robot.kicker.setPosition(KICKER_UP);
+                    waitTimer.reset();
+                    launcherState = LauncherState.KICKING;
+                } else if (launcherState == LauncherState.KICKING && waitTimer.seconds() >= 0.6) {
+                    robot.kicker.setPosition(KICKER_DOWN);
+                    waitTimer.reset();
+                    launcherState = LauncherState.UNKICKING;
+                }
+                else if (launcherState == LauncherState.UNKICKING && waitTimer.seconds() >= 0.5) {
+                    robot.launcher.setPower(0);
+                    launcherState = LauncherState.IDLE;
+                }
+            }
             if (gamepad2.triangle) {
                 // Eject ball at intake position - runs while held
                 if (!isAtSensorPosition()) {
@@ -675,7 +713,7 @@ public class BlueRobotTeleopMecanumFieldRelativeDrive extends OpMode {
 
             double launcherPower = 0;
 
-            launcherPower = (0.00303584 * distanceNew) + 0.606525; //.65
+            launcherPower = (0.00306584 * distanceNew) + 0.636525; //.65 0.00303584
 
             return launcherPower;
         }
