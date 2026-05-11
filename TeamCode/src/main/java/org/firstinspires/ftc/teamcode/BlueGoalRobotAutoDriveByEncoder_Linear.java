@@ -708,7 +708,7 @@ public class BlueGoalRobotAutoDriveByEncoder_Linear extends LinearOpMode {
             }
 
             for (LLResultTypes.FiducialResult tag : result.getFiducialResults()) {
-                if (tag.getFiducialId() == 20) { // Red Alliance goal
+                if (tag.getFiducialId() == 20) { // Blue Alliance goal
                     double tx = tag.getTargetXDegrees();
 
                     // ------------------------
